@@ -43,3 +43,5 @@ yarn-error.*
 
 # Other
 *.orig.*
+
+app.config.js
