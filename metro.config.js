@@ -6,4 +6,4 @@ const config = getDefaultConfig(__dirname);
 config.resolver.assetExts.push("cjs");
 config.resolver.unstable_enablePackageExports = false;
 
-module.exports = withNativeWind(config, { input: "./globals.css" });
+module.exports = withNativeWind(config, { input: "./app/globals.css" });
