@@ -18,3 +18,5 @@ export const GOOGLE_CLIENT_IDS = {
 };
 
 export const GOOGLE_API_KEY = extra.GOOGLE_API_KEY;
+export const SPOTIFY_CLIENT_ID = extra.SPOTIFY_CLIENT_ID;
+export const SPOTIFY_CLIENT_SECRET = extra.SPOTIFY_CLIENT_SECRET;

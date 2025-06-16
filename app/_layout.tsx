@@ -1,13 +1,17 @@
 import { View, Text } from "react-native";
 import "./globals.css";
-import { Stack } from "expo-router";
+import { Stack, Redirect } from "expo-router";
 
 const _layout = () => {
   return (
-    <Stack>
+    <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen
-        name="login"
-        options={{ headerShown: false, title: "Login" }}
+        name="(auth)"
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="(tabs)"
+        options={{ headerShown: false }}
       />
     </Stack>
   );

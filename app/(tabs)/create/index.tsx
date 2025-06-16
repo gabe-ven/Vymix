@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 
 export default function CreateScreen() {
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-blue">
       <View className="flex-1 justify-center items-center px-8">
         <Text className="text-3xl font-bold text-gray-900 mb-8">
           How are you feeling?

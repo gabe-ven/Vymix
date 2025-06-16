@@ -2,7 +2,7 @@ import { View, Text } from 'react-native';
 
 export default function HistoryScreen() {
   return (
-    <View className="flex-1 items-center justify-center bg-white">
+    <View className="flex-1 items-center justify-center bg-blue">
       <Text className="text-2xl font-bold">History Screen</Text>
     </View>
   );
