@@ -199,7 +199,7 @@ export default function LoginScreen() {
         disabled={loading}
         className="w-full"
       >
-        <View className="bg-transparent border-2 border-white/30 rounded-2xl py-5 px-6">
+        <View className="bg-transparent border-2 border-[#ED8770] rounded-2xl py-5 px-6">
           {loading ? (
             <ActivityIndicator color="#ffffff" />
           ) : (

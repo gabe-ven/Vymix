@@ -7,7 +7,7 @@ module.exports = {
       colors: {
         blue: "#211c84",
         darkBlue: "#1A1A1A",
-        darkPurple: "#332D56",
+        darkPurple: "#191a2c",
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

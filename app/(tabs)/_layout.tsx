@@ -1,29 +1,96 @@
-import React from 'react';
+import React, { ReactElement } from 'react';
 import { Tabs } from 'expo-router';
-import { FontAwesome } from '@expo/vector-icons';
-import { Platform, View, Text } from 'react-native';
+import { View, Text } from 'react-native';
+import { MaterialIcons, Ionicons, Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import MaskedView from '@react-native-masked-view/masked-view';
 
 type IconName = 'plus' | 'calendar' | 'user';
 
+const GradientMask = ({ 
+  children, 
+  width, 
+  height 
+}: { 
+  children: ReactElement; 
+  width?: number; 
+  height?: number;
+}) => (
+  <View style={{ width, height }}>
+    <MaskedView
+      style={{ width: '100%', height: '100%' }}
+      maskElement={children}
+    >
+      <LinearGradient
+        colors={['#FF8C00', '#FFD700']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={{ width: '100%', height: '100%' }}
+      >
+        <View style={{ opacity: 0 }}>{children}</View>
+      </LinearGradient>
+    </MaskedView>
+  </View>
+);
+
 const TabIcon = ({ focused, icon, title }: { focused: boolean; icon: IconName; title: string }) => {
-  if (focused) {
-    return (
-      <View className="flex flex-row w-full min-w-[130px] min-h-16 mt-4 justify-center items-center rounded-full bg-[#1DCD9F]/20 overflow-hidden">
-        <FontAwesome name={icon} size={20} color="#1DCD9F" />
-        <Text className="text-[#1DCD9F] text-base font-semibold ml-2">{title}</Text>
-      </View>
-    );
-  }
+  const getIcon = () => {
+    const iconProps = { size: 24, color: focused ? '#FF8C00' : '#686a73' };
+    
+    switch (icon) {
+      case 'plus':
+        return <Feather name="plus-circle" {...iconProps} />;
+      case 'calendar':
+        return <Ionicons name="time-outline" {...iconProps} />;
+      case 'user':
+        return <MaterialIcons name="person-outline" {...iconProps} />;
+      default:
+        return <Feather name="plus-circle" {...iconProps} />; // Fallback icon
+    }
+  };
+
+  const iconElement = getIcon();
+  const textElement = (
+    <Text style={{ fontSize: 16, fontWeight: '600', color: 'black' }}>
+      {title}
+    </Text>
+  );
+
   return (
-    <View className="size-full justify-center items-center mt-4 rounded-full">
-      <FontAwesome name={icon} size={20} color="#9CA3AF" />
+    <View className="flex flex-col w-full min-w-[130px] min-h-16 mt-8 justify-center items-center rounded-full overflow-hidden">
+      <View style={{ width: 24, height: 24, justifyContent: 'center', alignItems: 'center' }}>
+        {focused ? (
+          <GradientMask width={24} height={24}>
+            {iconElement}
+          </GradientMask>
+        ) : (
+          iconElement
+        )}
+      </View>
+      <View style={{ height: 24, justifyContent: 'center', alignItems: 'center', marginTop: 4 }}>
+        {focused ? (
+          <GradientMask height={24}>
+            {textElement}
+          </GradientMask>
+        ) : (
+          <Text 
+            style={{ 
+              fontSize: 16, 
+              fontWeight: '600', 
+              color: '#686a73',
+            }}
+          >
+            {title}
+          </Text>
+        )}
+      </View>
     </View>
   );
 };
 
 export default function TabLayout() {
   return (
-    <View className="flex-1 bg-darkPurple">
+    <View className="flex-1 bg-[darkPurple]">
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -35,16 +102,23 @@ export default function TabLayout() {
             alignItems: 'center',
           },
           tabBarStyle: {
-            backgroundColor: '#1a1a1a',
+            backgroundColor: '#151623',
             borderRadius: 50,
-            marginHorizontal: 27,
-            marginBottom: 36,
-            height: 52,
+            marginHorizontal: 10,
+            marginBottom: 20,
+            height: 65,
             position: 'absolute',
-            overflow: 'hidden',
             borderWidth: 1,
-            borderColor: '#1a1a1a',
+            borderColor: '#151623',
+          
+            shadowColor: '#000000',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.5,
+            shadowRadius: 15,
+    
+            elevation: 15,
           },
+          
         }}
       >
         <Tabs.Screen
