@@ -3,8 +3,8 @@ import React from 'react'
 
 const playlist = () => {
   return (
-    <View>
-      <Text>playlist</Text>
+    <View className="bg-darkPurple flex-1">
+      <Text className="text-white">playlist</Text>
     </View>
   )
 }

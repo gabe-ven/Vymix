@@ -2,12 +2,10 @@ import React, { useEffect, useState } from "react";
 import { Image, Text, TouchableOpacity, View, ActivityIndicator } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
-import { signInWithCredential, GoogleAuthProvider, signInAnonymously } from "firebase/auth";
-import { auth as webAuth } from "../../services/firebase";
 import { GOOGLE_CLIENT_IDS } from "../../env";
 import { useRouter } from "expo-router";
 import { appleAuth } from '@invertase/react-native-apple-authentication';
-import auth from '@react-native-firebase/auth';
+import auth, { GoogleAuthProvider } from '@react-native-firebase/auth';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -41,10 +39,20 @@ export default function LoginScreen() {
       const { idToken } = (response.authentication as { idToken?: string }) || {};
       if (idToken) {
         const credential = GoogleAuthProvider.credential(idToken);
-        signInWithCredential(webAuth, credential)
-          .then(() => {
-            setUserLoggedIn(true);
-            router.replace("/(tabs)/create");
+        auth()
+          .signInWithCredential(credential)
+          .then(async (userCredential) => {
+            // Get the user's profile information
+            const user = userCredential.user;
+            if (user) {
+              // Update the user's profile with Google information
+              await user.updateProfile({
+                displayName: user.displayName || user.email?.split('@')[0],
+                photoURL: user.photoURL
+              });
+              setUserLoggedIn(true);
+              router.replace("/(tabs)/create");
+            }
           })
           .catch((err) => {
             console.error("Firebase sign-in error:", err);
@@ -88,7 +96,7 @@ export default function LoginScreen() {
     try {
       setLoading(true);
       setError(null);
-      const userCredential = await signInAnonymously(webAuth);
+      const userCredential = await auth().signInAnonymously();
       if (userCredential.user) {
         setUserLoggedIn(true);
         router.replace("/(tabs)/create");

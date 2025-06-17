@@ -6,6 +6,8 @@ module.exports = {
     extend: {
       colors: {
         blue: "#211c84",
+        darkBlue: "#1A1A1A",
+        darkPurple: "#332D56",
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
