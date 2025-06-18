@@ -2,17 +2,3 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Set Poppins as the default font for all text */
-* {
-  font-family: 'Poppins', system-ui, sans-serif;
-}
-
-/* Ensure all Text components use Poppins by default */
-.Text {
-  font-family: 'Poppins', system-ui, sans-serif;
-}
-
-/* For React Native Text components */
-text {
-  font-family: 'Poppins', system-ui, sans-serif;
-}

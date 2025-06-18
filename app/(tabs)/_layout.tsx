@@ -5,7 +5,7 @@ import { MaterialIcons, Ionicons, Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
 
-type IconName = 'plus' | 'calendar' | 'user' | 'playlist';
+type IconName = 'plus' | 'user' | 'playlist';
 
 const GradientMask = ({ 
   children, 
@@ -88,7 +88,7 @@ const TabIcon = ({ focused, icon, title }: { focused: boolean; icon: IconName; t
 
 export default function TabLayout() {
   return (
-    <View className="flex-1 bg-[darkPurple]">
+    <View className="flex-1 bg-[darkPurple] shadow-lg">
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -118,7 +118,7 @@ export default function TabLayout() {
         }}
       >
         <Tabs.Screen
-          name="create/index"
+          name="create"
           options={{
             title: 'Create',
             headerShown: false,
@@ -130,10 +130,10 @@ export default function TabLayout() {
         <Tabs.Screen
           name="mixes"
           options={{
-            title: 'Mixes',
+            title: 'Your Mixes',
             headerShown: false,
             tabBarIcon: ({ focused }) => (
-              <TabIcon focused={focused} icon="playlist" title="Mixes" />
+              <TabIcon focused={focused} icon="playlist" title="Your Mixes" />
             ),
           }}
         />
@@ -145,18 +145,6 @@ export default function TabLayout() {
             tabBarIcon: ({ focused }) => (
               <TabIcon focused={focused} icon="user" title="Profile" />
             ),
-          }}
-        />
-        <Tabs.Screen
-          name="create/emoji"
-          options={{
-            href: null,
-          }}
-        />
-        <Tabs.Screen
-          name="create/playlist"
-          options={{
-            href: null,
           }}
         />
       </Tabs>

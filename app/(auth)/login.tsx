@@ -128,7 +128,7 @@ export default function LoginScreen() {
       <Text className="text-5xl md:text-7xl font-extrabold text-white mb-4 tracking-tight text-center font-poppins-bold">
         VYMIX
       </Text>
-      <Text className="text-2xl md:text-3xl text-gray-200 mb-16 md:mb-20 text-center font-medium px-4 font-poppins">
+      <Text className="text-2xl md:text-3xl text-gray-300 mb-16 md:mb-20 text-center font-medium px-4 font-poppins">
         Your vibe. Your mix.
       </Text>
 

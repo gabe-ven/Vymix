@@ -6,13 +6,19 @@ import {
   Animated,
   Easing,
   Dimensions,
+  TouchableOpacity,
 } from 'react-native';
+import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { GradientMask } from './GradientMask';
+import { COLORS } from '../constants/colors';
+
 
 interface VibeInputProps {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
+  onKeyPress?: (event: any) => void;
+  onNext?: () => void;
 }
 
 const examples = [
@@ -46,6 +52,8 @@ export const VibeInput: React.FC<VibeInputProps> = ({
   value,
   onChangeText,
   placeholder = "I'm feeling...",
+  onKeyPress,
+  onNext,
 }) => {
   const [index, setIndex] = useState(0);
   const translateY = useRef(new Animated.Value(0)).current;
@@ -99,6 +107,23 @@ export const VibeInput: React.FC<VibeInputProps> = ({
     return () => clearInterval(interval);
   }, [opacity, translateY]);
 
+  const handleKeyPress = (event: any) => {
+    if (event.nativeEvent.key === 'Enter' && value.trim() && onNext) {
+      event.preventDefault();
+      onNext();
+      return;
+    }
+    if (onKeyPress) {
+      onKeyPress(event);
+    }
+  };
+
+  const handleNext = () => {
+    if (value.trim() && onNext) {
+      onNext();
+    }
+  };
+
   return (
     <View className="w-full h-full p-4 flex items-center justify-center">
       <Text className="text-4xl md:text-5xl font-bold text-white mb-6 text-center px-4 font-poppins-bold">
@@ -133,7 +158,25 @@ export const VibeInput: React.FC<VibeInputProps> = ({
         maxLength={280}
         selectionColor="#FF8C00"
         style={{ fontSize: 20, lineHeight: 28 }}
+        onKeyPress={handleKeyPress}
+        onSubmitEditing={() => {
+          if (value.trim() && onNext) {
+            onNext();
+          }
+        }}
+        blurOnSubmit={true}
       />
+
+      <View className="h-20 mt-6">
+        {value.trim() && (
+          <TouchableOpacity
+            onPress={handleNext}
+            className="bg-darkBlue rounded-full w-24 h-16 shadow-lg items-center justify-center"
+          >
+            <Ionicons name="arrow-forward" size={28} color="#FFFFFF" />
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 };
