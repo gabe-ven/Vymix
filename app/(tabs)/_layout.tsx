@@ -5,7 +5,7 @@ import { MaterialIcons, Ionicons, Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
 
-type IconName = 'plus' | 'calendar' | 'user';
+type IconName = 'plus' | 'calendar' | 'user' | 'playlist';
 
 const GradientMask = ({ 
   children, 
@@ -35,53 +35,51 @@ const GradientMask = ({
 
 const TabIcon = ({ focused, icon, title }: { focused: boolean; icon: IconName; title: string }) => {
   const getIcon = () => {
-    const iconProps = { size: 24, color: focused ? '#FF8C00' : '#686a73' };
+    const iconProps = { size: focused ? 28 : 24, color: focused ? '#FF8C00' : '#686a73' };
     
     switch (icon) {
       case 'plus':
         return <Feather name="plus-circle" {...iconProps} />;
-      case 'calendar':
-        return <Ionicons name="time-outline" {...iconProps} />;
+      case 'playlist':
+        return <Ionicons name="list" {...iconProps} />;
       case 'user':
         return <MaterialIcons name="person-outline" {...iconProps} />;
       default:
-        return <Feather name="plus-circle" {...iconProps} />; // Fallback icon
+        return <Feather name="plus-circle" {...iconProps} />;
     }
   };
 
   const iconElement = getIcon();
   const textElement = (
-    <Text style={{ fontSize: 16, fontWeight: '600', color: 'black' }}>
+    <Text className={`text-sm md:text-base font-semibold text-black h-6 text-center leading-6 font-poppins-bold ${focused ? 'text-base md:text-lg' : ''}`}>
       {title}
     </Text>
   );
 
   return (
-    <View className="flex flex-col w-full min-w-[130px] min-h-16 mt-8 justify-center items-center rounded-full overflow-hidden">
-      <View style={{ width: 24, height: 24, justifyContent: 'center', alignItems: 'center' }}>
+    <View className={`flex flex-col w-full min-w-[100px] md:min-w-[130px] min-h-16 mt-8 justify-center items-center rounded-full overflow-hidden ${focused ? 'scale-110' : ''}`}>
+      <View className="w-6 h-6 justify-center items-center">
         {focused ? (
-          <GradientMask width={24} height={24}>
+          <GradientMask width={28} height={28}>
             {iconElement}
           </GradientMask>
         ) : (
-          iconElement
+          <View style={{ width: 24, height: 24, justifyContent: 'center', alignItems: 'center' }}>
+            {iconElement}
+          </View>
         )}
       </View>
-      <View style={{ height: 24, justifyContent: 'center', alignItems: 'center', marginTop: 4 }}>
+      <View className={`h-6 justify-center items-center ${focused ? 'mt-2' : 'mt-1'}`}>
         {focused ? (
-          <GradientMask height={24}>
+          <GradientMask height={28}>
             {textElement}
           </GradientMask>
         ) : (
-          <Text 
-            style={{ 
-              fontSize: 16, 
-              fontWeight: '600', 
-              color: '#686a73',
-            }}
-          >
-            {title}
-          </Text>
+          <View className="h-6 justify-center items-center">
+            <Text className="text-sm md:text-base font-semibold text-[#686a73] h-6 text-center leading-6 font-poppins">
+              {title}
+            </Text>
+          </View>
         )}
       </View>
     </View>
@@ -100,25 +98,23 @@ export default function TabLayout() {
             height: '100%',
             justifyContent: 'center',
             alignItems: 'center',
+            paddingVertical: 8,
           },
           tabBarStyle: {
             backgroundColor: '#151623',
             borderRadius: 50,
-            marginHorizontal: 10,
+            marginHorizontal: 8,
             marginBottom: 20,
-            height: 65,
+            height: 75,
             position: 'absolute',
             borderWidth: 1,
             borderColor: '#151623',
-          
             shadowColor: '#000000',
             shadowOffset: { width: 0, height: 8 },
             shadowOpacity: 0.5,
             shadowRadius: 15,
-    
             elevation: 15,
           },
-          
         }}
       >
         <Tabs.Screen
@@ -132,12 +128,12 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="history"
+          name="mixes"
           options={{
-            title: 'History',
+            title: 'Mixes',
             headerShown: false,
             tabBarIcon: ({ focused }) => (
-              <TabIcon focused={focused} icon="calendar" title="History" />
+              <TabIcon focused={focused} icon="playlist" title="Mixes" />
             ),
           }}
         />

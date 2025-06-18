@@ -3,8 +3,8 @@ import React from 'react'
 
 const emoji = () => {
   return (
-    <View className="bg-darkPurple flex-1">
-      <Text className="text-white">emoji</Text>
+    <View className="flex-1 bg-darkPurple justify-center items-center">
+      <Text className="text-white font-poppins">emoji</Text>
     </View>
   )
 }

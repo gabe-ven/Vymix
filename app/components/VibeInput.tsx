@@ -5,9 +5,8 @@ import {
   Text,
   Animated,
   Easing,
+  Dimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import MaskedView from '@react-native-masked-view/masked-view';
 import { GradientMask } from './GradientMask';
 
 interface VibeInputProps {
@@ -51,6 +50,7 @@ export const VibeInput: React.FC<VibeInputProps> = ({
   const [index, setIndex] = useState(0);
   const translateY = useRef(new Animated.Value(0)).current;
   const opacity = useRef(new Animated.Value(1)).current;
+  const { width: screenWidth } = Dimensions.get('window');
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -70,9 +70,13 @@ export const VibeInput: React.FC<VibeInputProps> = ({
         }),
       ]).start(() => {
         // Update text and reset position
-        setIndex((prev) => (prev + 1) % examples.length);
         translateY.setValue(20);
         opacity.setValue(0);
+        
+        // Use requestAnimationFrame to defer state update
+        requestAnimationFrame(() => {
+          setIndex((prev) => (prev + 1) % examples.length);
+        });
 
         // Fade in and slide up
         Animated.parallel([
@@ -93,23 +97,25 @@ export const VibeInput: React.FC<VibeInputProps> = ({
     }, 4000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [opacity, translateY]);
 
   return (
     <View className="w-full h-full p-4 flex items-center justify-center">
-      <Text className="text-5xl font-bold text-white mb-6">What's your vibe?</Text>
+      <Text className="text-4xl md:text-5xl font-bold text-white mb-6 text-center px-4 font-poppins-bold">
+        What's your vibe?
+      </Text>
 
       <Animated.View
-        className="w-full items-center mb-3"
+        className="w-full items-center mb-3 px-4"
         style={{
           transform: [{ translateY }],
           opacity,
         }}
       >
         <View className="flex-row items-center justify-center">
-          <GradientMask width={350} height={30}>
+          <GradientMask width={Math.min(screenWidth - 32, 350)} height={30}>
             <View style={{ justifyContent: 'center', alignItems: 'center' }}>
-              <Text className="text-xl font-bold text-black">
+              <Text className="text-lg md:text-xl font-bold text-black text-center font-poppins-bold" style={{ fontSize: 19 }}>
                 {examples[index]}
               </Text>
             </View>
@@ -118,7 +124,7 @@ export const VibeInput: React.FC<VibeInputProps> = ({
       </Animated.View>
 
       <TextInput
-        className="bg-[#151623] rounded-2xl p-6 text-2xl text-white min-h-[80px] w-full text-left"
+        className="bg-[#151623] rounded-2xl p-4 md:p-6 text-lg md:text-2xl text-white min-h-[80px] w-full text-left mx-4 font-poppins"
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -126,6 +132,7 @@ export const VibeInput: React.FC<VibeInputProps> = ({
         multiline
         maxLength={280}
         selectionColor="#FF8C00"
+        style={{ fontSize: 20, lineHeight: 28 }}
       />
     </View>
   );

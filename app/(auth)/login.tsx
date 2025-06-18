@@ -6,6 +6,7 @@ import { GOOGLE_CLIENT_IDS } from "../../env";
 import { useRouter } from "expo-router";
 import { appleAuth } from '@invertase/react-native-apple-authentication';
 import auth, { GoogleAuthProvider } from '@react-native-firebase/auth';
+import { TopWave, BottomWave } from "../components/Wave";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -108,42 +109,33 @@ export default function LoginScreen() {
       setLoading(false);
     }
   };
-
-  if (userLoggedIn) {
-    return (
-      <View className="flex-1 justify-center items-center bg-white">
-        <Text className="text-2xl font-semibold text-gray-900">
-          Welcome! You are logged in.
-        </Text>
-      </View>
-    );
-  }
-
+  
   return (
-    <View className="flex-1 bg-blue justify-center items-center px-8">
+    <View className="flex-1 bg-darkPurple justify-center items-center px-4 md:px-8">
+      <TopWave />
       {/* Logo Container with Glow Effect */}
-      <View className="items-center mb-8">
-        <View className="rounded-full p-4 bg-white/10">
+      <View className="items-center">
+        <View className="rounded-full p-4 ">
           <Image
             source={require("../../assets/images/splash-icon.png")}
-            className="w-56 h-56"
+            className="w-56 h-56 md:w-64 md:h-64"
             resizeMode="contain"
           />
         </View>
       </View>
 
       {/* Title with Enhanced Typography */}
-      <Text className="text-6xl font-extrabold text-white mb-4 tracking-tight">
+      <Text className="text-5xl md:text-7xl font-extrabold text-white mb-4 tracking-tight text-center font-poppins-bold">
         VYMIX
       </Text>
-      <Text className="text-2xl text-gray-200 mb-16 text-center font-medium">
+      <Text className="text-2xl md:text-3xl text-gray-200 mb-16 md:mb-20 text-center font-medium px-4 font-poppins">
         Your vibe. Your mix.
       </Text>
 
       {/* Error Message */}
       {error && (
-        <View className="w-full mb-4 bg-red-100 p-4 rounded-xl">
-          <Text className="text-red-600 text-center">{error}</Text>
+        <View className="w-full mb-4 bg-red-100 p-4 rounded-xl mx-4">
+          <Text className="text-red-600 text-center font-poppins">{error}</Text>
         </View>
       )}
 
@@ -151,18 +143,18 @@ export default function LoginScreen() {
       <TouchableOpacity
         onPress={() => promptAsync()}
         disabled={!request || loading}
-        className="w-full mb-4"
+        className="w-full mb-4 px-4"
       >
-        <View className="bg-white rounded-2xl py-5 px-6 shadow-lg flex-row items-center justify-center">
+        <View className="bg-white rounded-2xl py-4 md:py-5 px-6 shadow-lg flex-row items-center justify-center">
           {loading ? (
             <ActivityIndicator color="#211c84" />
           ) : (
             <>
               <Image
                 source={require("../../assets/images/google-icon.png")}
-                className="w-7 h-7 mr-4"
+                className="w-6 h-6 md:w-7 md:h-7 mr-3 md:mr-4"
               />
-              <Text className="text-gray-800 text-center font-medium text-xl">
+              <Text className="text-gray-800 text-center font-medium text-lg md:text-xl font-poppins">
                 Continue with Google
               </Text>
             </>
@@ -174,18 +166,18 @@ export default function LoginScreen() {
       <TouchableOpacity
         onPress={onAppleButtonPress}
         disabled={loading}
-        className="w-full mb-4"
+        className="w-full mb-4 px-4"
       >
-        <View className="bg-black rounded-2xl py-5 px-6 shadow-lg flex-row items-center justify-center">
+        <View className="bg-black rounded-2xl py-4 md:py-5 px-6 shadow-lg flex-row items-center justify-center">
           {loading ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
             <>
               <Image
                 source={require("../../assets/images/apple-icon.png")}
-                className="w-7 h-7 mr-4"
+                className="w-6 h-6 md:w-7 md:h-7 mr-3 md:mr-4"
               />
-              <Text className="text-white text-center font-medium text-xl">
+              <Text className="text-white text-center font-medium text-lg md:text-xl font-poppins">
                 Continue with Apple
               </Text>
             </>
@@ -197,18 +189,21 @@ export default function LoginScreen() {
       <TouchableOpacity
         onPress={handleGuestLogin}
         disabled={loading}
-        className="w-full"
+        className="w-full px-4"
       >
-        <View className="bg-transparent border-2 border-[#ED8770] rounded-2xl py-5 px-6">
+        <View className="bg-transparent border-2 border-white/20 rounded-2xl py-4 md:py-5 px-6">
           {loading ? (
             <ActivityIndicator color="#ffffff" />
           ) : (
-            <Text className="text-white text-center font-medium text-xl">
+            <Text className="text-white text-center font-medium text-lg md:text-xl font-poppins">
               Continue as Guest
             </Text>
           )}
+
         </View>
+
       </TouchableOpacity>
+      <BottomWave />
     </View>
   );
 }

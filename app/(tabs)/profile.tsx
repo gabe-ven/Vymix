@@ -21,10 +21,10 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View className="bg-darkPurple flex-1 p-6 pb-24">
+    <View className="bg-darkPurple flex-1 p-4 md:p-6 pb-24">
       {/* Profile Header */}
-      <View className="items-center mt-12 mb-8">
-        <View className="w-24 h-24 bg-[#1a1a1a] rounded-full items-center justify-center mb-4 overflow-hidden">
+      <View className="items-center mt-8 md:mt-12 mb-6 md:mb-8">
+        <View className="w-20 h-20 md:w-24 md:h-24 bg-[#1a1a1a] rounded-full items-center justify-center mb-4 overflow-hidden">
           {user?.photoURL ? (
             <Image
               source={{ uri: user.photoURL }}
@@ -32,23 +32,20 @@ export default function ProfileScreen() {
               resizeMode="cover"
             />
           ) : (
-            <FontAwesome name="user" size={40} color="#666666" />
+            <FontAwesome name="user" size={32} color="#666666" />
           )}
         </View>
-        <Text className="text-2xl font-bold text-white mb-2">
+        <Text className="text-xl md:text-2xl font-bold text-white mb-2 text-center px-4 font-poppins-bold">
           {user?.displayName || user?.email?.split('@')[0] || 'User'}
-        </Text>
-        <Text className="text-gray-400">
-          {user?.email || 'Guest User'}
         </Text>
       </View>
 
       {/* Logout Button */}
       <TouchableOpacity
         onPress={handleSignOut}
-        className="bg-red-500 rounded-xl py-4 px-6"
+        className="bg-red-500 rounded-xl py-3 md:py-4 px-6 mx-4"
       >
-        <Text className="text-white text-center font-semibold text-lg">
+        <Text className="text-white text-center font-semibold text-base md:text-lg font-poppins">
           Sign Out
         </Text>
       </TouchableOpacity>

@@ -4,13 +4,25 @@ module.exports = {
   presets: [require("nativewind/preset")],
   theme: {
     extend: {
-      colors: {
-        blue: "#211c84",
-        darkBlue: "#1A1A1A",
-        darkPurple: "#191a2c",
-      },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['Poppins', 'system-ui', 'sans-serif'],
+        serif: ['Poppins', 'serif'],
+        mono: ['Poppins', 'monospace'],
+        'poppins': ['Poppins', 'sans-serif'],
+        'poppins-bold': ['Poppins-Bold', 'sans-serif'],
+      },
+      screens: {
+        'xs': '320px',
+        'sm': '640px',
+        'md': '768px',
+        'lg': '1024px',
+        'xl': '1280px',
+        '2xl': '1536px',
+      },
+      spacing: {
+        '18': '4.5rem',
+        '88': '22rem',
+        '128': '32rem',
       },
     },
   },
