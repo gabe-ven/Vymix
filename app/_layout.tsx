@@ -17,8 +17,8 @@ const _layout = () => {
   }
 
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <SafeAreaProvider>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen
             name="(auth)"
@@ -29,8 +29,8 @@ const _layout = () => {
             options={{ headerShown: false }}
           />
         </Stack>
-      </AuthProvider>
-    </SafeAreaProvider>
+      </SafeAreaProvider>
+    </AuthProvider>
   );
 };
 

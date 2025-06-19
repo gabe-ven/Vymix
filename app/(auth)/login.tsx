@@ -43,16 +43,13 @@ export default function LoginScreen() {
         auth()
           .signInWithCredential(credential)
           .then(async (userCredential) => {
-            // Get the user's profile information
             const user = userCredential.user;
             if (user) {
-              // Update the user's profile with Google information
               await user.updateProfile({
                 displayName: user.displayName || user.email?.split('@')[0],
                 photoURL: user.photoURL
               });
               setUserLoggedIn(true);
-              router.replace("/(tabs)/create");
             }
           })
           .catch((err) => {
@@ -83,7 +80,6 @@ export default function LoginScreen() {
       const userCredential = await auth().signInWithCredential(appleCredential);
       if (userCredential.user) {
         setUserLoggedIn(true);
-        router.replace("/(tabs)/create");
       }
     } catch (error) {
       console.error('Apple Sign-In Error:', error);
@@ -100,7 +96,6 @@ export default function LoginScreen() {
       const userCredential = await auth().signInAnonymously();
       if (userCredential.user) {
         setUserLoggedIn(true);
-        router.replace("/(tabs)/create");
       }
     } catch (err) {
       console.error("Anonymous sign-in error:", err);
@@ -113,7 +108,6 @@ export default function LoginScreen() {
   return (
     <View className="flex-1 bg-darkPurple justify-center items-center px-4 md:px-8">
       <TopWave />
-      {/* Logo Container with Glow Effect */}
       <View className="items-center">
         <View className="rounded-full p-4 ">
           <Image
@@ -124,7 +118,6 @@ export default function LoginScreen() {
         </View>
       </View>
 
-      {/* Title with Enhanced Typography */}
       <Text className="text-5xl md:text-7xl font-extrabold text-white mb-4 tracking-tight text-center font-poppins-bold">
         VYMIX
       </Text>
@@ -132,14 +125,12 @@ export default function LoginScreen() {
         Your vibe. Your mix.
       </Text>
 
-      {/* Error Message */}
       {error && (
         <View className="w-full mb-4 bg-red-100 p-4 rounded-xl mx-4">
           <Text className="text-red-600 text-center font-poppins">{error}</Text>
         </View>
       )}
 
-      {/* Google Login Button */}
       <TouchableOpacity
         onPress={() => promptAsync()}
         disabled={!request || loading}
@@ -162,7 +153,6 @@ export default function LoginScreen() {
         </View>
       </TouchableOpacity>
 
-      {/* Apple Login Button */}
       <TouchableOpacity
         onPress={onAppleButtonPress}
         disabled={loading}
@@ -185,7 +175,6 @@ export default function LoginScreen() {
         </View>
       </TouchableOpacity>
 
-      {/* Guest Login Button */}
       <TouchableOpacity
         onPress={handleGuestLogin}
         disabled={loading}
