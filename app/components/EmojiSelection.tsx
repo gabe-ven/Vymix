@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
 interface EmojiSelectionProps {
   onNext: (selectedEmojis: string[]) => void;
   maxSelection?: number;
@@ -84,10 +83,10 @@ const EmojiSelection: React.FC<EmojiSelectionProps> = ({
         {selectedEmojis.length > 0 ? (
           <TouchableOpacity
             onPress={handleNext}
-            className="bg-orangeRed/80 rounded-full w-48 h-16 items-center justify-center"
+            className="bg-darkBlue rounded-full w-24 h-16 items-center justify-center"
           >
-            <Text className="text-white text-xl font-poppins-bold text-center items-center justify-center">Create Playlist</Text>
-          </TouchableOpacity>
+            <Ionicons name="arrow-forward" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
         ) : (
           <TouchableOpacity
             onPress={handleSkip}

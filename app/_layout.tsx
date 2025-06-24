@@ -10,8 +10,8 @@ const _layout = () => {
 
   if (!fontsLoaded && !fontError) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#211C84' }}>
-        <Text style={{ color: 'white', fontSize: 18 }} className="font-poppins">Loading...</Text>
+      <View className="flex-1 justify-center items-center bg-[#211C84]">
+        <Text className="text-white text-lg font-poppins">Loading...</Text>
       </View>
     );
   }

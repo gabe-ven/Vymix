@@ -1,6 +1,6 @@
-import { View, Text, TouchableOpacity } from 'react-native'
+import { View, TouchableOpacity } from 'react-native'
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import EmojiSelection from '../../components/EmojiSelection';
 
@@ -14,7 +14,7 @@ const emoji = () => {
   const handleNextEmojis = async (selectedEmojis: string[]) => {
     try {
       await AsyncStorage.setItem('selectedEmojis', JSON.stringify(selectedEmojis));
-      router.push('/(tabs)/create/playlist');
+      router.push('/(tabs)/create/amount');
     } catch (error) {
       console.error('Error saving emojis:', error);
     }

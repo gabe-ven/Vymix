@@ -8,9 +8,8 @@ import {
   Dimensions,
   TouchableOpacity,
 } from 'react-native';
-import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { GradientMask } from './GradientMask';
-import { COLORS } from '../constants/colors';
 
 
 interface VibeInputProps {
@@ -171,7 +170,7 @@ export const VibeInput: React.FC<VibeInputProps> = ({
         {value.trim() && (
           <TouchableOpacity
             onPress={handleNext}
-            className="bg-darkBlue rounded-full w-24 h-16 shadow-lg items-center justify-center"
+            className="bg-darkBlue rounded-full w-24 h-16 items-center justify-center"
           >
             <Ionicons name="arrow-forward" size={28} color="#FFFFFF" />
           </TouchableOpacity>

@@ -23,7 +23,7 @@ export default function ProfileScreen() {
   return (
     <View className="bg-darkPurple flex-1 p-4 md:p-6 pb-24">
       {/* Profile Header */}
-      <View className="items-center mt-8 md:mt-12 mb-6 md:mb-8">
+      <View className="items-center mt-12 md:mt-16 mb-6 md:mb-8">
         <View className="w-20 h-20 md:w-24 md:h-24 bg-[#1a1a1a] rounded-full items-center justify-center mb-4 overflow-hidden">
           {user?.photoURL ? (
             <Image

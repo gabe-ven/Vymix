@@ -12,6 +12,7 @@ export default function CreateLayout() {
     >
       <Stack.Screen name="index" />
       <Stack.Screen name="emoji" />
+      <Stack.Screen name="amount" />
       <Stack.Screen name="playlist" />
     </Stack>
   );
