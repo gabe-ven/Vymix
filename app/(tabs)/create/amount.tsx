@@ -46,9 +46,12 @@ export default function Amount() {
         <View className="mt-12">
           <TouchableOpacity
             onPress={handleNext}
-            className="bg-darkPurple rounded-full w-24 h-16 items-center justify-center"
+            className="rounded-full px-8 py-4 items-center justify-center"
+            style={{ backgroundColor: COLORS.primary.darkPurple }}
           >
-            <Ionicons name="arrow-forward" size={32} color={COLORS.ui.white} />
+            <Text className="text-ui-white font-semibold text-xl font-poppins-bold">
+              Create Playlist
+            </Text>
           </TouchableOpacity>
         </View>
       </View>

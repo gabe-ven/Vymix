@@ -5,6 +5,7 @@ export const COLORS = {
     lime: '#B6F500',      // Primary accent (tab icons, focused states)
     orange: '#FF8C00',    // Primary orange (sliders, accents)
     yellow: '#FFFF00',
+    darkPurple: '#1e0e2f',
   },
 
   // 🌈 Gradient Colors

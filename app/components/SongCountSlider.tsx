@@ -40,7 +40,7 @@ export default function SongCountSlider({ onValueChange, initialValue = 10 }: So
           onValueChange={handleValueChange}
           step={1}
           minimumTrackTintColor={COLORS.primary.orange}
-          maximumTrackTintColor={COLORS.primary.yellow}
+          maximumTrackTintColor={COLORS.ui.gray.medium}
           thumbTintColor={COLORS.primary.orange}
           tapToSeek={true}
         />
