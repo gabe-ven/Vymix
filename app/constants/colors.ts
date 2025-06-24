@@ -1,34 +1,60 @@
 // Color constants for the Vymix app
 export const COLORS = {
-  // Primary gradient colors (yellow to red)
-  GOLD: '#FFD700',
-  ORANGE: '#FFA500',
-  DARK_ORANGE: '#FF8C00',
-  TOMATO_RED: '#FF6347',
-  ORANGE_RED: '#FF4500',
-  CRIMSON_RED: '#DC143C',
-  
-  // App theme colors
-  DARK_PURPLE: '#2b2d5c',
-  BLUE: '#211c84',
-  DARK_BLUE: '#1A1A1A',
-  
-  // UI colors
-  WHITE: '#FFFFFF',
-  BLACK: '#000000',
-  GRAY: '#686a73',
-  GRAY_LIGHT: '#686a73',
-  
-  // Background colors
-  TAB_BAR_BG: '#151623',
-  
-  // Gradient arrays for easy use
-  WAVE_GRADIENT: ['#FFD700', '#FFA500', '#FF6347', '#FF4500', '#DC143C'] as const,
-  WAVE_GRADIENT_REVERSE: ['#DC143C', '#FF4500', '#FF6347', '#FFA500', '#FFD700'] as const,
-  
-  // Legacy gradient (for backward compatibility)
-  LEGACY_GRADIENT: ['#FFD700', '#FF4500'] as const,
+  // 🎨 Primary Brand Colors
+  primary: {
+    lime: '#B6F500',      // Primary accent (tab icons, focused states)
+    orange: '#FF8C00',    // Primary orange (sliders, accents)
+    yellow: '#FFFF00',
+  },
+
+  // 🌈 Gradient Colors
+  gradients: {
+    wave: ['#FFAF00', '#FF8C00', '#FF4E00', '#FF2C00', '#FF1E00'] as const,
+    background: ['#1e0e2f', '#2c1348', '#3a1a5d'] as const,
+  },
+
+  // 🎯 UI Colors
+  ui: {
+    white: '#FFFFFF',
+    black: '#000000',
+    gray: {
+      light: '#E0E0E0',   // Inactive text/icons
+      medium: '#686a73',  // Slider track
+      dark: '#666666',    // Profile icon
+    },
+  },
+
+  // 🎭 Background Colors
+  background: {
+    dark: '#151623',      // Card backgrounds
+    darker: '#1a1a1a',    // Profile avatar
+  },
+
+  // 🎪 Interactive States
+  states: {
+    focused: '#B6F500',   // Active/focused state
+    inactive: '#E0E0E0',  // Inactive state
+  },
+
+  // 🎨 Transparent Colors
+  transparent: {
+    white: {
+      5: 'rgba(255, 255, 255, 0.05)',
+      10: 'rgba(255, 255, 255, 0.1)',
+    },
+  },
 } as const;
 
-// Type for gradient colors
-export type GradientColors = typeof COLORS.WAVE_GRADIENT; 
+// Type exports for better TypeScript support
+export type WaveGradient = typeof COLORS.gradients.wave;
+export type BackgroundGradient = typeof COLORS.gradients.background;
+
+// Legacy exports for backward compatibility
+export const LEGACY_COLORS = {
+  WAVE_GRADIENT: COLORS.gradients.wave,
+  BRIGHT_YELLOW: '#FFFF00',
+  YELLOW_ORANGE: '#FFCC00',
+  ORANGE: '#FF8000',
+  DARK_ORANGE: '#FF6000',
+  DEEP_ORANGE: '#FF4000',
+} as const; 

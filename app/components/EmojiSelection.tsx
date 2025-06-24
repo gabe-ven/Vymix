@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { COLORS } from '../constants/colors';
+
 interface EmojiSelectionProps {
   onNext: (selectedEmojis: string[]) => void;
   maxSelection?: number;
@@ -56,7 +58,7 @@ const EmojiSelection: React.FC<EmojiSelectionProps> = ({
 
   return (
     <View className="flex-1 pt-20 px-4 pb-20">
-      <Text className="text-white text-2xl font-poppins-bold mb-4 text-center">
+      <Text className="text-ui-white text-2xl font-poppins-bold mb-4 text-center">
         Select up to {maxSelection} emojis
       </Text>
       
@@ -83,16 +85,16 @@ const EmojiSelection: React.FC<EmojiSelectionProps> = ({
         {selectedEmojis.length > 0 ? (
           <TouchableOpacity
             onPress={handleNext}
-            className="bg-darkBlue rounded-full w-24 h-16 items-center justify-center"
+            className="bg-darkPurple rounded-full w-24 h-16 items-center justify-center"
           >
-            <Ionicons name="arrow-forward" size={28} color="#FFFFFF" />
-            </TouchableOpacity>
+            <Ionicons name="arrow-forward" size={32} color={COLORS.ui.white} />
+          </TouchableOpacity>
         ) : (
           <TouchableOpacity
             onPress={handleSkip}
             className="rounded-full px-6 py-3"
           >
-            <Text className="text-gray-400 text-xl font-poppins-bold">Skip</Text>
+            <Text className="text-ui-gray-light text-xl font-poppins-bold">Skip</Text>
           </TouchableOpacity>
         )}
       </View>

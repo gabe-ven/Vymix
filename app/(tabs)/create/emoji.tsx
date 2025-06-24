@@ -1,8 +1,10 @@
 import { View, TouchableOpacity } from 'react-native'
+import { Layout } from '@/app/components/Layout';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import EmojiSelection from '../../components/EmojiSelection';
+import { COLORS } from '../../constants/colors';
 
 const emoji = () => {
   const router = useRouter();
@@ -21,18 +23,18 @@ const emoji = () => {
   };
 
   return (
-    <View className="flex-1 bg-darkPurple">
+    <Layout>
       <TouchableOpacity
         onPress={handleBack}
         className="absolute top-12 left-4 z-10 p-2"
       >
-        <Ionicons name="arrow-back" size={24} color="white" />
+        <Ionicons name="chevron-back" size={28} color={COLORS.ui.white} />
       </TouchableOpacity>
       
       <View className="w-full h-full pt-20">
         <EmojiSelection onNext={handleNextEmojis} />
       </View>
-    </View>
+    </Layout>
   )
 }
 

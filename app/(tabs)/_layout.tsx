@@ -1,9 +1,11 @@
 import React, { ReactElement } from 'react';
 import { Tabs } from 'expo-router';
-import { View, Text } from 'react-native';
+import { View, Text, ImageBackground } from 'react-native';
 import { MaterialIcons, Ionicons, Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaskedView from '@react-native-masked-view/masked-view';
+import { Glass } from '../components/Glass';
+import { COLORS } from '../constants/colors';
 
 type IconName = 'plus' | 'user' | 'playlist';
 
@@ -22,7 +24,7 @@ const GradientMask = ({
       maskElement={children}
     >
       <LinearGradient
-        colors={['#FF8C00', '#FFD700']}
+        colors={COLORS.gradients.wave}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={{ width: '100%', height: '100%' }}
@@ -35,7 +37,10 @@ const GradientMask = ({
 
 const TabIcon = ({ focused, icon, title }: { focused: boolean; icon: IconName; title: string }) => {
   const getIcon = () => {
-    const iconProps = { size: focused ? 28 : 24, color: focused ? '#FF8C00' : '#686a73' };
+    const iconProps = { 
+      size: focused ? 28 : 24, 
+      color: focused ? COLORS.states.focused : COLORS.states.inactive 
+    };
     
     switch (icon) {
       case 'plus':
@@ -59,28 +64,16 @@ const TabIcon = ({ focused, icon, title }: { focused: boolean; icon: IconName; t
   return (
     <View className={`flex flex-col w-full min-w-[100px] md:min-w-[130px] min-h-16 mt-8 justify-center items-center rounded-full overflow-hidden ${focused ? 'scale-110' : ''}`}>
       <View className="w-6 h-6 justify-center items-center">
-        {focused ? (
-          <GradientMask width={28} height={28}>
-            {iconElement}
-          </GradientMask>
-        ) : (
-          <View style={{ width: 24, height: 24, justifyContent: 'center', alignItems: 'center' }}>
-            {iconElement}
-          </View>
-        )}
+        <View style={{ width: focused ? 28 : 24, height: focused ? 28 : 24, justifyContent: 'center', alignItems: 'center' }}>
+          {iconElement}
+        </View>
       </View>
       <View className={`h-6 justify-center items-center ${focused ? 'mt-2' : 'mt-1'}`}>
-        {focused ? (
-          <GradientMask height={28}>
-            {textElement}
-          </GradientMask>
-        ) : (
-          <View className="h-6 justify-center items-center">
-            <Text className="text-sm md:text-base font-semibold text-[#686a73] h-6 text-center leading-6 font-poppins">
-              {title}
-            </Text>
-          </View>
-        )}
+        <View className="h-6 justify-center items-center">
+          <Text className="text-sm md:text-base font-semibold h-6 text-center leading-6 font-poppins" style={{ color: focused ? COLORS.states.focused : COLORS.states.inactive }}>
+            {title}
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -88,7 +81,7 @@ const TabIcon = ({ focused, icon, title }: { focused: boolean; icon: IconName; t
 
 export default function TabLayout() {
   return (
-    <View className="flex-1 bg-[darkPurple] shadow-lg">
+    <View className="flex-1">
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -101,20 +94,28 @@ export default function TabLayout() {
             paddingVertical: 8,
           },
           tabBarStyle: {
-            backgroundColor: '#151623',
             borderRadius: 50,
             marginHorizontal: 8,
             marginBottom: 20,
             height: 75,
             position: 'absolute',
             borderWidth: 1,
-            borderColor: '#151623',
-            shadowColor: '#000000',
+            borderColor: COLORS.transparent.white[10],
+            shadowColor: COLORS.ui.black,
             shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.5,
-            shadowRadius: 15,
-            elevation: 15,
+            shadowOpacity: 0.08,
+            shadowRadius: 8,
+            elevation: 5,
+            overflow: 'hidden',
           },
+          tabBarBackground: () => (
+            <Glass
+              style={{ flex: 1, borderRadius: 50 }}
+              blurAmount={10}
+            >
+              <View style={{ flex: 1 }} />
+            </Glass>
+          ),
         }}
       >
         <Tabs.Screen

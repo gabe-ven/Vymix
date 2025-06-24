@@ -5,22 +5,60 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Primary gradient colors (yellow to red)
-        gold: "#FFD700",
-        orange: "#FFA500",
-        darkOrange: "#FF8C00",
-        tomatoRed: "#FF6347",
-        orangeRed: "#FF4500",
-        crimsonRed: "#DC143C",
-        
-        // App theme colors
-        darkPurple: "#2b2d5c",
-        blue: "#211c84",
-        darkBlue: "#1A1A1A",
-        
-        // UI colors
-        white: "#FFFFFF",
-        black: "#000000",
+        // 🎨 Primary Brand Colors
+        primary: {
+          lime: '#B6F500',      // Primary accent (tab icons, focused states)
+          orange: '#FF8C00',    // Primary orange (sliders, accents)
+        },
+
+        // 🌈 Gradient Colors
+        gradient: {
+          wave: {
+            1: '#FFAF00',
+            2: '#FF8C00', 
+            3: '#FF4E00',
+            4: '#FF2C00',
+            5: '#FF1E00',
+          },
+          background: {
+            1: '#1e0e2f',
+            2: '#2c1348', 
+            3: '#3a1a5d',
+          },
+        },
+
+        // 🎯 UI Colors
+        ui: {
+          white: '#FFFFFF',
+          black: '#000000',
+          gray: {
+            light: '#E0E0E0',   // Inactive text/icons
+            medium: '#686a73',  // Slider track
+            dark: '#666666',    // Profile icon
+          },
+        },
+
+        // 🎭 Background Colors
+        background: {
+          dark: '#151623',      // Card backgrounds
+          darker: '#1a1a1a',    // Profile avatar
+        },
+
+        // 🎪 Interactive States
+        states: {
+          focused: '#B6F500',   // Active/focused state
+          inactive: '#E0E0E0',  // Inactive state
+        },
+
+        // 🎨 Transparent Colors
+        transparent: {
+          white: {
+            5: 'rgba(255, 255, 255, 0.05)',
+            10: 'rgba(255, 255, 255, 0.1)',
+          },
+        },
+
+        // Legacy color support (keeping for backward compatibility)
         gray: {
           50: '#f9fafb',
           100: '#f3f4f6',
@@ -33,10 +71,6 @@ module.exports = {
           800: '#1f2937',
           900: '#111827',
         },
-        grayLight: "#686a73",
-        
-        // Background colors
-        tabBarBg: "#151623",
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

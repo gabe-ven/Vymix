@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { GradientMask } from './GradientMask';
-
+import { Glass } from './Glass';
+import { COLORS } from '../constants/colors';
 
 interface VibeInputProps {
   value: string;
@@ -125,7 +126,7 @@ export const VibeInput: React.FC<VibeInputProps> = ({
 
   return (
     <View className="w-full h-full p-4 flex items-center justify-center">
-      <Text className="text-4xl md:text-5xl font-bold text-white mb-6 text-center px-4 font-poppins-bold">
+      <Text className="text-4xl md:text-5xl font-bold text-ui-white mb-6 text-center px-4 font-poppins-bold">
         What's your vibe?
       </Text>
 
@@ -147,32 +148,34 @@ export const VibeInput: React.FC<VibeInputProps> = ({
         </View>
       </Animated.View>
 
-      <TextInput
-        className="bg-[#151623] rounded-2xl p-4 md:p-6 text-lg md:text-2xl text-white min-h-[80px] w-full text-left mx-4 font-poppins"
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor="#686a73"
-        multiline
-        maxLength={280}
-        selectionColor="#FF8C00"
-        style={{ fontSize: 20, lineHeight: 28 }}
-        onKeyPress={handleKeyPress}
-        onSubmitEditing={() => {
-          if (value.trim() && onNext) {
-            onNext();
-          }
-        }}
-        blurOnSubmit={true}
-      />
+      <Glass style={{ width: '100%', padding: 0, marginBottom: 24 }}>
+        <TextInput
+          className="bg-transparent rounded-2xl p-4 md:p-6 text-lg md:text-2xl text-ui-white min-h-[80px] w-full text-left mx-4 font-poppins"
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={COLORS.states.inactive}
+          multiline
+          maxLength={280}
+          selectionColor={COLORS.ui.white}
+          style={{ fontSize: 20, lineHeight: 28 }}
+          onKeyPress={handleKeyPress}
+          onSubmitEditing={() => {
+            if (value.trim() && onNext) {
+              onNext();
+            }
+          }}
+          blurOnSubmit={true}
+        />
+      </Glass>
 
       <View className="h-20 mt-6">
         {value.trim() && (
           <TouchableOpacity
             onPress={handleNext}
-            className="bg-darkBlue rounded-full w-24 h-16 items-center justify-center"
+            className="bg-darkPurple rounded-full w-24 h-16 items-center justify-center"
           >
-            <Ionicons name="arrow-forward" size={28} color="#FFFFFF" />
+            <Ionicons name="arrow-forward" size={32} color={COLORS.ui.white} />
           </TouchableOpacity>
         )}
       </View>

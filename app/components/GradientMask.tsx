@@ -17,7 +17,7 @@ export const GradientMask = ({
   children, 
   width, 
   height,
-  colors = COLORS.WAVE_GRADIENT,
+  colors = COLORS.gradients.wave,
   start = { x: 0, y: 0 },
   end = { x: 1, y: 0 }
 }: GradientMaskProps) => (

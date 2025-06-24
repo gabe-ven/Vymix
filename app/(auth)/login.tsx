@@ -1,13 +1,15 @@
-import React, { useEffect, useState } from "react";
-import { Image, Text, TouchableOpacity, View, ActivityIndicator } from "react-native";
+import React, { useEffect, useState, useRef } from "react";
+import { Image, Text, TouchableOpacity, View, ActivityIndicator, ImageBackground } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
 import { GOOGLE_CLIENT_IDS } from "../../env";
 import { useRouter } from "expo-router";
 import { appleAuth } from '@invertase/react-native-apple-authentication';
 import auth, { GoogleAuthProvider } from '@react-native-firebase/auth';
-import { TopWave, BottomWave } from "../components/Wave";
-
+import { Video, ResizeMode } from 'expo-av';
+import { StyleSheet } from 'react-native';
+import { Glass } from '../components/Glass';
+import { COLORS } from '../constants/colors';
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
@@ -20,6 +22,14 @@ export default function LoginScreen() {
   const [userLoggedIn, setUserLoggedIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const videoRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.setStatusAsync({ rate: 1 , shouldCorrectPitch: false });
+    }
+  }, []);
 
   // Handle token refresh
   useEffect(() => {
@@ -106,93 +116,98 @@ export default function LoginScreen() {
   };
   
   return (
-    <View className="flex-1 bg-darkPurple justify-center items-center px-4 md:px-8">
-      <TopWave />
-      <View className="items-center">
-        <View className="rounded-full p-4 ">
-          <Image
-            source={require("../../assets/images/splash-icon.png")}
-            className="w-56 h-56 md:w-64 md:h-64"
-            resizeMode="contain"
-          />
+    <View style={{ flex: 1 }}>
+      <Video
+        ref={videoRef}
+        source={require('../../assets/videos/THERMAL.mp4')}
+        style={StyleSheet.absoluteFill}
+        resizeMode={ResizeMode.COVER}
+        isLooping
+        shouldPlay
+        isMuted
+      />
+      <View style={{ flex: 1, marginTop: 120, marginBottom: 120 }}>
+        <View>
+          <Text className="text-7xl md:text-8xl text-ui-white font-medium px-4 font-poppins"   style={{ lineHeight: 90 }}>
+            Your vibe.
+          </Text>
+          <Text className="text-7xl md:text-8xl text-ui-white font-medium px-4 font-poppins"   style={{ lineHeight: 90 }} >
+            Your mix.
+          </Text>
+
+          <Text
+            className="text-8xl md:text-9xl font-extrabold text-ui-white mt-10 mb-20 tracking-tight font-poppins-bold px-4"
+          >
+            VYMIX
+          </Text>
         </View>
+
+        {error && (
+          <View className="w-full mb-4 bg-red-100 p-4 rounded-xl mx-4">
+            <Text className="text-red-600 text-center font-poppins">{error}</Text>
+          </View>
+        )}
+
+        <TouchableOpacity
+          onPress={() => promptAsync()}
+          disabled={!request || loading}
+          className="w-full mb-4 px-4"
+        >
+          <View className="bg-ui-white rounded-2xl py-4 md:py-5 px-6 shadow-lg flex-row items-center justify-center">
+            {loading ? (
+              <ActivityIndicator color={COLORS.ui.black} />
+            ) : (
+              <>
+                <Image
+                  source={require("../../assets/images/google-icon.png")}
+                  className="w-6 h-6 md:w-7 md:h-7 mr-3 md:mr-4"
+                />
+                <Text className="text-gray-800 text-center font-medium text-lg md:text-xl font-poppins">
+                  Continue with Google
+                </Text>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={onAppleButtonPress}
+          disabled={loading}
+          className="w-full mb-4 px-4"
+        >
+          <View className="bg-ui-black rounded-2xl py-4 md:py-5 px-6 shadow-lg flex-row items-center justify-center">
+            {loading ? (
+              <ActivityIndicator color={COLORS.ui.white} />
+            ) : (
+              <>
+                <Image
+                  source={require("../../assets/images/apple-icon.png")}
+                  className="w-6 h-6 md:w-7 md:h-7 mr-3 md:mr-4"
+                />
+                <Text className="text-ui-white text-center font-medium text-lg md:text-xl font-poppins">
+                  Continue with Apple
+                </Text>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={handleGuestLogin}
+          disabled={loading}
+          className="w-full px-4"
+        >
+          <Glass className="rounded-2xl py-4 md:py-5 px-6">
+            {loading ? (
+              <ActivityIndicator color={COLORS.ui.white} />
+            ) : (
+              <Text className="text-ui-white text-center font-medium text-lg md:text-xl font-poppins">
+                Continue as Guest
+              </Text>
+            )}
+          </Glass>
+        </TouchableOpacity>
       </View>
-
-      <Text className="text-5xl md:text-7xl font-extrabold text-white mb-4 tracking-tight text-center font-poppins-bold">
-        VYMIX
-      </Text>
-      <Text className="text-2xl md:text-3xl text-gray-300 mb-16 md:mb-20 text-center font-medium px-4 font-poppins">
-        Your vibe. Your mix.
-      </Text>
-
-      {error && (
-        <View className="w-full mb-4 bg-red-100 p-4 rounded-xl mx-4">
-          <Text className="text-red-600 text-center font-poppins">{error}</Text>
-        </View>
-      )}
-
-      <TouchableOpacity
-        onPress={() => promptAsync()}
-        disabled={!request || loading}
-        className="w-full mb-4 px-4"
-      >
-        <View className="bg-white rounded-2xl py-4 md:py-5 px-6 shadow-lg flex-row items-center justify-center">
-          {loading ? (
-            <ActivityIndicator color="#211c84" />
-          ) : (
-            <>
-              <Image
-                source={require("../../assets/images/google-icon.png")}
-                className="w-6 h-6 md:w-7 md:h-7 mr-3 md:mr-4"
-              />
-              <Text className="text-gray-800 text-center font-medium text-lg md:text-xl font-poppins">
-                Continue with Google
-              </Text>
-            </>
-          )}
-        </View>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={onAppleButtonPress}
-        disabled={loading}
-        className="w-full mb-4 px-4"
-      >
-        <View className="bg-black rounded-2xl py-4 md:py-5 px-6 shadow-lg flex-row items-center justify-center">
-          {loading ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <>
-              <Image
-                source={require("../../assets/images/apple-icon.png")}
-                className="w-6 h-6 md:w-7 md:h-7 mr-3 md:mr-4"
-              />
-              <Text className="text-white text-center font-medium text-lg md:text-xl font-poppins">
-                Continue with Apple
-              </Text>
-            </>
-          )}
-        </View>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={handleGuestLogin}
-        disabled={loading}
-        className="w-full px-4"
-      >
-        <View className="bg-transparent border-2 border-white/20 rounded-2xl py-4 md:py-5 px-6">
-          {loading ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text className="text-white text-center font-medium text-lg md:text-xl font-poppins">
-              Continue as Guest
-            </Text>
-          )}
-
-        </View>
-
-      </TouchableOpacity>
-      <BottomWave />
     </View>
   );
 }

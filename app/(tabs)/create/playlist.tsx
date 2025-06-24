@@ -1,11 +1,14 @@
 import { View, Text } from 'react-native'
+import { Layout } from '@/app/components/Layout';
 import React from 'react'
 
 const playlist = () => {
   return (
-    <View className="flex-1 bg-darkPurple justify-center items-center">
-      <Text className="text-white font-poppins">playlist</Text>
-    </View>
+    <Layout>
+      <View className="flex-1 justify-center items-center">
+        <Text className="text-white font-poppins">playlist</Text>
+      </View>
+    </Layout>
   )
 }
 

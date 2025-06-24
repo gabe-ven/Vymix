@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { Layout } from '@/app/components/Layout';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SongCountSlider from '../../components/SongCountSlider';
+import { COLORS } from '../../constants/colors';
 
 export default function Amount() {
   const [songCount, setSongCount] = useState(10);
@@ -23,16 +25,16 @@ export default function Amount() {
   };
 
   return (
-    <View className="flex-1 bg-darkPurple">
+    <Layout>
       <TouchableOpacity
         onPress={handleBack}
         className="absolute top-12 left-4 z-10 p-2"
       >
-        <Ionicons name="arrow-back" size={24} color="white" />
+        <Ionicons name="chevron-back" size={28} color={COLORS.ui.white} />
       </TouchableOpacity>
       
       <View className="w-full h-full pt-20 px-4 flex items-center justify-center">
-        <Text className="text-4xl md:text-5xl font-bold text-white mb-8 text-center px-4 font-poppins-bold">
+        <Text className="text-4xl md:text-5xl font-bold text-ui-white mb-8 text-center px-4 font-poppins-bold">
           How many songs?
         </Text>
         
@@ -44,12 +46,12 @@ export default function Amount() {
         <View className="mt-12">
           <TouchableOpacity
             onPress={handleNext}
-            className="bg-darkBlue rounded-full w-24 h-16 items-center justify-center"
+            className="bg-darkPurple rounded-full w-24 h-16 items-center justify-center"
           >
-            <Ionicons name="arrow-forward" size={28} color="#FFFFFF" />
+            <Ionicons name="arrow-forward" size={32} color={COLORS.ui.white} />
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </Layout>
   );
 }

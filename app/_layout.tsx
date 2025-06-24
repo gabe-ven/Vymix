@@ -10,7 +10,7 @@ const _layout = () => {
 
   if (!fontsLoaded && !fontError) {
     return (
-      <View className="flex-1 justify-center items-center bg-[#211C84]">
+      <View className="flex-1 justify-center items-center bg-purple">
         <Text className="text-white text-lg font-poppins">Loading...</Text>
       </View>
     );

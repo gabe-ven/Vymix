@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { VibeInput } from '@/app/components/VibeInput';
+import { Layout } from '@/app/components/Layout';
 import { useRouter, useFocusEffect } from 'expo-router';
 
 export default function CreateScreen() {
@@ -42,7 +43,7 @@ export default function CreateScreen() {
   };
 
   return (
-    <View className="bg-darkPurple flex-1">
+    <Layout>
       <View className="w-full h-full p-4 flex items-center justify-center">
         <VibeInput 
           value={inputValue} 
@@ -50,6 +51,6 @@ export default function CreateScreen() {
           onNext={handleNext}
         />
       </View>
-    </View>
+    </Layout>
   );
 }
