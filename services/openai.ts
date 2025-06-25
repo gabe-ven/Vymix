@@ -49,7 +49,15 @@ Use only one or two words. It should be lowercase. Avoid generic or common phras
 Invent a new word, use poetic language, or combine words in an unexpected way. 
 Examples of good names: "nightglow", "vaporhaze", "glasswave", "solstice", "dreamtide", "pulsefield", "lumen", "aether", "velvetine", "mistline".
 
-The description should be one engaging sentence that captures the music's mood and atmosphere. End with a period.
+Description guidelines:
+- Be poetic, artistic, or emotionally resonant — avoid clichés and generic phrases
+- Capture the vibe using tone, feeling, or imagery — not specific genres or instruments
+- Keep the sentence under 20 words
+- No hashtags, emojis, or lists — just one strong sentence
+
+The name should be catchy and reflect the vibe. 
+The description should feel fresh and thoughtful — not robotic or overly promotional.
+End with a period.
 
 For the color palette, generate 3 vibrant, contrasting colors in hex format based on the vibe. 
 IMPORTANT: Do NOT use black (#000000), white (#FFFFFF), or any very dark (#111111, #222222) or very light (#FEFEFE, #EEEEEE) colors. 
@@ -135,20 +143,29 @@ export const generatePlaylistCover = async (
   }
   
   const colorString = colorPalette.join(', ');
-  
-  const prompt = `Create a playlist album cover that completely fills a 1024x1024 square canvas. The artwork should be inspired by the feeling "${vibe}" and the playlist name "${playlistName}".
+  const prompt = `Create a high-quality album cover that completely fills a 1024x1024 canvas with no borders, frames, or empty areas. The style should be abstract, emotional, and inspired by the vibe "${vibe}" and the playlist name "${playlistName}".
 
-CRITICAL REQUIREMENTS:
-- The artwork MUST fill the ENTIRE 1024x1024 canvas from edge to edge with no borders, frames, or empty space
-- Use these specific colors in the design: ${colorString}
-- Create a blurry, grainy, painted environment style that evokes mood and atmosphere
-- NO specific scenes, objects, symbols, text, or recognizable imagery
-- Only soft, blurred, painterly shapes, gradients, and textures using the provided colors
-- Strong grainy film texture overlay throughout the entire image
-- Modern, unique, and visually clean aesthetic
-- The image should feel like a tasteful, understated, artistic album cover
+Instructions:
+- Use the following colors prominently in the composition: ${colorString}
+- The artwork should feature soft gradients, painterly textures, and blurred organic shapes
+- Incorporate a subtle grainy, analog film texture overlay throughout the entire canvas
+- Avoid any sharp lines, symbols, objects, text, or recognizable forms
+- The composition should feel hand-painted, artistic, and emotionally resonant
+- Prioritize balance, aesthetic harmony, and atmospheric depth
 
-Style: Abstract, atmospheric, mood-based, painterly, grainy, blurred gradients and shapes that fill the entire canvas using the specified color palette.`;
+Style:
+- Abstract expressionism meets modern minimalism
+- Think oil-on-canvas or watercolor with a digital twist
+- Soft brush strokes, gradient blends, moody ambient textures
+
+Mood:
+- Evocative, immersive, tasteful, clean
+
+Final Output:
+- Square (1024x1024)
+- Edge-to-edge artwork with no empty space
+- Must look like a professional, organic, natural album cover rather than AI-generated art`;
+
 
   try {
     const response = await fetch('https://api.openai.com/v1/images/generations', {

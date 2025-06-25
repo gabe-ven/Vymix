@@ -253,15 +253,20 @@ const Playlist = () => {
           <Text className="text-ui-white text-base text-center mb-6 font-poppins">
             {error}
           </Text>
-          <TouchableOpacity
-            onPress={handleRetry}
-            className="rounded-full px-6 py-3 items-center justify-center"
-            style={{ backgroundColor: COLORS.primary.darkPurple }}
+          <Glass 
+            className="rounded-full"
+            blurAmount={20}
+            backgroundColor={COLORS.transparent.white[10]}
           >
-            <Text className="text-ui-white font-semibold text-lg font-poppins-bold">
-              Try Again
-            </Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleRetry}
+              className="rounded-full px-6 py-3 items-center justify-center"
+            >
+              <Text className="text-ui-white font-semibold text-lg font-poppins-bold">
+                Try Again
+              </Text>
+            </TouchableOpacity>
+          </Glass>
         </View>
       </Layout>
     );
@@ -278,7 +283,7 @@ const Playlist = () => {
       >
         {/* Animated Playlist Header */}
         <Animated.View style={playlistCardAnimatedStyle}>
-          <View className="px-4">
+          <View className="px-4 -mb-10">
             <PlaylistCard
               name={playlistData?.name || 'My Playlist'}
               description={playlistData?.description || 'A great mix of songs'}
@@ -293,35 +298,50 @@ const Playlist = () => {
         <Animated.View style={buttonsAnimatedStyle}>
           <View className="px-4 mb-4">
             <View className="flex-row justify-center">
-              <TouchableOpacity
-                onPress={handleCreatePlaylist}
-                className="rounded-full px-6 py-3 items-center justify-center mr-4"
-                style={{ backgroundColor: COLORS.primary.lime }}
+              <Glass 
+                className="rounded-full mr-4"
+                blurAmount={20}
+                backgroundColor={COLORS.transparent.white[10]}
               >
-                <Text className="text-ui-black font-bold text-base font-poppins-bold">
-                  Save
-                </Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleCreatePlaylist}
+                  className="rounded-full px-6 py-3 items-center justify-center"
+                >
+                  <Text className="text-ui-white font-bold text-base font-poppins-bold">
+                    Save
+                  </Text>
+                </TouchableOpacity>
+              </Glass>
 
-              <TouchableOpacity
-                onPress={handleRegenerate}
-                className="rounded-full px-6 py-3 items-center justify-center mr-4"
-                style={{ backgroundColor: COLORS.primary.orange }}
+              <Glass 
+                className="rounded-full mr-4"
+                blurAmount={20}
+                backgroundColor={COLORS.transparent.white[10]}
               >
-                <Text className="text-ui-white font-semibold text-base font-poppins-bold">
-                  Regenerate
-                </Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleRegenerate}
+                  className="rounded-full px-6 py-3 items-center justify-center"
+                >
+                  <Text className="text-ui-white font-semibold text-base font-poppins-bold">
+                    Regenerate
+                  </Text>
+                </TouchableOpacity>
+              </Glass>
 
-              <TouchableOpacity
-                onPress={handleRetry}
-                className="rounded-full px-6 py-3 items-center justify-center"
-                style={{ backgroundColor: COLORS.primary.darkPurple }}
+              <Glass 
+                className="rounded-full"
+                blurAmount={20}
+                backgroundColor={COLORS.transparent.white[10]}
               >
-                <Text className="text-ui-white font-semibold text-base font-poppins-bold">
-                  New Vibe
-                </Text>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleRetry}
+                  className="rounded-full px-6 py-3 items-center justify-center"
+                >
+                  <Text className="text-ui-white font-semibold text-base font-poppins-bold">
+                    New Vibe
+                  </Text>
+                </TouchableOpacity>
+              </Glass>
             </View>
           </View>
         </Animated.View>

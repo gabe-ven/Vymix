@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SongCountSlider from '../../components/SongCountSlider';
 import { COLORS } from '../../constants/colors';
+import Glass from '../../components/Glass';
 
 export default function Amount() {
   const [songCount, setSongCount] = useState(10);
@@ -44,15 +45,20 @@ export default function Amount() {
         />
         
         <View className="mt-12">
-          <TouchableOpacity
-            onPress={handleNext}
-            className="rounded-full px-8 py-4 items-center justify-center"
-            style={{ backgroundColor: COLORS.primary.darkPurple }}
+          <Glass 
+            className="rounded-full"
+            blurAmount={20}
+            backgroundColor={COLORS.transparent.white[10]}
           >
-            <Text className="text-ui-white font-semibold text-xl font-poppins-bold">
-              Create Playlist
-            </Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleNext}
+              className="rounded-full px-8 py-4 items-center justify-center"
+            >
+              <Text className="text-ui-white font-semibold text-xl font-poppins-bold">
+                Create Playlist
+              </Text>
+            </TouchableOpacity>
+          </Glass>
         </View>
       </View>
     </Layout>
