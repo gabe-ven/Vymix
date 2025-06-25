@@ -2,6 +2,12 @@ import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { COLORS } from '../constants/colors';
 import Glass from './Glass';
+import Animated, { 
+  useAnimatedStyle, 
+  interpolate, 
+  Extrapolate,
+  SharedValue
+} from 'react-native-reanimated';
 
 interface Song {
   title: string;
@@ -13,45 +19,79 @@ interface SongListProps {
   title?: string;
   maxHeight?: number;
   showScrollView?: boolean;
+  scrollY?: SharedValue<number>;
 }
 
 export default function SongList({ 
   songs, 
   title,
   maxHeight,
-  showScrollView = true
+  showScrollView = true,
+  scrollY
 }: SongListProps) {
   const SongItems = () => (
     <>
-      {songs.map((song, index) => (
-        <Glass 
-          key={index}
-          className="mb-3 p-4"
-          borderRadius={12}
-          blurAmount={15}
-          backgroundColor={COLORS.transparent.white[5]}
-        >
-          <View className="flex-row items-center">
-            {/* Album Cover Placeholder */}
-            <View 
-              className="w-14 h-14 rounded-lg mr-4 items-center justify-center"
-              style={{ backgroundColor: COLORS.transparent.white[10] }}
+      {songs.map((song, index) => {
+        const songStartFade = 500 + (index * 80);
+        const songEndFade = songStartFade + 200;
+        
+        const songAnimatedStyle = useAnimatedStyle(() => {
+          if (!scrollY) return { opacity: 1, transform: [{ scale: 1 }] };
+          
+          const opacity = interpolate(
+            scrollY.value,
+            [songStartFade, songEndFade],
+            [1, 0],
+            Extrapolate.CLAMP
+          );
+
+          const scale = interpolate(
+            scrollY.value,
+            [songStartFade, songEndFade],
+            [1, 0.7],
+            Extrapolate.CLAMP
+          );
+
+          return {
+            opacity,
+            transform: [{ scale }]
+          };
+        });
+
+        return (
+          <Animated.View
+            key={index}
+            style={songAnimatedStyle}
+          >
+            <Glass 
+              className="mb-3 p-4"
+              borderRadius={12}
+              blurAmount={15}
+              backgroundColor={COLORS.transparent.white[5]}
             >
-              <Text className="text-xl">🎵</Text>
-            </View>
-            
-            {/* Song Info */}
-            <View className="flex-1">
-              <Text className="text-lg text-ui-white font-poppins-bold" numberOfLines={1}>
-                {song.title}
-              </Text>
-              <Text className="text-sm text-ui-gray-light font-poppins-bold mt-1" numberOfLines={1}>
-                {song.artist}
-              </Text>
-            </View>
-          </View>
-        </Glass>
-      ))}
+              <View className="flex-row items-center">
+                {/* Album Cover Placeholder */}
+                <View 
+                  className="w-14 h-14 rounded-lg mr-4 items-center justify-center"
+                  style={{ backgroundColor: COLORS.transparent.white[10] }}
+                >
+                  <Text className="text-xl">🎵</Text>
+                </View>
+                
+                {/* Song Info */}
+                <View className="flex-1">
+                  <Text className="text-lg text-ui-white font-poppins-bold" numberOfLines={1}>
+                    {song.title}
+                  </Text>
+                  <Text className="text-sm text-ui-gray-light font-poppins-bold mt-1" numberOfLines={1}>
+                    {song.artist}
+                  </Text>
+                </View>
+              </View>
+            </Glass>
+          </Animated.View>
+        );
+      })}
     </>
   );
 

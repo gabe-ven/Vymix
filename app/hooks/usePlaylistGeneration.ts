@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { generatePlaylistInfo } from '../../services/openai';
+import { generatePlaylistInfo, generatePlaylistCover } from '../../services/openai';
 
 interface PlaylistData {
   name: string;
   description: string;
   colorPalette: string[];
+  keywords: string[];
+  coverImageUrl?: string;
   emojis: string[];
   songCount: number;
   vibe: string;
@@ -63,10 +65,21 @@ export const usePlaylistGeneration = (): UsePlaylistGenerationReturn => {
         vibe,
       });
       
+      // Generate cover image using DALL-E
+      let coverImageUrl: string | undefined;
+      try {
+        coverImageUrl = await generatePlaylistCover(emojis, vibe, result.name, result.colorPalette);
+      } catch (coverError) {
+        console.warn('Failed to generate cover image:', coverError);
+        // Continue without cover image if generation fails
+      }
+      
       setPlaylistData({
         name: result.name,
         description: result.description,
         colorPalette: result.colorPalette,
+        keywords: result.keywords,
+        coverImageUrl,
         emojis,
         songCount,
         vibe,

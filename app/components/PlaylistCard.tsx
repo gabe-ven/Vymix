@@ -8,16 +8,18 @@ interface PlaylistCardProps {
   description: string;
   songCount?: number;
   isSelected?: boolean;
+  coverImageUrl?: string;
 }
 
 export default function PlaylistCard({ 
   name, 
   description, 
   songCount,
-  isSelected = false 
+  isSelected = false,
+  coverImageUrl
 }: PlaylistCardProps) {
   return (
-    <View className="flex-1 px-4">
+    <View className="flex-1">
       <Glass 
         className="w-full p-6"
         borderRadius={16}
@@ -44,7 +46,7 @@ export default function PlaylistCard({
             >
               <View className="flex-1 items-center justify-center">
                 <Image 
-                  source={require('../../assets/images/cover.png')}
+                  source={coverImageUrl ? { uri: coverImageUrl } : require('../../assets/images/cover.png')}
                   className="w-full h-full rounded-lg"
                   resizeMode="cover"
                 />

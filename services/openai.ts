@@ -44,11 +44,17 @@ Please respond with a JSON object in this exact format:
   "keywords": ["keyword1", "keyword2", "keyword3"]
 }
 
-The playlist name should be creative and short (1-4 words). Avoid generic names like "My Playlist" or "Chill Vibes".
+The playlist name should be extremely unique, creative, and different from typical playlist names. 
+Use only one or two words. Avoid generic or common phrases and do NOT use words like "Rage", "Chill", "Vibes", "Energy", "Party", "Focus", "Mood", "Mix", "Playlist", or any other common playlist terms.
+Invent a new word, use poetic language, or combine words in an unexpected way. 
+Examples of good names: "Nightglow", "Vaporhaze", "Glasswave", "Solstice", "Dreamtide", "Pulsefield", "Lumen", "Aether", "Velvetine", "Mistline".
 
-The description should be one engaging sentence that captures the music's mood and atmosphere.
+The description should be one engaging sentence that captures the music's mood and atmosphere. End with a period.
 
-For the color palette, generate 3 vibrant, contrasting colors in hex format. Include both warm and cool tones for visual interest. Examples: ["#FF6B6B", "#4ECDC4", "#45B7D1"]
+For the color palette, generate 3 vibrant, contrasting colors in hex format based on the vibe. 
+IMPORTANT: Do NOT use black (#000000), white (#FFFFFF), or any very dark (#111111, #222222) or very light (#FEFEFE, #EEEEEE) colors. 
+Choose rich, saturated colors that are visually distinct from each other and match the mood.
+Examples of good color palettes: ["#FF6B6B", "#4ECDC4", "#45B7D1"] or ["#A8E6CF", "#DCEDC1", "#FFD3B6"] or ["#FF9A9E", "#FECFEF", "#FECFEF"].
 
 For the keywords, generate 3-5 specific music-related terms that would help find songs on Spotify. These should be:
 - Genre names (e.g., "indie rock", "electronic", "jazz")
@@ -116,5 +122,72 @@ Examples: ["indie pop", "energetic", "summer vibes"] or ["jazz", "chill", "late 
       throw error;
     }
     throw new OpenAIError(`Failed to generate playlist: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+};
+
+export const generatePlaylistCover = async (
+  emojis: string[],
+  vibe: string,
+  playlistName: string,
+  colorPalette: string[]
+): Promise<string> => {
+  if (!OPENAI_API_KEY) {
+    throw new OpenAIError('OpenAI API key is not configured');
+  }
+  
+  const colorString = colorPalette.join(', ');
+  
+  const prompt = `Create a playlist album cover that completely fills a 1024x1024 square canvas. The artwork should be inspired by the feeling "${vibe}" and the playlist name "${playlistName}".
+
+CRITICAL REQUIREMENTS:
+- The artwork MUST fill the ENTIRE 1024x1024 canvas from edge to edge with no borders, frames, or empty space
+- Use these specific colors in the design: ${colorString}
+- Create a blurry, grainy, painted environment style that evokes mood and atmosphere
+- NO specific scenes, objects, symbols, text, or recognizable imagery
+- Only soft, blurred, painterly shapes, gradients, and textures using the provided colors
+- Strong grainy film texture overlay throughout the entire image
+- Modern, unique, and visually clean aesthetic
+- The image should feel like a tasteful, understated, artistic album cover
+
+Style: Abstract, atmospheric, mood-based, painterly, grainy, blurred gradients and shapes that fill the entire canvas using the specified color palette.`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'dall-e-3',
+        prompt: prompt,
+        n: 1,
+        size: '1024x1024',
+        quality: 'standard',
+        style: 'vivid',
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new OpenAIError(
+        errorData.error?.message || `HTTP error! status: ${response.status}`,
+        response.status
+      );
+    }
+
+    const data = await response.json();
+    const imageUrl = data.data?.[0]?.url;
+
+    if (!imageUrl) {
+      throw new OpenAIError('No image URL received from DALL-E');
+    }
+
+    return imageUrl;
+  } catch (error) {
+    if (error instanceof OpenAIError) {
+      throw error;
+    }
+    throw new OpenAIError(`Failed to generate playlist cover: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }; 

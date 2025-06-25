@@ -1,6 +1,14 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Text, Animated } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text } from 'react-native';
 import { COLORS } from '../constants/colors';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withTiming, 
+  withRepeat, 
+  withSequence,
+  Easing
+} from 'react-native-reanimated';
 
 interface LoadingAnimationProps {
   message?: string;
@@ -11,39 +19,35 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
   message = 'Loading...',
   size = 'medium'
 }) => {
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useSharedValue(1);
+  const fadeAnim = useSharedValue(0);
 
   useEffect(() => {
-    const pulseAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.2,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
+    // Start fade in animation
+    fadeAnim.value = withTiming(1, { duration: 500 });
+    
+    // Start pulse animation
+    pulseAnim.value = withRepeat(
+      withSequence(
+        withTiming(1.2, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1, // Infinite repeat
+      false // Don't reverse
     );
+  }, []);
 
-    const fadeAnimation = Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    });
-
-    fadeAnimation.start();
-    pulseAnimation.start();
-
-    return () => {
-      pulseAnimation.stop();
-      fadeAnimation.stop();
+  const fadeAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: fadeAnim.value,
     };
-  }, [pulseAnim, fadeAnim]);
+  });
+
+  const pulseAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: pulseAnim.value }],
+    };
+  });
 
   const getSizeStyles = () => {
     switch (size) {
@@ -59,15 +63,15 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
   return (
     <Animated.View 
       className="items-center justify-center"
-      style={{ opacity: fadeAnim }}
+      style={fadeAnimatedStyle}
     >
       <Animated.View
         style={[
           getSizeStyles(),
           {
             backgroundColor: COLORS.primary.lime,
-            transform: [{ scale: pulseAnim }],
           },
+          pulseAnimatedStyle,
         ]}
         className="items-center justify-center"
       >

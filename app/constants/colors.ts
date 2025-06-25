@@ -11,7 +11,7 @@ export const COLORS = {
   // 🌈 Gradient Colors
   gradients: {
     wave: ['#FFAF00', '#FF8C00', '#FF4E00', '#FF2C00', '#FF1E00'] as const,
-    background: ['#1e0e2f', '#2c1348', '#3a1a5d'] as const,
+    background: ['#120c2c', '#1b1040', '#29185a'] as const
   },
 
   // 🎯 UI Colors
