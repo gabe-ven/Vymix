@@ -10,6 +10,7 @@ interface PlaylistGenerationResponse {
   name: string;
   description: string;
   colorPalette: string[];
+  keywords: string[];
 }
 
 export class OpenAIError extends Error {
@@ -39,14 +40,24 @@ Please respond with a JSON object in this exact format:
 {
   "name": "Creative playlist name here",
   "description": "A single compelling sentence that captures the playlist's mood and vibe",
-  "colorPalette": ["#hex1", "#hex2", "#hex3", "#hex4", "#hex5"]
+  "colorPalette": ["#hex1", "#hex2", "#hex3"],
+  "keywords": ["keyword1", "keyword2", "keyword3"]
 }
 
 The playlist name should be creative and short (1-4 words). Avoid generic names like "My Playlist" or "Chill Vibes".
 
 The description should be one engaging sentence that captures the music's mood and atmosphere.
 
-For the color palette, generate 5 vibrant, contrasting colors in hex format. Include both warm and cool tones for visual interest. Examples: ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7"]`;
+For the color palette, generate 3 vibrant, contrasting colors in hex format. Include both warm and cool tones for visual interest. Examples: ["#FF6B6B", "#4ECDC4", "#45B7D1"]
+
+For the keywords, generate 3-5 specific music-related terms that would help find songs on Spotify. These should be:
+- Genre names (e.g., "indie rock", "electronic", "jazz")
+- Mood descriptors (e.g., "energetic", "chill", "romantic")
+- Tempo indicators (e.g., "upbeat", "slow", "dance")
+- Era or style (e.g., "80s", "acoustic", "synthwave")
+- Artist types (e.g., "female vocalists", "instrumental")
+
+Examples: ["indie pop", "energetic", "summer vibes"] or ["jazz", "chill", "late night"]`;
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -89,7 +100,8 @@ For the color palette, generate 5 vibrant, contrasting colors in hex format. Inc
       return {
         name: parsed.name || 'My Playlist',
         description: parsed.description || 'A great mix of songs',
-        colorPalette: parsed.colorPalette || ["#6366f1", "#8b5cf6", "#a855f7", "#c084fc", "#e879f9"],
+        colorPalette: parsed.colorPalette || ["#6366f1", "#8b5cf6", "#a855f7"],
+        keywords: parsed.keywords || ["keyword1", "keyword2", "keyword3"],
       };
     } catch (parseError) {
       // If JSON parsing fails, extract name and description from text
@@ -97,7 +109,7 @@ For the color palette, generate 5 vibrant, contrasting colors in hex format. Inc
       const name = lines.find((line: string) => line.includes('name') || line.includes('Name'))?.split(':')[1]?.trim().replace(/"/g, '') || 'My Playlist';
       const description = lines.find((line: string) => line.includes('description') || line.includes('Description'))?.split(':')[1]?.trim().replace(/"/g, '') || 'A great mix of songs';
       
-      return { name, description, colorPalette: ["#6366f1", "#8b5cf6", "#a855f7", "#c084fc", "#e879f9"] };
+      return { name, description, colorPalette: ["#6366f1", "#8b5cf6", "#a855f7"], keywords: ["keyword1", "keyword2", "keyword3"] };
     }
   } catch (error) {
     if (error instanceof OpenAIError) {

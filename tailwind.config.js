@@ -78,6 +78,7 @@ module.exports = {
         'space-mono': ['SpaceMono', 'monospace'],
         'poppins': ['Poppins', 'sans-serif'],
         'poppins-bold': ['Poppins-Bold', 'sans-serif'],
+        'poppins-semibold': ['Poppins-SemiBold', 'sans-serif'],
       },
       screens: {
         'xs': '320px',

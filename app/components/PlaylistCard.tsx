@@ -53,12 +53,12 @@ export default function PlaylistCard({
           </View>
           
           {/* Title */}
-          <Text className="text-2xl font-bold text-ui-white font-poppins-bold mb-2 text-center leading-tight" numberOfLines={2}>
+          <Text className="text-3xl font-bold text-ui-white font-poppins-bold mb-2 text-center leading-tight" numberOfLines={2}>
             {name}
           </Text>
           
           {/* Description */}
-          <Text className="text-base text-ui-gray-light font-poppins text-center leading-relaxed px-4 mb-4" numberOfLines={3}>
+          <Text className="text-base text-ui-gray-light font-poppins-bold text-center leading-relaxed px-4 mb-4" numberOfLines={3}>
             {description}
           </Text>
           

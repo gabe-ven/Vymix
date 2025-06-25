@@ -42,10 +42,10 @@ export default function SongList({
             
             {/* Song Info */}
             <View className="flex-1">
-              <Text className="text-lg text-ui-white font-poppins-semibold" numberOfLines={1}>
+              <Text className="text-lg text-ui-white font-poppins-bold" numberOfLines={1}>
                 {song.title}
               </Text>
-              <Text className="text-sm text-ui-gray-light font-poppins mt-1" numberOfLines={1}>
+              <Text className="text-sm text-ui-gray-light font-poppins-bold mt-1" numberOfLines={1}>
                 {song.artist}
               </Text>
             </View>

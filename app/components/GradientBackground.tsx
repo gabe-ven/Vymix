@@ -36,11 +36,9 @@ export default function GradientBackground({ colors, children, scrollY }: Gradie
   const colorCount = gradientColors.length;
   const gradientLocations = [
     0,                    // Start with first color
-    0.15,                 // First color naturally blends into second
-    0.35,                 // Second color naturally blends into third
-    0.55,                 // Third color naturally blends into fourth
-    0.75,                 // Fourth color naturally blends into fifth
-    0.85,                 // Fifth color starts fading to dark
+    0.25,                 // First color blends into second
+    0.6,                  // Second color blends into third
+    0.8,                  // Third color starts fading to dark
     1                     // Pure black at bottom
   ];
 
