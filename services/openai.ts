@@ -45,16 +45,15 @@ Please respond with a JSON object in this exact format:
 }
 
 The playlist name should be extremely unique, creative, and different from typical playlist names. 
-Use only one or two words. Avoid generic or common phrases and do NOT use words like "Rage", "Chill", "Vibes", "Energy", "Party", "Focus", "Mood", "Mix", "Playlist", or any other common playlist terms.
+Use only one or two words. It should be lowercase. Avoid generic or common phrases and do NOT use words like "Rage", "Chill", "Vibes", "Energy", "Party", "Focus", "Mood", "Mix", "Playlist", or any other common playlist terms.
 Invent a new word, use poetic language, or combine words in an unexpected way. 
-Examples of good names: "Nightglow", "Vaporhaze", "Glasswave", "Solstice", "Dreamtide", "Pulsefield", "Lumen", "Aether", "Velvetine", "Mistline".
+Examples of good names: "nightglow", "vaporhaze", "glasswave", "solstice", "dreamtide", "pulsefield", "lumen", "aether", "velvetine", "mistline".
 
 The description should be one engaging sentence that captures the music's mood and atmosphere. End with a period.
 
 For the color palette, generate 3 vibrant, contrasting colors in hex format based on the vibe. 
 IMPORTANT: Do NOT use black (#000000), white (#FFFFFF), or any very dark (#111111, #222222) or very light (#FEFEFE, #EEEEEE) colors. 
 Choose rich, saturated colors that are visually distinct from each other and match the mood.
-Examples of good color palettes: ["#FF6B6B", "#4ECDC4", "#45B7D1"] or ["#A8E6CF", "#DCEDC1", "#FFD3B6"] or ["#FF9A9E", "#FECFEF", "#FECFEF"].
 
 For the keywords, generate 3-5 specific music-related terms that would help find songs on Spotify. These should be:
 - Genre names (e.g., "indie rock", "electronic", "jazz")

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView } from 'react-native';
 import { COLORS } from '../constants/colors';
+import { SONG_ANIMATION } from '../constants/animations';
 import Glass from './Glass';
 import Animated, { 
   useAnimatedStyle, 
@@ -32,8 +33,8 @@ export default function SongList({
   const SongItems = () => (
     <>
       {songs.map((song, index) => {
-        const songStartFade = 500 + (index * 80);
-        const songEndFade = songStartFade + 200;
+        const songStartFade = SONG_ANIMATION.START_FADE + (index * SONG_ANIMATION.FADE_SPACING);
+        const songEndFade = songStartFade + SONG_ANIMATION.FADE_DURATION;
         
         const songAnimatedStyle = useAnimatedStyle(() => {
           if (!scrollY) return { opacity: 1, transform: [{ scale: 1 }] };
@@ -48,7 +49,7 @@ export default function SongList({
           const scale = interpolate(
             scrollY.value,
             [songStartFade, songEndFade],
-            [1, 0.7],
+            [1, SONG_ANIMATION.SCALE_DOWN],
             Extrapolate.CLAMP
           );
 

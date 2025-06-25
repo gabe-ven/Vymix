@@ -19,9 +19,9 @@ export default function PlaylistCard({
   coverImageUrl
 }: PlaylistCardProps) {
   return (
-    <View className="flex-1">
+    <View>
       <Glass 
-        className="w-full p-6"
+        className="w-full p-4"
         borderRadius={16}
         blurAmount={25}
         backgroundColor={COLORS.transparent.white[10]}
@@ -60,7 +60,7 @@ export default function PlaylistCard({
           </Text>
           
           {/* Description */}
-          <Text className="text-base text-ui-gray-light font-poppins-bold text-center leading-relaxed px-4 mb-4" numberOfLines={3}>
+          <Text className="text-base text-ui-gray-light font-poppins-bold text-center leading-relaxed px-4" numberOfLines={3}>
             {description}
           </Text>
           

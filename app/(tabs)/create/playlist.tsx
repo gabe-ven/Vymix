@@ -1,5 +1,5 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Layout } from '@/app/components/Layout';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -9,14 +9,14 @@ import PlaylistCard from '../../components/PlaylistCard';
 import SongList from '../../components/SongList';
 import GradientBackground from '../../components/GradientBackground';
 import { COLORS } from '../../constants/colors';
+import { ANIMATION } from '../../constants/animations';
+import { useFadeSlideIn } from '../../hooks/useFadeSlideIn';
 import Glass from '../../components/Glass';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
   useAnimatedScrollHandler,
   withTiming,
-  withSpring,
-  withSequence,
   withDelay,
   interpolate,
   Extrapolate
@@ -28,16 +28,11 @@ const Playlist = () => {
   
   // Reanimated shared values
   const scrollY = useSharedValue(0);
-  const coverOpacity = useSharedValue(1);
-  const titleOpacity = useSharedValue(1);
-  const descriptionOpacity = useSharedValue(1);
 
   // Animation values for the pop-up effect
   const playlistCardScale = useSharedValue(0);
   const playlistCardOpacity = useSharedValue(0);
-  const songListTranslateY = useSharedValue(50);
   const songListOpacity = useSharedValue(0);
-  const actionButtonsTranslateY = useSharedValue(50);
   const actionButtonsOpacity = useSharedValue(0);
 
   // Trigger animations when playlist data is loaded
@@ -52,22 +47,26 @@ const Playlist = () => {
     // Reset animation values
     playlistCardScale.value = 0;
     playlistCardOpacity.value = 0;
-    songListTranslateY.value = 50;
     songListOpacity.value = 0;
-    actionButtonsTranslateY.value = 50;
     actionButtonsOpacity.value = 0;
 
-    // Simple sequential fade-up animations
-    playlistCardOpacity.value = withTiming(1, { duration: 600 });
-    playlistCardScale.value = withTiming(1, { duration: 600 });
+    // Smooth sequential fade-up animations using constants
+    playlistCardOpacity.value = withTiming(1, { 
+      duration: ANIMATION.DURATION.NORMAL,
+    });
+    playlistCardScale.value = withTiming(1, { 
+      duration: ANIMATION.DURATION.NORMAL,
+    });
     
-    // Buttons fade up after playlist card
-    actionButtonsOpacity.value = withDelay(300, withTiming(1, { duration: 600 }));
-    actionButtonsTranslateY.value = withDelay(300, withTiming(0, { duration: 600 }));
+    // Buttons fade up after playlist card with shorter delay
+    actionButtonsOpacity.value = withDelay(ANIMATION.DELAY.BUTTONS, withTiming(1, { 
+      duration: ANIMATION.DURATION.NORMAL,
+    }));
     
-    // Song list fade up after buttons
-    songListOpacity.value = withDelay(600, withTiming(1, { duration: 600 }));
-    songListTranslateY.value = withDelay(600, withTiming(0, { duration: 600 }));
+    // Song list fade up after buttons with shorter delay
+    songListOpacity.value = withDelay(ANIMATION.DELAY.LIST, withTiming(1, { 
+      duration: ANIMATION.DURATION.NORMAL,
+    }));
   };
 
   // Create gradient colors from playlist color palette
@@ -84,72 +83,97 @@ const Playlist = () => {
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       scrollY.value = event.contentOffset.y;
-      
-      // Fade out cover, title, and description as user scrolls
-      const fadeOutValue = Math.max(0, 1 - (event.contentOffset.y / 200));
-      coverOpacity.value = fadeOutValue;
-      titleOpacity.value = fadeOutValue;
-      descriptionOpacity.value = fadeOutValue;
     },
   });
 
-  // Animated styles
+  // Custom animated style for playlist card with 3D effects
   const playlistCardAnimatedStyle = useAnimatedStyle(() => {
     const scale = interpolate(
       scrollY.value,
-      [0, 200],
-      [playlistCardScale.value, playlistCardScale.value * 0.95],
+      ANIMATION.SCROLL.FADE_RANGE,
+      [playlistCardScale.value, playlistCardScale.value * ANIMATION.TRANSFORM.SCALE_DOWN],
       Extrapolate.CLAMP
     );
     
     const translateY = interpolate(
       scrollY.value,
-      [0, 200],
-      [0, -50],
+      ANIMATION.SCROLL.FADE_RANGE,
+      [0, -40], // Reduced from -80 for less dramatic movement
+      Extrapolate.CLAMP
+    );
+
+    const rotateX = interpolate(
+      scrollY.value,
+      ANIMATION.SCROLL.FADE_RANGE,
+      [0, ANIMATION.TRANSFORM.ROTATE_X * 0.5], // Reduced rotation for subtler effect
+      Extrapolate.CLAMP
+    );
+
+    const shadowOpacity = interpolate(
+      scrollY.value,
+      ANIMATION.SCROLL.FADE_RANGE,
+      [ANIMATION.SHADOW.OPACITY.START, ANIMATION.SHADOW.OPACITY.END],
+      Extrapolate.CLAMP
+    );
+
+    const shadowRadius = interpolate(
+      scrollY.value,
+      ANIMATION.SCROLL.FADE_RANGE,
+      [ANIMATION.SHADOW.RADIUS.START, ANIMATION.SHADOW.RADIUS.END],
+      Extrapolate.CLAMP
+    );
+
+    // More gradual opacity fade - starts fading later and fades more slowly
+    const fadeOpacity = interpolate(
+      scrollY.value,
+      [100, 400], // Start fading at 100px instead of 0, end at 400px
+      [1, 0.3], // Don't fade completely to 0, stop at 0.3
       Extrapolate.CLAMP
     );
 
     return {
-      opacity: playlistCardOpacity.value * coverOpacity.value,
+      opacity: playlistCardOpacity.value * fadeOpacity,
       transform: [
         { translateY },
-        { scale }
-      ]
+        { scale },
+        { rotateX: `${rotateX}deg` },
+        { perspective: ANIMATION.TRANSFORM.PERSPECTIVE },
+      ],
+      shadowColor: '#000000',
+      shadowOffset: { width: 0, height: 12 },
+      shadowOpacity,
+      shadowRadius,
+      elevation: interpolate(
+        scrollY.value,
+        ANIMATION.SCROLL.FADE_RANGE,
+        [ANIMATION.SHADOW.ELEVATION.START, ANIMATION.SHADOW.ELEVATION.END],
+        Extrapolate.CLAMP
+      ),
     };
   });
 
-  const buttonsAnimatedStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
-      scrollY.value,
-      [300, 500],
-      [actionButtonsOpacity.value, 0],
-      Extrapolate.CLAMP
-    );
-    
-    const translateY = interpolate(
-      scrollY.value,
-      [300, 500],
-      [actionButtonsTranslateY.value, actionButtonsTranslateY.value - 20],
-      Extrapolate.CLAMP
-    );
+  // Use the hook for buttons and song list animations
+  const buttonsAnimatedStyle = useFadeSlideIn(actionButtonsOpacity, {
+    startTranslateY: ANIMATION.TRANSFORM.START_TRANSLATE_Y,
+    scrollY: scrollY,
+    scrollFadeRange: ANIMATION.SCROLL.BUTTONS_FADE_RANGE
+  });
 
-    return {
-      opacity,
-      transform: [{ translateY }]
-    };
+  const songListAnimatedStyle = useFadeSlideIn(songListOpacity, {
+    startTranslateY: ANIMATION.TRANSFORM.START_TRANSLATE_Y
   });
 
   const floatingTitleAnimatedStyle = useAnimatedStyle(() => {
     const opacity = interpolate(
       scrollY.value,
-      [150, 250],
+      ANIMATION.SCROLL.FLOATING_TITLE_RANGE,
       [0, 1],
       Extrapolate.CLAMP
     );
     
     const translateY = interpolate(
       scrollY.value,
-      [150, 250],
+      ANIMATION.SCROLL.FLOATING_TITLE_RANGE,
       [20, 0],
       Extrapolate.CLAMP
     );
@@ -157,13 +181,6 @@ const Playlist = () => {
     return {
       opacity,
       transform: [{ translateY }]
-    };
-  });
-
-  const songListAnimatedStyle = useAnimatedStyle(() => {
-    return {
-      opacity: songListOpacity.value,
-      transform: [{ translateY: songListTranslateY.value }]
     };
   });
 
@@ -261,7 +278,7 @@ const Playlist = () => {
       >
         {/* Animated Playlist Header */}
         <Animated.View style={playlistCardAnimatedStyle}>
-          <View className="px-4 pt-4">
+          <View className="px-4">
             <PlaylistCard
               name={playlistData?.name || 'My Playlist'}
               description={playlistData?.description || 'A great mix of songs'}
@@ -274,7 +291,7 @@ const Playlist = () => {
 
         {/* Action Buttons - Between playlist card and song list */}
         <Animated.View style={buttonsAnimatedStyle}>
-          <View className="px-4 mt-6 mb-2">
+          <View className="px-4 mb-4">
             <View className="flex-row justify-center">
               <TouchableOpacity
                 onPress={handleCreatePlaylist}
