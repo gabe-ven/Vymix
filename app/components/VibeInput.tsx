@@ -126,7 +126,7 @@ export const VibeInput: React.FC<VibeInputProps> = ({
 
   return (
     <View className="w-full h-full p-4 flex items-center justify-center">
-      <Text className="text-4xl md:text-5xl font-bold text-ui-white mb-6 text-center px-4 font-poppins-bold">
+      <Text className="text-4xl md:text-5xl font-bold text-ui-white mb-6 text-center px-4 font-poppins-bold leading-tight">
         What's your vibe?
       </Text>
 
