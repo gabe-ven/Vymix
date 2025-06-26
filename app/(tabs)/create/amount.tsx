@@ -116,7 +116,7 @@ export default function Amount() {
         
         <View className="mt-12">
           <Glass 
-            className="rounded-full"
+            className="rounded-full shadow-lg"
             blurAmount={20}
             backgroundColor={COLORS.transparent.white[10]}
           >

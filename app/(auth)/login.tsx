@@ -130,71 +130,103 @@ export default function LoginScreen() {
         shouldPlay
         isMuted
       />
-      <View style={{ flex: 1, marginTop: 120, marginBottom: 120 }}>
-        <View>
-          <Text className="text-7xl md:text-8xl text-ui-white font-medium px-4 font-poppins"   style={{ lineHeight: 90 }}>
+      
+      {/* Main Content Container */}
+      <View style={{ flex: 1, justifyContent: 'space-between', paddingTop: 120, paddingBottom: 80 }}>
+        
+        {/* Header Section */}
+        <View className="px-6">
+          <Text className="text-6xl md:text-7xl text-ui-white font-medium font-poppins leading-tight">
             Your vibe.
           </Text>
-          <Text className="text-7xl md:text-8xl text-ui-white font-medium px-4 font-poppins"   style={{ lineHeight: 90 }} >
+          <Text className="text-6xl md:text-7xl text-ui-white font-medium font-poppins leading-tight mt-2">
             Your mix.
           </Text>
 
-          <Text
-            className="text-8xl md:text-9xl font-extrabold text-ui-white mt-10 mb-20 tracking-tight font-poppins-bold px-4"
-          >
+          <Text className="text-7xl md:text-8xl font-extrabold text-ui-white mt-8 mb-4 tracking-tight font-poppins-bold">
             VYMIX
+          </Text>
+          
+          <Text className="text-xl text-ui-white opacity-90 font-poppins leading-relaxed max-w-sm">
+            Create personalized playlists that match your unique energy
           </Text>
         </View>
 
-        {error && (
-          <View className="w-full mb-4 bg-red-100 p-4 rounded-xl mx-4">
-            <Text className="text-red-600 text-center font-poppins">{error}</Text>
-          </View>
-        )}
+        {/* Login Section */}
+        <View className="px-6 space-y-6">
+          {error && (
+            <View className="w-full mb-2 bg-red-500/20 p-4 rounded-2xl border border-red-500/30">
+              <Text className="text-red-300 text-center font-poppins">{error}</Text>
+            </View>
+          )}
 
-        <TouchableOpacity
-          onPress={() => promptAsync()}
-          disabled={!request || loading}
-          className="w-full mb-4 px-4"
-        >
-          <View className="bg-ui-white rounded-2xl py-4 md:py-5 px-6 shadow-lg flex-row items-center justify-center">
-            {loading ? (
-              <ActivityIndicator color={COLORS.ui.black} />
-            ) : (
-              <>
-                <Image
-                  source={require("../../assets/images/google-icon.png")}
-                  className="w-6 h-6 md:w-7 md:h-7 mr-3 md:mr-4"
-                />
-                <Text className="text-gray-800 text-center font-medium text-lg md:text-xl font-poppins">
-                  Continue with Google
-                </Text>
-              </>
-            )}
-          </View>
-        </TouchableOpacity>
+          {/* Google Sign In Button */}
+          <TouchableOpacity
+            onPress={() => promptAsync()}
+            disabled={!request || loading}
+            className="w-full"
+            activeOpacity={0.8}
+          >
+            <Glass 
+              className="rounded-3xl py-5 px-6 mb-4 shadow-lg"
+              blurAmount={20}
+              backgroundColor={COLORS.transparent.white[10]}
+            >
+              <View className="flex-row items-center justify-center">
+                {loading ? (
+                  <ActivityIndicator color={COLORS.ui.white} size="large" />
+                ) : (
+                  <>
+                    <Image
+                      source={require("../../assets/images/google-icon.png")}
+                      className="w-7 h-7 mr-4"
+                    />
+                    <Text className="text-ui-white text-center font-semibold text-xl font-poppins-bold">
+                      Continue with Google
+                    </Text>
+                  </>
+                )}
+              </View>
+            </Glass>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={onAppleButtonPress}
-          disabled={loading}
-          className="w-full px-4"
-        >
-          <View className="bg-ui-black rounded-2xl py-4 md:py-5 px-6 shadow-lg flex-row items-center justify-center">
-            {loading ? (
-              <ActivityIndicator color={COLORS.ui.white} />
-            ) : (
-              <>
-                <Image
-                  source={require("../../assets/images/apple-icon.png")}
-                  className="w-6 h-6 md:w-7 md:h-7 mr-3 md:mr-4"
-                />
-                <Text className="text-ui-white text-center font-medium text-lg md:text-xl font-poppins">
-                  Continue with Apple
-                </Text>
-              </>
-            )}
+          {/* Apple Sign In Button */}
+          <TouchableOpacity
+            onPress={onAppleButtonPress}
+            disabled={loading}
+            className="w-full"
+            activeOpacity={0.8}
+          >
+            <Glass 
+              className="rounded-3xl py-5 px-6 shadow-lg"
+              blurAmount={20}
+              backgroundColor={COLORS.transparent.white[5]}
+            >
+              <View className="flex-row items-center justify-center">
+                {loading ? (
+                  <ActivityIndicator color={COLORS.ui.white} size="large" />
+                ) : (
+                  <>
+                    <Image
+                      source={require("../../assets/images/apple-icon.png")}
+                      className="w-7 h-7 mr-4"
+                    />
+                    <Text className="text-ui-white text-center font-semibold text-xl font-poppins-bold">
+                      Continue with Apple
+                    </Text>
+                  </>
+                )}
+              </View>
+            </Glass>
+          </TouchableOpacity>
+
+          {/* Terms and Privacy */}
+          <View className="mt-6 px-4">
+            <Text className="text-ui-white text-center opacity-60 font-poppins text-sm leading-relaxed">
+              By continuing, you agree to our Terms of Service and Privacy Policy
+            </Text>
           </View>
-        </TouchableOpacity>
+        </View>
       </View>
     </View>
   );

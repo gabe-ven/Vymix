@@ -173,7 +173,7 @@ export const VibeInput: React.FC<VibeInputProps> = ({
         {value.trim() && (
           <TouchableOpacity
             onPress={handleNext}
-            className="bg-darkPurple rounded-full w-24 h-16 items-center justify-center"
+            className="bg-darkPurple rounded-full w-24 h-16 items-center justify-center shadow-lg"
           >
             <Ionicons name="arrow-forward" size={32} color={COLORS.ui.white} />
           </TouchableOpacity>

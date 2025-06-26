@@ -335,7 +335,7 @@ const Playlist = () => {
             {error}
           </Text>
           <Glass 
-            className="rounded-full"
+            className="rounded-full shadow-lg"
             blurAmount={20}
             backgroundColor={COLORS.transparent.white[10]}
           >
@@ -382,7 +382,7 @@ const Playlist = () => {
               {playlistData?.isSpotifyPlaylist ? (
                 // Playlist is already saved to Spotify
                 <Glass 
-                  className="rounded-full mr-4 mb-2"
+                  className="rounded-full mr-4 mb-2 shadow-lg"
                   blurAmount={20}
                   backgroundColor={COLORS.transparent.white[10]}
                 >
@@ -398,7 +398,7 @@ const Playlist = () => {
               ) : (
                 // Playlist is not saved to Spotify yet
                 <Glass 
-                  className="rounded-full mr-4 mb-2"
+                  className="rounded-full mr-4 mb-2 shadow-lg"
                   blurAmount={20}
                   backgroundColor={COLORS.transparent.white[10]}
                 >
@@ -414,7 +414,7 @@ const Playlist = () => {
               )}
 
               <Glass 
-                className="rounded-full mr-4 mb-2"
+                className="rounded-full mr-4 mb-2 shadow-lg"
                 blurAmount={20}
                 backgroundColor={COLORS.transparent.white[10]}
               >
@@ -429,7 +429,7 @@ const Playlist = () => {
               </Glass>
 
               <Glass 
-                className="rounded-full mb-2"
+                className="rounded-full mb-2 shadow-lg"
                 blurAmount={20}
                 backgroundColor={COLORS.transparent.white[10]}
               >

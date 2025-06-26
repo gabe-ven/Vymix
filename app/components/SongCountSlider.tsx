@@ -47,7 +47,7 @@ export default function SongCountSlider({ onValueChange, initialValue = 10 }: So
       <View className="items-center mb-8">
         <TouchableOpacity onPress={handleCirclePress} activeOpacity={0.8}>
           <Glass 
-            className="w-32 h-32 items-center justify-center"
+            className="w-32 h-32 items-center justify-center shadow-lg"
             borderRadius={64}
             blurAmount={30}
           >

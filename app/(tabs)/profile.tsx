@@ -5,24 +5,46 @@ import { FontAwesome, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { COLORS } from '../constants/colors';
 import Glass from '../components/Glass';
-import { spotifyService } from '../../services/spotify';
+import { spotifyService, SpotifyUser } from '../../services/spotify';
 import { useState, useEffect } from 'react';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
   const [isSpotifyConnected, setIsSpotifyConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [spotifyUser, setSpotifyUser] = useState<SpotifyUser | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    // Check Spotify connection status
+    // Check Spotify connection status and fetch user data
     const checkSpotifyStatus = async () => {
       try {
-        const isConnected = spotifyService.isAuthenticated();
-        setIsSpotifyConnected(isConnected);
+        // Check if user has valid tokens (currently authenticated)
+        const isAuthenticated = spotifyService.isAuthenticated();
+        
+        // Check if user has ever connected before
+        const hasConnectedBefore = user?.uid ? await spotifyService.hasConnectedSpotify(user.uid) : false;
+        
+        // Show as connected if either currently authenticated OR has connected before
+        const connected = isAuthenticated || hasConnectedBefore;
+        setIsSpotifyConnected(connected);
+        
+        // If currently authenticated, fetch Spotify user data
+        if (isAuthenticated) {
+          try {
+            const currentUser = await spotifyService.getCurrentUser();
+            setSpotifyUser(currentUser);
+          } catch (error) {
+            console.error('Error fetching Spotify user data:', error);
+            setSpotifyUser(null);
+          }
+        } else {
+          setSpotifyUser(null);
+        }
       } catch (error) {
         console.error('Error checking Spotify status:', error);
         setIsSpotifyConnected(false);
+        setSpotifyUser(null);
       }
     };
     
@@ -43,6 +65,15 @@ export default function ProfileScreen() {
       setIsLoading(true);
       await spotifyService.loginToSpotify(user?.uid);
       setIsSpotifyConnected(true);
+      
+      // Fetch Spotify user data after successful login
+      try {
+        const currentUser = await spotifyService.getCurrentUser();
+        setSpotifyUser(currentUser);
+      } catch (error) {
+        console.error('Error fetching Spotify user data after login:', error);
+      }
+      
       Alert.alert(
         'Connected! 🎉',
         'You are now connected to Spotify and can create playlists!',
@@ -71,6 +102,7 @@ export default function ProfileScreen() {
       }
       
       setIsSpotifyConnected(false);
+      setSpotifyUser(null);
       Alert.alert(
         'Disconnected',
         'You have been disconnected from Spotify.',
@@ -121,7 +153,7 @@ export default function ProfileScreen() {
             backgroundColor={COLORS.transparent.white[10]}
           >
             <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center">
+              <View className="flex-row items-center flex-1">
                 <View className="w-12 h-12 items-center justify-center mr-4">
                   <Image
                     source={require('../../assets/images/spotify-logo.png')}
@@ -129,13 +161,32 @@ export default function ProfileScreen() {
                     resizeMode="contain"
                   />
                 </View>
-                <View>
+                <View className="flex-1">
                   <Text className="text-ui-white font-semibold text-base font-poppins-bold">
                     Spotify
                   </Text>
-                  <Text className="text-ui-white text-sm font-poppins opacity-70">
-                    {isSpotifyConnected ? 'Connected' : 'Not connected'}
-                  </Text>
+                  {isSpotifyConnected && spotifyUser ? (
+                    <View className="flex-row items-center mt-1">
+                      {spotifyUser.images && spotifyUser.images.length > 0 ? (
+                        <Image
+                          source={{ uri: spotifyUser.images[0].url }}
+                          className="w-6 h-6 rounded-full mr-2"
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View className="w-6 h-6 rounded-full bg-green-500 mr-2 items-center justify-center">
+                          <FontAwesome name="music" size={10} color="white" />
+                        </View>
+                      )}
+                      <Text className="text-ui-white text-sm font-poppins opacity-70">
+                        {spotifyUser.display_name}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text className="text-ui-white text-sm font-poppins opacity-70">
+                      {isSpotifyConnected ? 'Connected' : 'Not connected'}
+                    </Text>
+                  )}
                 </View>
               </View>
               
@@ -143,7 +194,7 @@ export default function ProfileScreen() {
                 <TouchableOpacity
                   onPress={handleSpotifyLogout}
                   disabled={isLoading}
-                  className="bg-red-500 rounded-full px-4 py-2"
+                  className="bg-red-500 rounded-full px-4 py-2 ml-4 shadow-lg"
                 >
                   <Text className="text-white font-semibold text-sm font-poppins">
                     {isLoading ? 'Disconnecting...' : 'Disconnect'}
@@ -153,7 +204,7 @@ export default function ProfileScreen() {
                 <TouchableOpacity
                   onPress={handleSpotifyLogin}
                   disabled={isLoading}
-                  className="bg-green-500 rounded-full px-4 py-2"
+                  className="bg-green-500 rounded-full px-4 py-2 ml-4 shadow-lg"
                 >
                   <Text className="text-white font-semibold text-sm font-poppins">
                     {isLoading ? 'Connecting...' : 'Connect'}
@@ -163,18 +214,19 @@ export default function ProfileScreen() {
             </View>
           </Glass>
         </View>
+      </View>
 
-        {/* Logout Button */}
-        <View className="space-y-3">
-          <TouchableOpacity
-            onPress={handleSignOut}
-            className="bg-red-500 rounded-xl py-3 md:py-4 px-6 mx-4"
-          >
-            <Text className="text-ui-white text-center font-semibold text-base md:text-lg font-poppins">
-              Sign Out
-            </Text>
-          </TouchableOpacity>
-        </View>
+      {/* Sign Out Button - Positioned at bottom */}
+      <View className="absolute bottom-32 left-4 right-4">
+        <TouchableOpacity
+          onPress={handleSignOut}
+          className="bg-red-500 rounded-full py-4 px-6 shadow-lg"
+          activeOpacity={0.8}
+        >
+          <Text className="text-ui-white text-center font-semibold text-lg font-poppins">
+            Sign Out
+          </Text>
+        </TouchableOpacity>
       </View>
     </Layout>
   );

@@ -43,92 +43,117 @@ export default function ConnectSpotifyScreen() {
 
   return (
     <Layout>
-      <View className="flex-1 justify-center items-center px-6">
-        {/* Header */}
-        <View className="mb-12">
-          <Text className="text-4xl font-bold text-ui-white text-center mb-4 font-poppins-bold">
-            Connect with Spotify
+      <View className="flex-1 justify-center items-center px-8">
+        {/* Header Section */}
+        <View className="mb-12 items-center">
+          <Text className="text-5xl font-bold text-ui-white text-center mb-6 font-poppins-bold leading-tight">
+            Welcome to Vymix
           </Text>
-          <Text className="text-lg text-ui-white text-center opacity-80 font-poppins">
-            Connect your Spotify account to generate personalized playlists with real tracks
+          <Text className="text-xl text-ui-white text-center opacity-90 font-poppins leading-relaxed max-w-sm">
+            Connect your Spotify account to unlock personalized playlist generation
           </Text>
         </View>
 
-        {/* Spotify Logo */}
-        <View className="mb-8">
+        {/* Spotify Logo Section */}
+        <View className="mb-8 items-center">
           <Image
             source={require('../../assets/images/spotify-logo.png')}
-            className="w-24 h-24"
+            className="w-20 h-20 mb-6"
             resizeMode="contain"
           />
+          <Text className="text-2xl font-semibold text-ui-white font-poppins-bold">
+            Connect with Spotify
+          </Text>
         </View>
 
-        {/* Benefits */}
-        <View className="mb-8 w-full">
-          <View className="mb-4">
-            <View className="flex-row items-center mb-2">
-              <Ionicons name="checkmark-circle" size={20} color={COLORS.primary.lime} />
-              <Text className="text-ui-white ml-3 font-poppins">Real Spotify tracks based on your vibe</Text>
+        {/* Benefits Section */}
+        <View className="mb-12 w-full max-w-sm">
+          <Text className="text-lg text-ui-white text-center mb-4 font-poppins-semibold opacity-90">
+            What you'll get:
+          </Text>
+          <View className="space-y-5">
+            <View className="flex-row items-start">
+              <Ionicons name="checkmark-circle" size={28} color={COLORS.primary.lime} className="mt-1" />
+              <Text className="text-ui-white font-poppins flex-1 leading-relaxed ml-4 text-lg">
+                Real Spotify tracks based on your vibe
+              </Text>
             </View>
-            <View className="flex-row items-center mb-2">
-              <Ionicons name="checkmark-circle" size={20} color={COLORS.primary.lime} />
-              <Text className="text-ui-white ml-3 font-poppins">Save playlists directly to your account</Text>
+            <View className="flex-row items-start">
+              <Ionicons name="checkmark-circle" size={28} color={COLORS.primary.lime} className="mt-1" />
+              <Text className="text-ui-white font-poppins flex-1 leading-relaxed ml-4 text-lg">
+                Save playlists directly to your account
+              </Text>
             </View>
-            <View className="flex-row items-center">
-              <Ionicons name="checkmark-circle" size={20} color={COLORS.primary.lime} />
-              <Text className="text-ui-white ml-3 font-poppins">Access your music library</Text>
+            <View className="flex-row items-start">
+              <Ionicons name="checkmark-circle" size={28} color={COLORS.primary.lime} className="mt-1" />
+              <Text className="text-ui-white font-poppins flex-1 leading-relaxed ml-4 text-lg">
+                Access your music library and preferences
+              </Text>
             </View>
           </View>
         </View>
 
+        {/* Error Message */}
         {error && (
-          <View className="w-full mb-6 bg-red-500/20 p-4 rounded-xl border border-red-500/30">
+          <View className="w-full mb-6 bg-red-500/20 p-4 rounded-2xl border border-red-500/30">
             <Text className="text-red-300 text-center font-poppins">{error}</Text>
           </View>
         )}
 
-        {/* Connect Button */}
-        <TouchableOpacity
-          onPress={handleConnectSpotify}
-          disabled={connecting}
-          className="w-full mb-4"
-        >
-          <Glass 
-            className="rounded-2xl py-4 px-6"
-            blurAmount={20}
-            backgroundColor={COLORS.transparent.white[10]}
+        {/* Action Buttons */}
+        <View className="w-full space-y-5">
+          {/* Connect Button */}
+          <TouchableOpacity
+            onPress={handleConnectSpotify}
+            disabled={connecting}
+            className="w-full"
+            activeOpacity={0.8}
           >
-            <View className="flex-row items-center justify-center">
-              {connecting ? (
-                <ActivityIndicator color={COLORS.ui.white} />
-              ) : (
-                <>
-                  <Image
-                    source={require('../../assets/images/spotify-logo.png')}
-                    className="w-6 h-6"
-                    resizeMode="contain"
-                  />
-                  <Text className="text-ui-white text-center font-semibold text-lg ml-3 font-poppins-bold">
-                    Connect with Spotify
-                  </Text>
-                </>
-              )}
-            </View>
-          </Glass>
-        </TouchableOpacity>
+            <Glass 
+              className="rounded-3xl py-5 px-6 shadow-lg"
+              blurAmount={20}
+              backgroundColor={COLORS.transparent.white[10]}
+            >
+              <View className="flex-row items-center justify-center">
+                {connecting ? (
+                  <ActivityIndicator color={COLORS.ui.white} size="large" />
+                ) : (
+                  <>
+                    <Image
+                      source={require('../../assets/images/spotify-logo.png')}
+                      className="w-7 h-7"
+                      resizeMode="contain"
+                    />
+                    <Text className="text-ui-white text-center font-semibold text-xl ml-3 font-poppins-bold">
+                      Connect with Spotify
+                    </Text>
+                  </>
+                )}
+              </View>
+            </Glass>
+          </TouchableOpacity>
 
-        {/* Skip Button */}
-        <TouchableOpacity
-          onPress={handleSkipSpotify}
-          disabled={connecting}
-          className="w-full"
-        >
-          <View className="py-4 px-6">
-            <Text className="text-ui-white text-center opacity-60 font-poppins">
-              Skip for now
-            </Text>
-          </View>
-        </TouchableOpacity>
+          {/* Skip Button */}
+          <TouchableOpacity
+            onPress={handleSkipSpotify}
+            disabled={connecting}
+            className="w-full"
+            activeOpacity={0.6}
+          >
+            <View className="py-5 px-6 shadow-lg">
+              <Text className="text-ui-white text-center opacity-70 font-poppins text-lg">
+                Continue without Spotify
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Footer Note */}
+        <View className="mt-8 px-4">
+          <Text className="text-ui-white text-center opacity-50 font-poppins text-sm leading-relaxed">
+            You can always connect your Spotify account later in your profile
+          </Text>
+        </View>
       </View>
     </Layout>
   );

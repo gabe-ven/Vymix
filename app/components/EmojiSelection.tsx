@@ -65,7 +65,7 @@ const EmojiSelection: React.FC<EmojiSelectionProps> = ({
             <TouchableOpacity
               key={index}
               onPress={() => toggleEmoji(emoji)}
-              className={`w-16 h-16 m-2 rounded-lg items-center justify-center ${
+              className={`w-16 h-16 m-2 rounded-lg items-center justify-center shadow-lg ${
                 selectedEmojis.includes(emoji) 
                   ? 'bg-white/20 border-2 border-white' 
                   : 'bg-white/10'
@@ -81,16 +81,16 @@ const EmojiSelection: React.FC<EmojiSelectionProps> = ({
         {selectedEmojis.length > 0 ? (
           <TouchableOpacity
             onPress={handleNext}
-            className="bg-darkPurple rounded-full w-24 h-16 items-center justify-center"
+            className="bg-darkPurple rounded-full w-24 h-16 items-center justify-center shadow-lg"
           >
             <Ionicons name="arrow-forward" size={32} color={COLORS.ui.white} />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
             onPress={handleSkip}
-            className="rounded-full px-6 py-3"
+            className="rounded-full px-6 py-3 shadow-lg"
           >
-            <Text className="text-ui-gray-light text-xl font-poppins-bold">Skip</Text>
+            <Text className="text-ui-gray-light text-xl font-poppins">Skip</Text>
           </TouchableOpacity>
         )}
       </View>
