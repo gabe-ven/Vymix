@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, Linking, Alert } from 'react-native';
 import { Layout } from '@/app/components/Layout';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { usePlaylistGeneration } from '../../hooks/usePlaylistGeneration';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LoadingAnimation } from '../../components/LoadingAnimation';
 import PlaylistCard from '../../components/PlaylistCard';
 import SongList from '../../components/SongList';
@@ -22,9 +22,26 @@ import Animated, {
   Extrapolate
 } from 'react-native-reanimated';
 
+interface PlaylistData {
+  name: string;
+  description: string;
+  colorPalette: string[];
+  keywords: string[];
+  coverImageUrl?: string;
+  emojis: string[];
+  songCount: number;
+  vibe: string;
+  tracks: any[];
+  spotifyUrl?: string;
+  id?: string;
+  isSpotifyPlaylist?: boolean;
+}
+
 const Playlist = () => {
   const router = useRouter();
-  const { playlistData, loading, error, generatePlaylist, resetPlaylist } = usePlaylistGeneration();
+  const [playlistData, setPlaylistData] = useState<PlaylistData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Reanimated shared values
   const scrollY = useSharedValue(0);
@@ -34,6 +51,29 @@ const Playlist = () => {
   const playlistCardOpacity = useSharedValue(0);
   const songListOpacity = useSharedValue(0);
   const actionButtonsOpacity = useSharedValue(0);
+
+  // Load playlist data from AsyncStorage
+  useEffect(() => {
+    const loadPlaylistData = async () => {
+      try {
+        const data = await AsyncStorage.getItem('playlistData');
+        if (data) {
+          const parsedData = JSON.parse(data);
+          setPlaylistData(parsedData);
+          console.log('Loaded playlist data:', parsedData);
+        } else {
+          setError('No playlist data found. Please go back and create a playlist.');
+        }
+      } catch (err) {
+        console.error('Error loading playlist data:', err);
+        setError('Failed to load playlist data.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPlaylistData();
+  }, []);
 
   // Trigger animations when playlist data is loaded
   useEffect(() => {
@@ -184,49 +224,90 @@ const Playlist = () => {
     };
   });
 
-  // Example songs and artists for demonstration
-  const exampleSongs = [
-    { title: "Blinding Lights", artist: "The Weeknd" },
-    { title: "Levitating", artist: "Dua Lipa" },
-    { title: "Stay", artist: "Kid LAROI & Justin Bieber" },
-    { title: "Good 4 U", artist: "Olivia Rodrigo" },
-    { title: "Shivers", artist: "Ed Sheeran" },
-    { title: "We Don't Talk About Bruno", artist: "Carolina Gaitán" },
-    { title: "As It Was", artist: "Harry Styles" },
-    { title: "About Damn Time", artist: "Lizzo" },
-    { title: "Late Night Talking", artist: "Harry Styles" },
-    { title: "Hold Me Closer", artist: "Elton John & Britney Spears" },
-    { title: "Super Freaky Girl", artist: "Nicki Minaj" },
-    { title: "Vampire", artist: "Olivia Rodrigo" },
-    { title: "Break My Soul", artist: "Beyoncé" },
-    { title: "Running Up That Hill", artist: "Kate Bush" },
-    { title: "Hold Me Closer", artist: "Elton John & Britney Spears" },
-    { title: "Late Night Talking", artist: "Harry Styles" },
-    { title: "Hold Me Closer", artist: "Elton John & Britney Spears" },
-    { title: "Super Freaky Girl", artist: "Nicki Minaj" },
-    { title: "Vampire", artist: "Olivia Rodrigo" },
-    { title: "Break My Soul", artist: "Beyoncé" },
-    { title: "Running Up That Hill", artist: "Kate Bush" },
-  ];
+  // Convert tracks to the format expected by SongList component
+  const formatTracksForDisplay = () => {
+    console.log('=== FORMATTING TRACKS FOR DISPLAY ===');
+    console.log('Playlist data:', playlistData);
+    console.log('Tracks:', playlistData?.tracks);
+    console.log('Tracks length:', playlistData?.tracks?.length);
+    
+    if (!playlistData?.tracks) {
+      console.log('No tracks found, returning empty array');
+      return [];
+    }
+    
+    const formattedTracks = playlistData.tracks.map((track, index) => {
+      console.log(`Processing track ${index}:`, JSON.stringify(track, null, 2));
+      
+      const formattedTrack = {
+        title: track.name,
+        artist: track.artist || track.artists?.map((artist: { name: string }) => artist.name).join(', ') || 'Unknown Artist',
+        album: track.album?.name || track.album || 'Unknown Album',
+        duration: track.duration || track.duration_ms || 0,
+        spotifyUrl: track.spotifyUrl || track.external_urls?.spotify || '',
+      };
+      
+      console.log(`Formatted track ${index}:`, formattedTrack);
+      return formattedTrack;
+    });
+    
+    console.log('Final formatted tracks:', formattedTracks);
+    console.log('=== TRACK FORMATTING COMPLETED ===');
+    return formattedTracks;
+  };
 
   const handleRetry = () => {
-    resetPlaylist();
     router.replace('/(tabs)/create');
   };
 
   const handleRegenerate = async () => {
     // Reset current data and regenerate with same vibe/emojis
-    resetPlaylist();
-    try {
-      await generatePlaylist();
-    } catch (error) {
-      console.error('Failed to regenerate playlist:', error);
+    router.replace('/(tabs)/create');
+  };
+
+  const handleOpenInSpotify = async () => {
+    if (playlistData?.spotifyUrl) {
+      try {
+        const supported = await Linking.canOpenURL(playlistData.spotifyUrl);
+        if (supported) {
+          await Linking.openURL(playlistData.spotifyUrl);
+        } else {
+          Alert.alert(
+            'Spotify Not Available',
+            'Please install Spotify to open this playlist.',
+            [{ text: 'OK' }]
+          );
+        }
+      } catch (error) {
+        console.error('Error opening Spotify:', error);
+        Alert.alert(
+          'Error',
+          'Failed to open playlist in Spotify.',
+          [{ text: 'OK' }]
+        );
+      }
     }
   };
 
-  const handleCreatePlaylist = () => {
-    // TODO: Implement actual playlist creation logic
-    console.log('Creating playlist:', playlistData);
+  const handleSaveToSpotify = async () => {
+    try {
+      await AsyncStorage.setItem('playlistData', JSON.stringify(playlistData));
+      Alert.alert(
+        'Saved to AsyncStorage! 🎉',
+        'Your playlist has been created and saved to AsyncStorage. You can now open it in the app!',
+        [
+          { text: 'Open in the app', onPress: handleRetry },
+          { text: 'OK' }
+        ]
+      );
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save to AsyncStorage';
+      Alert.alert(
+        'Save Failed',
+        errorMessage,
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   if (loading) {
@@ -297,24 +378,43 @@ const Playlist = () => {
         {/* Action Buttons - Between playlist card and song list */}
         <Animated.View style={buttonsAnimatedStyle}>
           <View className="px-4 mb-4">
-            <View className="flex-row justify-center">
-              <Glass 
-                className="rounded-full mr-4"
-                blurAmount={20}
-                backgroundColor={COLORS.transparent.white[10]}
-              >
-                <TouchableOpacity
-                  onPress={handleCreatePlaylist}
-                  className="rounded-full px-6 py-3 items-center justify-center"
+            <View className="flex-row justify-center flex-wrap">
+              {playlistData?.isSpotifyPlaylist ? (
+                // Playlist is already saved to Spotify
+                <Glass 
+                  className="rounded-full mr-4 mb-2"
+                  blurAmount={20}
+                  backgroundColor={COLORS.transparent.white[10]}
                 >
-                  <Text className="text-ui-white font-bold text-base font-poppins-bold">
-                    Save
-                  </Text>
-                </TouchableOpacity>
-              </Glass>
+                  <TouchableOpacity
+                    onPress={handleOpenInSpotify}
+                    className="rounded-full px-6 py-3 items-center justify-center"
+                  >
+                    <Text className="text-ui-white font-bold text-base font-poppins-bold">
+                      Open in the app
+                    </Text>
+                  </TouchableOpacity>
+                </Glass>
+              ) : (
+                // Playlist is not saved to Spotify yet
+                <Glass 
+                  className="rounded-full mr-4 mb-2"
+                  blurAmount={20}
+                  backgroundColor={COLORS.transparent.white[10]}
+                >
+                  <TouchableOpacity
+                    onPress={handleSaveToSpotify}
+                    className="rounded-full px-6 py-3 items-center justify-center"
+                  >
+                    <Text className="text-ui-white font-bold text-base font-poppins-bold">
+                      Save to AsyncStorage
+                    </Text>
+                  </TouchableOpacity>
+                </Glass>
+              )}
 
               <Glass 
-                className="rounded-full mr-4"
+                className="rounded-full mr-4 mb-2"
                 blurAmount={20}
                 backgroundColor={COLORS.transparent.white[10]}
               >
@@ -329,7 +429,7 @@ const Playlist = () => {
               </Glass>
 
               <Glass 
-                className="rounded-full"
+                className="rounded-full mb-2"
                 blurAmount={20}
                 backgroundColor={COLORS.transparent.white[10]}
               >
@@ -350,7 +450,7 @@ const Playlist = () => {
         <Animated.View style={songListAnimatedStyle}>
           <View className="px-4">
             <SongList 
-              songs={exampleSongs} 
+              songs={formatTracksForDisplay()} 
               showScrollView={false}
               scrollY={scrollY}
             />

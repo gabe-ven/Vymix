@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
+import { ALL_MOOD_EMOJIS } from '../constants/emojis';
 
 interface EmojiSelectionProps {
   onNext: (selectedEmojis: string[]) => void;
@@ -13,15 +14,6 @@ const EmojiSelection: React.FC<EmojiSelectionProps> = ({
   maxSelection = 3 
 }) => {
   const [selectedEmojis, setSelectedEmojis] = useState<string[]>([]);
-
-  const moodEmojis = [
-    '😄', '😆', '🤩', '🥳', '😎', '✨',
-    '😌', '🌿', '🌊', '🧘', '☁️', '🌅',
-    '🥰', '😘', '💖', 
-    '😔', '😞', '🌧️', '🖤', '🫥',
-    '😠', '😤', '💢', '🌩️', '🔥', '👿',
-    '😵', '😶‍🌫️', '🤯', '🤔',
-  ];
 
   const toggleEmoji = (emoji: string) => {
     try {
@@ -57,15 +49,19 @@ const EmojiSelection: React.FC<EmojiSelectionProps> = ({
   };
 
   return (
-    <View className="flex-1 pt-20 px-4 pb-20">
+    <View className="flex-1 pt-20 px-4 pb-32">
       <Text className="text-ui-white text-2xl font-poppins-bold mb-4 text-center">
         Select up to {maxSelection} emojis
       </Text>
       
-      {/* Emoji grid */}
-      <View>
+      {/* Scrollable Emoji grid */}
+      <ScrollView 
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 20 }}
+      >
         <View className="flex-row flex-wrap justify-center">
-          {moodEmojis.map((emoji, index) => (
+          {ALL_MOOD_EMOJIS.map((emoji, index) => (
             <TouchableOpacity
               key={index}
               onPress={() => toggleEmoji(emoji)}
@@ -79,9 +75,9 @@ const EmojiSelection: React.FC<EmojiSelectionProps> = ({
             </TouchableOpacity>
           ))}
         </View>
-      </View>
+      </ScrollView>
 
-      <View className="items-center mt-6">
+      <View className="items-center mt-4 mb-8">
         {selectedEmojis.length > 0 ? (
           <TouchableOpacity
             onPress={handleNext}

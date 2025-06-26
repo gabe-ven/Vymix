@@ -10,6 +10,7 @@ import { Video, ResizeMode } from 'expo-av';
 import { StyleSheet } from 'react-native';
 import { Glass } from '../components/Glass';
 import { COLORS } from '../constants/colors';
+import { spotifyService } from '../../services/spotify';
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
@@ -31,12 +32,31 @@ export default function LoginScreen() {
     }
   }, []);
 
+  // Check Spotify connection and route accordingly
+  const checkSpotifyAndRoute = async (user: any) => {
+    try {
+      const hasConnected = await spotifyService.hasConnectedSpotify(user.uid);
+      
+      if (hasConnected) {
+        // User has connected Spotify before, go directly to main app
+        router.replace("/(tabs)/create");
+      } else {
+        // User hasn't connected Spotify before, go to connect page
+        router.replace("/(auth)/connect-spotify");
+      }
+    } catch (error) {
+      console.error('Error checking Spotify connection:', error);
+      // Default to connect page if there's an error
+      router.replace("/(auth)/connect-spotify");
+    }
+  };
+
   // Handle token refresh
   useEffect(() => {
     const unsubscribe = auth().onAuthStateChanged((user) => {
       if (user) {
         setUserLoggedIn(true);
-        router.replace("/(tabs)/create");
+        checkSpotifyAndRoute(user);
       }
     });
 
@@ -98,22 +118,6 @@ export default function LoginScreen() {
       setLoading(false);
     }
   }
-
-  const handleGuestLogin = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const userCredential = await auth().signInAnonymously();
-      if (userCredential.user) {
-        setUserLoggedIn(true);
-      }
-    } catch (err) {
-      console.error("Anonymous sign-in error:", err);
-      setError("Failed to sign in as guest. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
   
   return (
     <View style={{ flex: 1 }}>
@@ -173,7 +177,7 @@ export default function LoginScreen() {
         <TouchableOpacity
           onPress={onAppleButtonPress}
           disabled={loading}
-          className="w-full mb-4 px-4"
+          className="w-full px-4"
         >
           <View className="bg-ui-black rounded-2xl py-4 md:py-5 px-6 shadow-lg flex-row items-center justify-center">
             {loading ? (
@@ -190,22 +194,6 @@ export default function LoginScreen() {
               </>
             )}
           </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={handleGuestLogin}
-          disabled={loading}
-          className="w-full px-4"
-        >
-          <Glass className="rounded-2xl py-4 md:py-5 px-6">
-            {loading ? (
-              <ActivityIndicator color={COLORS.ui.white} />
-            ) : (
-              <Text className="text-ui-white text-center font-medium text-lg md:text-xl font-poppins">
-                Continue as Guest
-              </Text>
-            )}
-          </Glass>
         </TouchableOpacity>
       </View>
     </View>
