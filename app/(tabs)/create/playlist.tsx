@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, TouchableOpacity, Linking, Alert } from 'react-native';
 import { Layout } from '@/app/components/Layout';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LoadingAnimation } from '../../components/LoadingAnimation';
 import PlaylistCard from '../../components/PlaylistCard';
 import SongList from '../../components/SongList';
@@ -11,6 +10,7 @@ import GradientBackground from '../../components/GradientBackground';
 import { COLORS } from '../../constants/colors';
 import { ANIMATION } from '../../constants/animations';
 import { useFadeSlideIn } from '../../hooks/useFadeSlideIn';
+import { usePlaylist } from '../../hooks/usePlaylist';
 import Glass from '../../components/Glass';
 import Animated, { 
   useSharedValue, 
@@ -39,9 +39,7 @@ interface PlaylistData {
 
 const Playlist = () => {
   const router = useRouter();
-  const [playlistData, setPlaylistData] = useState<PlaylistData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { playlistData, loading, error, regeneratePlaylist, saveToSpotify, loadPlaylist } = usePlaylist();
   
   // Reanimated shared values
   const scrollY = useSharedValue(0);
@@ -52,33 +50,14 @@ const Playlist = () => {
   const songListOpacity = useSharedValue(0);
   const actionButtonsOpacity = useSharedValue(0);
 
-  // Load playlist data from AsyncStorage
+  // Load playlist data on mount
   useEffect(() => {
-    const loadPlaylistData = async () => {
-      try {
-        const data = await AsyncStorage.getItem('playlistData');
-        if (data) {
-          const parsedData = JSON.parse(data);
-          setPlaylistData(parsedData);
-          console.log('Loaded playlist data:', parsedData);
-        } else {
-          setError('No playlist data found. Please go back and create a playlist.');
-        }
-      } catch (err) {
-        console.error('Error loading playlist data:', err);
-        setError('Failed to load playlist data.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadPlaylistData();
+    loadPlaylist();
   }, []);
 
   // Trigger animations when playlist data is loaded
   useEffect(() => {
     if (playlistData && !loading) {
-      // Start the animation sequence
       animatePlaylistCard();
     }
   }, [playlistData, loading]);
@@ -114,8 +93,6 @@ const Playlist = () => {
     if (!playlistData?.colorPalette || playlistData.colorPalette.length === 0) {
       return [COLORS.primary.darkPurple, COLORS.primary.lime, COLORS.ui.black];
     }
-
-    // Use the AI-generated color palette from user input
     return playlistData.colorPalette;
   };
 
@@ -138,14 +115,14 @@ const Playlist = () => {
     const translateY = interpolate(
       scrollY.value,
       ANIMATION.SCROLL.FADE_RANGE,
-      [0, -40], // Reduced from -80 for less dramatic movement
+      [0, -40],
       Extrapolate.CLAMP
     );
 
     const rotateX = interpolate(
       scrollY.value,
       ANIMATION.SCROLL.FADE_RANGE,
-      [0, ANIMATION.TRANSFORM.ROTATE_X * 0.5], // Reduced rotation for subtler effect
+      [0, ANIMATION.TRANSFORM.ROTATE_X * 0.5],
       Extrapolate.CLAMP
     );
 
@@ -163,11 +140,10 @@ const Playlist = () => {
       Extrapolate.CLAMP
     );
 
-    // More gradual opacity fade - starts fading later and fades more slowly
     const fadeOpacity = interpolate(
       scrollY.value,
-      [100, 400], // Start fading at 100px instead of 0, end at 400px
-      [1, 0.3], // Don't fade completely to 0, stop at 0.3
+      [100, 400],
+      [1, 0.3],
       Extrapolate.CLAMP
     );
 
@@ -199,10 +175,7 @@ const Playlist = () => {
     scrollFadeRange: ANIMATION.SCROLL.BUTTONS_FADE_RANGE
   });
 
-  const songListAnimatedStyle = useFadeSlideIn(songListOpacity, {
-    startTranslateY: ANIMATION.TRANSFORM.START_TRANSLATE_Y
-  });
-
+  // Floating title animation
   const floatingTitleAnimatedStyle = useAnimatedStyle(() => {
     const opacity = interpolate(
       scrollY.value,
@@ -226,42 +199,24 @@ const Playlist = () => {
 
   // Convert tracks to the format expected by SongList component
   const formatTracksForDisplay = () => {
-    console.log('=== FORMATTING TRACKS FOR DISPLAY ===');
-    console.log('Playlist data:', playlistData);
-    console.log('Tracks:', playlistData?.tracks);
-    console.log('Tracks length:', playlistData?.tracks?.length);
+    if (!playlistData?.tracks) return [];
     
-    if (!playlistData?.tracks) {
-      console.log('No tracks found, returning empty array');
-      return [];
-    }
-    
-    const formattedTracks = playlistData.tracks.map((track, index) => {
-      console.log(`Processing track ${index}:`, JSON.stringify(track, null, 2));
+    return playlistData.tracks.map((track) => {
+      // Get album image URL (prefer the smallest image for better performance)
+      const albumImageUrl = track.album?.images?.[track.album.images.length - 1]?.url || undefined;
       
-      const formattedTrack = {
+      return {
         title: track.name,
-        artist: track.artist || track.artists?.map((artist: { name: string }) => artist.name).join(', ') || 'Unknown Artist',
-        album: track.album?.name || track.album || 'Unknown Album',
-        duration: track.duration || track.duration_ms || 0,
-        spotifyUrl: track.spotifyUrl || track.external_urls?.spotify || '',
+        artist: track.artists?.map((artist: { name: string }) => artist.name).join(', ') || 'Unknown Artist',
+        album: track.album?.name || 'Unknown Album',
+        duration: track.duration_ms || 0,
+        spotifyUrl: track.external_urls?.spotify || '',
+        albumImageUrl: albumImageUrl,
       };
-      
-      console.log(`Formatted track ${index}:`, formattedTrack);
-      return formattedTrack;
     });
-    
-    console.log('Final formatted tracks:', formattedTracks);
-    console.log('=== TRACK FORMATTING COMPLETED ===');
-    return formattedTracks;
   };
 
   const handleRetry = () => {
-    router.replace('/(tabs)/create');
-  };
-
-  const handleRegenerate = async () => {
-    // Reset current data and regenerate with same vibe/emojis
     router.replace('/(tabs)/create');
   };
 
@@ -291,17 +246,14 @@ const Playlist = () => {
 
   const handleSaveToSpotify = async () => {
     try {
-      await AsyncStorage.setItem('playlistData', JSON.stringify(playlistData));
+      await saveToSpotify();
       Alert.alert(
-        'Saved to AsyncStorage! 🎉',
-        'Your playlist has been created and saved to AsyncStorage. You can now open it in the app!',
-        [
-          { text: 'Open in the app', onPress: handleRetry },
-          { text: 'OK' }
-        ]
+        'Saved to Spotify! 🎉',
+        'Your playlist has been created and saved to Spotify!',
+        [{ text: 'OK' }]
       );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save to AsyncStorage';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save to Spotify';
       Alert.alert(
         'Save Failed',
         errorMessage,
@@ -315,7 +267,7 @@ const Playlist = () => {
       <Layout>
         <View className="flex-1 justify-center items-center pt-20">
           <LoadingAnimation 
-            message="Generating your perfect playlist..."
+            message={playlistData ? "Regenerating your playlist..." : "Generating your perfect playlist..."}
             size="large"
           />
         </View>
@@ -376,8 +328,8 @@ const Playlist = () => {
         </Animated.View>
 
         {/* Action Buttons - Between playlist card and song list */}
-        <Animated.View style={buttonsAnimatedStyle}>
-          <View className="px-4 mb-4">
+        <Animated.View style={[buttonsAnimatedStyle, { zIndex: 5 }]}>
+          <View className="px-4 mb-16 mt-4">
             <View className="flex-row justify-center flex-wrap">
               {playlistData?.isSpotifyPlaylist ? (
                 // Playlist is already saved to Spotify
@@ -407,7 +359,7 @@ const Playlist = () => {
                     className="rounded-full px-6 py-3 items-center justify-center"
                   >
                     <Text className="text-ui-white font-bold text-base font-poppins-bold">
-                      Save to AsyncStorage
+                      Save
                     </Text>
                   </TouchableOpacity>
                 </Glass>
@@ -419,7 +371,7 @@ const Playlist = () => {
                 backgroundColor={COLORS.transparent.white[10]}
               >
                 <TouchableOpacity
-                  onPress={handleRegenerate}
+                  onPress={regeneratePlaylist}
                   className="rounded-full px-6 py-3 items-center justify-center"
                 >
                   <Text className="text-ui-white font-semibold text-base font-poppins-bold">
@@ -447,15 +399,13 @@ const Playlist = () => {
         </Animated.View>
 
         {/* Songs List with enhanced styling and animation */}
-        <Animated.View style={songListAnimatedStyle}>
-          <View className="px-4">
-            <SongList 
-              songs={formatTracksForDisplay()} 
-              showScrollView={false}
-              scrollY={scrollY}
-            />
-          </View>
-        </Animated.View>
+        <View className="px-4 mt-4" style={{ zIndex: 1 }}>
+          <SongList 
+            songs={formatTracksForDisplay()} 
+            showScrollView={false}
+            scrollY={scrollY}
+          />
+        </View>
       </Animated.ScrollView>
 
       {/* Floating Title that appears when scrolling - positioned absolutely */}

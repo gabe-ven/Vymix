@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView } from 'react-native';
+import { View, Text, ScrollView, Image } from 'react-native';
 import { COLORS } from '../constants/colors';
 import { SONG_ANIMATION } from '../constants/animations';
 import Glass from './Glass';
@@ -13,6 +13,10 @@ import Animated, {
 interface Song {
   title: string;
   artist: string;
+  album?: string;
+  duration?: number;
+  spotifyUrl?: string;
+  albumImageUrl?: string;
 }
 
 interface SongListProps {
@@ -65,18 +69,28 @@ export default function SongList({
             style={songAnimatedStyle}
           >
             <Glass 
-              className="mb-3 p-4"
+              className="mb-6 p-4"
               borderRadius={12}
               blurAmount={15}
               backgroundColor={COLORS.transparent.white[5]}
             >
               <View className="flex-row items-center">
-                {/* Album Cover Placeholder */}
+                {/* Album Cover */}
                 <View 
-                  className="w-14 h-14 rounded-lg mr-4 items-center justify-center"
+                  className="w-14 h-14 rounded-lg mr-4 overflow-hidden"
                   style={{ backgroundColor: COLORS.transparent.white[10] }}
                 >
-                  <Text className="text-xl">🎵</Text>
+                  {song.albumImageUrl ? (
+                    <Image
+                      source={{ uri: song.albumImageUrl }}
+                      className="w-full h-full"
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View className="w-full h-full items-center justify-center">
+                      <Text className="text-xl">🎵</Text>
+                    </View>
+                  )}
                 </View>
                 
                 {/* Song Info */}

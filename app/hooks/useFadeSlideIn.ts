@@ -15,7 +15,7 @@ export const useFadeSlideIn = (
   const {
     delay = 0,
     duration = 600,
-    startTranslateY = 50,
+    startTranslateY = 30,
     scrollY,
     scrollFadeRange
   } = options;
