@@ -114,10 +114,12 @@ class SpotifyService {
   private scopes = [
     'user-read-private',
     'user-read-email',
+    'user-top-read',
     'playlist-modify-public',
     'playlist-modify-private',
     'playlist-read-private',
     'playlist-read-collaborative',
+    'ugc-image-upload',
   ];
 
   // Use custom scheme URI (works with `npx expo run:ios`)
@@ -384,10 +386,15 @@ class SpotifyService {
 
     // Check if token is expired (with 5 minute buffer)
     if (this.tokenExpiry && Date.now() > this.tokenExpiry - 300000) {
-      // Try to refresh the token
+      // Try to refresh the token with timeout
       try {
         console.log('Access token expired, attempting to refresh...');
-        return await this.refreshAccessToken();
+        const refreshPromise = this.refreshAccessToken();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Token refresh timeout')), 10000)
+        );
+        
+        return await Promise.race([refreshPromise, timeoutPromise]) as string;
       } catch (error) {
         console.error('Failed to refresh token:', error);
         await this.clearTokens();
@@ -402,24 +409,60 @@ class SpotifyService {
   private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const accessToken = await this.getValidAccessToken();
 
-    const response = await fetch(`https://api.spotify.com/v1${endpoint}`, {
-      ...options,
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
-    if (!response.ok) {
-      if (response.status === 401) {
-        await this.clearTokens();
-        throw new Error('Authentication required. Please login again.');
+    try {
+      const response = await fetch(`https://api.spotify.com/v1${endpoint}`, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          await this.clearTokens();
+          throw new Error('Authentication required. Please login again.');
+        }
+        
+        // Try to get detailed error information from response body
+        let errorDetails = response.statusText;
+        try {
+          const errorBody = await response.json();
+          if (errorBody.error) {
+            errorDetails = `${errorBody.error.message || errorBody.error} (${response.status})`;
+          } else if (errorBody.message) {
+            errorDetails = `${errorBody.message} (${response.status})`;
+          }
+        } catch (parseError) {
+          // If we can't parse the error body, use status text
+          errorDetails = `${response.statusText || 'Unknown error'} (${response.status})`;
+        }
+        
+        console.error(`Spotify API error for endpoint ${endpoint}:`, {
+          status: response.status,
+          statusText: response.statusText,
+          errorDetails,
+          url: `https://api.spotify.com/v1${endpoint}`
+        });
+        
+        throw new Error(`Spotify API error: ${errorDetails}`);
       }
-      throw new Error(`Spotify API error: ${response.statusText}`);
-    }
 
-    return response.json();
+      return response.json();
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Request timeout. Please try again.');
+      }
+      throw error;
+    }
   }
 
   // Get current user profile
@@ -442,55 +485,6 @@ class SpotifyService {
     });
 
     return this.makeRequest<SpotifySearchResponse>(`/search?${params.toString()}`);
-  }
-
-  // Get recommendations based on various parameters
-  public async getRecommendations(params: {
-    seed_artists?: string[];
-    seed_tracks?: string[];
-    seed_genres?: string[];
-    target_energy?: number;
-    target_danceability?: number;
-    target_valence?: number;
-    target_tempo?: number;
-    target_acousticness?: number;
-    target_instrumentalness?: number;
-    target_liveness?: number;
-    target_loudness?: number;
-    target_speechiness?: number;
-    min_energy?: number;
-    max_energy?: number;
-    min_danceability?: number;
-    max_danceability?: number;
-    min_valence?: number;
-    max_valence?: number;
-    limit?: number;
-  }): Promise<{
-    tracks: SpotifyTrack[];
-  }> {
-    const searchParams = new URLSearchParams();
-    
-    if (params.seed_artists) searchParams.append('seed_artists', params.seed_artists.join(','));
-    if (params.seed_tracks) searchParams.append('seed_tracks', params.seed_tracks.join(','));
-    if (params.seed_genres) searchParams.append('seed_genres', params.seed_genres.join(','));
-    if (params.target_energy) searchParams.append('target_energy', params.target_energy.toString());
-    if (params.target_danceability) searchParams.append('target_danceability', params.target_danceability.toString());
-    if (params.target_valence) searchParams.append('target_valence', params.target_valence.toString());
-    if (params.target_tempo) searchParams.append('target_tempo', params.target_tempo.toString());
-    if (params.target_acousticness) searchParams.append('target_acousticness', params.target_acousticness.toString());
-    if (params.target_instrumentalness) searchParams.append('target_instrumentalness', params.target_instrumentalness.toString());
-    if (params.target_liveness) searchParams.append('target_liveness', params.target_liveness.toString());
-    if (params.target_loudness) searchParams.append('target_loudness', params.target_loudness.toString());
-    if (params.target_speechiness) searchParams.append('target_speechiness', params.target_speechiness.toString());
-    if (params.min_energy) searchParams.append('min_energy', params.min_energy.toString());
-    if (params.max_energy) searchParams.append('max_energy', params.max_energy.toString());
-    if (params.min_danceability) searchParams.append('min_danceability', params.min_danceability.toString());
-    if (params.max_danceability) searchParams.append('max_danceability', params.max_danceability.toString());
-    if (params.min_valence) searchParams.append('min_valence', params.min_valence.toString());
-    if (params.max_valence) searchParams.append('max_valence', params.max_valence.toString());
-    if (params.limit) searchParams.append('limit', params.limit.toString());
-
-    return this.makeRequest(`/recommendations?${searchParams.toString()}`);
   }
 
   // Create a new playlist
@@ -573,13 +567,6 @@ class SpotifyService {
     return this.makeRequest(`/artists/${artistId}/top-tracks?market=${market}`);
   }
 
-  // Get available genres for recommendations
-  public async getAvailableGenres(): Promise<{
-    genres: string[];
-  }> {
-    return this.makeRequest('/recommendations/available-genre-seeds');
-  }
-
   // Check if user is authenticated
   public async isAuthenticated(): Promise<boolean> {
     // Ensure service is initialized
@@ -612,4 +599,4 @@ class SpotifyService {
 }
 
 // Export singleton instance
-export const spotifyService = new SpotifyService(); 
+export const spotifyService = new SpotifyService();

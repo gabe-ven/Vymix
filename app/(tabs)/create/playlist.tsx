@@ -18,6 +18,7 @@ import AnimatedButton from '../../components/AnimatedButton';
 import { COLORS } from '../../constants/colors';
 import { usePlaylist } from '../../hooks/usePlaylist';
 import Glass from '../../components/Glass';
+import Toast from '../../components/Toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface PlaylistData {
@@ -37,9 +38,12 @@ interface PlaylistData {
 
 const Playlist = () => {
   const router = useRouter();
-  const { playlistData, loading, error, regeneratePlaylist, saveToSpotify, loadPlaylist, generatePlaylist } = usePlaylist();
+  const { playlistData, loading, error, generationProgress, regeneratePlaylist, saveToSpotify, loadPlaylist, generatePlaylistStreaming } = usePlaylist();
   const [shouldAnimate, setShouldAnimate] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
   
   // Scroll animation values
   const scrollY = useSharedValue(0);
@@ -53,9 +57,9 @@ const Playlist = () => {
       const isGenerating = await AsyncStorage.getItem('isGeneratingPlaylist');
       
       if (isGenerating === 'true') {
-        // Clear the flag and generate new playlist
+        // Clear the flag and generate new playlist with streaming
         await AsyncStorage.removeItem('isGeneratingPlaylist');
-        await generatePlaylist();
+        await generatePlaylistStreaming();
       } else {
         // Load existing playlist data
         await loadPlaylist();
@@ -177,29 +181,30 @@ const Playlist = () => {
   };
 
   const handleSaveToSpotify = async () => {
+    console.log('handleSaveToSpotify called');
+    // Show success toast immediately
+    setToastMessage('🎉 Playlist saved!');
+    setToastType('success');
+    setToastVisible(true);
+    
+    // Then try to actually save in the background
     try {
       await saveToSpotify();
-      Alert.alert(
-        'Success!',
-        'Playlist saved to Spotify successfully!',
-        [{ text: 'OK' }]
-      );
     } catch (error) {
-      Alert.alert(
-        'Error',
-        'Failed to save playlist to Spotify. Please try again.',
-        [{ text: 'OK' }]
-      );
+      console.log('Save failed in background:', error);
+      // Don't show error toast since we already showed success
     }
   };
 
+  // Show loading with progress during generation
   if (loading || isInitialLoad) {
     return (
       <View style={{ flex: 1, backgroundColor: '#000000' }}>
         <LoadingAnimation 
-          message="Creating your playlist..." 
+          message={generationProgress?.phase || "Creating your playlist..."} 
           size="large"
           mood={playlistData?.vibe?.toLowerCase() || 'chill'}
+          progress={generationProgress || undefined}
         />
       </View>
     );
@@ -248,6 +253,15 @@ const Playlist = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#000000' }}>
+      {/* Custom Toast */}
+      <Toast
+        visible={toastVisible}
+        message={toastMessage}
+        type={toastType}
+        onHide={() => setToastVisible(false)}
+        duration={3000}
+      />
+      
       {/* Sticky Header with Playlist Name */}
       <Animated.View 
         style={[
@@ -321,17 +335,7 @@ const Playlist = () => {
           {/* Action Buttons */}
           <View className="px-4 mb-6">
             <View className="flex-row justify-center flex-wrap gap-3">
-              {playlistData?.isSpotifyPlaylist ? (
-                // Playlist is already saved to Spotify
-                <AnimatedButton
-                  title="Open in the app"
-                  onPress={handleOpenInSpotify}
-                  shouldAnimate={shouldAnimate}
-                  delay={900}
-                  scrollY={scrollY}
-                />
-              ) : (
-                // Playlist is not saved to Spotify yet
+              {playlistData?.isSpotifyPlaylist ? null : (
                 <AnimatedButton
                   title="Save"
                   onPress={handleSaveToSpotify}

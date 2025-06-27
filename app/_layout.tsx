@@ -4,6 +4,7 @@ import { Stack, Redirect } from "expo-router";
 import { AuthProvider } from './context/AuthContext';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from './hooks/useFonts';
+import Toast from 'react-native-toast-message';
 
 const _layout = () => {
   const { fontsLoaded, fontError } = useFonts();
@@ -29,6 +30,7 @@ const _layout = () => {
             options={{ headerShown: false }}
           />
         </Stack>
+        <Toast />
       </SafeAreaProvider>
     </AuthProvider>
   );

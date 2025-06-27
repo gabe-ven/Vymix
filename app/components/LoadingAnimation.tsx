@@ -7,16 +7,24 @@ interface LoadingAnimationProps {
   message?: string;
   size?: 'small' | 'medium' | 'large';
   mood?: string;
+  progress?: {
+    current: number;
+    total: number;
+    phase: string;
+  };
 }
 
 export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({ 
   message = 'Loading...',
   size = 'medium',
-  mood = 'chill'
+  mood = 'chill',
+  progress
 }) => {
   // Animation values
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(0)).current;
+  const dotsAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
 
   // Typing text state
   const [currentPhrase, setCurrentPhrase] = useState(0);
@@ -41,28 +49,7 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
   const loadingPhrases = getLoadingPhrases();
 
   useEffect(() => {
-    // Typing text animation
-    const typeText = () => {
-      const phrase = loadingPhrases[currentPhrase];
-      let index = 0;
-      
-      const typeInterval = setInterval(() => {
-        if (index <= phrase.length) {
-          setDisplayText(phrase.slice(0, index));
-          index++;
-        } else {
-          clearInterval(typeInterval);
-          // Wait before next phrase
-          setTimeout(() => {
-            setCurrentPhrase((prev) => (prev + 1) % loadingPhrases.length);
-          }, 2000);
-        }
-      }, 100);
-    };
-
-    typeText();
-
-    // Continuous rotation animation
+    // Smooth rotation animation
     const rotateAnimation = Animated.loop(
       Animated.timing(rotateAnim, {
         toValue: 1,
@@ -72,18 +59,36 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
       })
     );
 
-    // Pulsing animation for the main circle
+    // Subtle pulse animation
     const pulseAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 1500,
+          duration: 2000,
           easing: Easing.inOut(Easing.cubic),
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 0,
-          duration: 1500,
+          duration: 2000,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    // Animated dots
+    const dotsAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(dotsAnim, {
+          toValue: 1,
+          duration: 800,
+          easing: Easing.inOut(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(dotsAnim, {
+          toValue: 0,
+          duration: 800,
           easing: Easing.inOut(Easing.cubic),
           useNativeDriver: true,
         }),
@@ -93,12 +98,54 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
     // Start animations
     rotateAnimation.start();
     pulseAnimation.start();
+    if (progress) {
+      dotsAnimation.start();
+    }
+
+    // Animate progress bar smoothly
+    if (progress) {
+      const progressPercentage = (progress.current / progress.total) * 100;
+      console.log('Animating progress to:', progressPercentage);
+      Animated.timing(progressAnim, {
+        toValue: progressPercentage,
+        duration: 600,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: false,
+      }).start();
+    }
+
+    // If we have progress data, use the actual phase
+    if (progress?.phase) {
+      setDisplayText(progress.phase);
+    } else {
+      // Typing text animation for generic phrases
+      const typeText = () => {
+        const phrase = loadingPhrases[currentPhrase];
+        let index = 0;
+        
+        const typeInterval = setInterval(() => {
+          if (index <= phrase.length) {
+            setDisplayText(phrase.slice(0, index));
+            index++;
+          } else {
+            clearInterval(typeInterval);
+            // Wait before next phrase
+            setTimeout(() => {
+              setCurrentPhrase((prev) => (prev + 1) % loadingPhrases.length);
+            }, 2000);
+          }
+        }, 100);
+      };
+
+      typeText();
+    }
 
     return () => {
       rotateAnimation.stop();
       pulseAnimation.stop();
+      dotsAnimation.stop();
     };
-  }, [currentPhrase]);
+  }, [currentPhrase, progress?.phase, progress?.current, progress?.total]);
 
   const getSizeStyles = () => {
     switch (size) {
@@ -117,11 +164,43 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
     outputRange: ['0deg', '360deg'],
   });
 
-  // Interpolate pulse scale for smooth sine wave effect
+  // Subtle pulse scale
   const pulseScale = pulseAnim.interpolate({
     inputRange: [0, 0.5, 1],
-    outputRange: [0.95, 1.1, 0.95],
+    outputRange: [0.95, 1.05, 0.95],
   });
+
+  // Dots opacity
+  const dotsOpacity = dotsAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.3, 1, 0.3],
+  });
+
+  // Check if we're in the song finding phase
+  const isFindingSongs = progress?.phase?.toLowerCase().includes('found') || 
+                        progress?.phase?.toLowerCase().includes('finding songs') ||
+                        progress?.phase?.toLowerCase().includes('finding');
+  const isCreatingCover = progress?.phase?.toLowerCase().includes('creating cover') || 
+                         progress?.phase?.toLowerCase().includes('cover');
+
+  // Debug logging
+  console.log('LoadingAnimation Debug:', {
+    progress,
+    phase: progress?.phase,
+    isFindingSongs,
+    isCreatingCover,
+    current: progress?.current,
+    total: progress?.total
+  });
+
+  // Add listener to track progressAnim changes
+  useEffect(() => {
+    const listener = progressAnim.addListener(({ value }) => {
+      console.log('ProgressAnim value changed to:', value);
+    });
+    
+    return () => progressAnim.removeListener(listener);
+  }, [progressAnim]);
 
   return (
     <Layout>
@@ -147,16 +226,17 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
                 backgroundColor: COLORS.primary.darkPurple,
                 position: 'absolute',
                 transform: [{ scale: pulseScale }],
+                borderRadius: getSizeStyles().borderRadius,
               },
             ]}
           />
         </Animated.View>
         
-        {/* Typing text */}
+        {/* Clean text container */}
         <View 
-          className="mt-8 px-4 py-2 rounded-lg"
+          className="mt-8 px-6 py-4"
           style={{
-            minHeight: 50,
+            minHeight: 60,
             justifyContent: 'center',
           }}
         >
@@ -167,8 +247,26 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
             }}
           >
             {displayText}
-            <Text className="text-ui-white">|</Text>
+            {!progress && <Text className="text-ui-white">|</Text>}
           </Animated.Text>
+         
+          {/* Clean progress bar - show for any progress data */}
+          {progress && (
+            <View style={{ marginTop: 20, width: '100%' }}>
+              <View className="w-full bg-ui-gray-dark rounded-full h-2 overflow-hidden">
+                <Animated.View 
+                  className="h-2 rounded-full"
+                  style={{ 
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 100],
+                      outputRange: ['0%', '100%'],
+                    }),
+                    backgroundColor: COLORS.primary.lime,
+                  }}
+                />
+              </View>
+            </View>
+          )}
         </View>
       </View>
     </Layout>
