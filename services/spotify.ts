@@ -103,6 +103,7 @@ class SpotifyService {
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
   private tokenExpiry: number | null = null;
+  private isInitialized: boolean = false;
 
   // Set up Spotify's OAuth endpoints
   private discovery = {
@@ -127,7 +128,20 @@ class SpotifyService {
 
   constructor() {
     this.clientId = SPOTIFY_CLIENT_ID;
-    this.loadTokens();
+    // Don't call loadTokens here - it will be called when needed
+  }
+
+  // Initialize the service (load tokens from storage)
+  public async initialize(): Promise<void> {
+    if (this.isInitialized) return;
+    
+    try {
+      await this.loadTokens();
+      this.isInitialized = true;
+      console.log('Spotify service initialized');
+    } catch (error) {
+      console.error('Failed to initialize Spotify service:', error);
+    }
   }
 
   // Load stored tokens from AsyncStorage
@@ -137,10 +151,17 @@ class SpotifyService {
       const refreshToken = await AsyncStorage.getItem('spotify_refresh_token');
       const tokenExpiry = await AsyncStorage.getItem('spotify_token_expiry');
 
-      if (accessToken && tokenExpiry) {
+      // Load tokens if we have either access token or refresh token
+      if (accessToken || refreshToken) {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
-        this.tokenExpiry = parseInt(tokenExpiry);
+        this.tokenExpiry = tokenExpiry ? parseInt(tokenExpiry) : null;
+        
+        console.log('Loaded tokens from storage:', {
+          hasAccessToken: !!accessToken,
+          hasRefreshToken: !!refreshToken,
+          hasExpiry: !!tokenExpiry
+        });
       }
     } catch (error) {
       console.error('Error loading Spotify tokens:', error);
@@ -155,13 +176,21 @@ class SpotifyService {
       await AsyncStorage.setItem('spotify_access_token', accessToken);
       await AsyncStorage.setItem('spotify_token_expiry', expiryTime.toString());
       
+      // Only update refresh token if a new one is provided
       if (refreshToken) {
         await AsyncStorage.setItem('spotify_refresh_token', refreshToken);
+        this.refreshToken = refreshToken;
       }
       
       this.accessToken = accessToken;
-      this.refreshToken = refreshToken || this.refreshToken;
       this.tokenExpiry = expiryTime;
+      
+      console.log('Saved tokens to storage:', {
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!this.refreshToken,
+        expiresIn: expiresIn,
+        expiryTime: new Date(expiryTime).toISOString()
+      });
     } catch (error) {
       console.error('Error saving Spotify tokens:', error);
     }
@@ -177,6 +206,9 @@ class SpotifyService {
       this.accessToken = null;
       this.refreshToken = null;
       this.tokenExpiry = null;
+      this.isInitialized = false;
+      
+      console.log('Cleared all Spotify tokens');
     } catch (error) {
       console.error('Error clearing Spotify tokens:', error);
     }
@@ -214,6 +246,11 @@ class SpotifyService {
 
   // Login to Spotify using Expo AuthSession
   public async loginToSpotify(userId?: string): Promise<string> {
+    // Ensure service is initialized
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+
     const authUrl =
       `${this.discovery.authorizationEndpoint}` +
       `?client_id=${this.clientId}` +
@@ -285,6 +322,8 @@ class SpotifyService {
       throw new Error('No refresh token available. Please login again.');
     }
 
+    console.log('Refreshing access token...');
+
     const authHeader = `Basic ${Buffer.from(`${this.clientId}:${SPOTIFY_CLIENT_SECRET}`).toString('base64')}`;
     
     const response = await fetch('https://accounts.spotify.com/api/token', {
@@ -308,18 +347,39 @@ class SpotifyService {
     }
 
     const data = await response.json();
-    const { access_token, expires_in } = data;
+    const { access_token, expires_in, refresh_token } = data;
     
-    // Note: Spotify doesn't always return a new refresh_token, so we keep the existing one
-    await this.saveTokens(access_token, expires_in);
+    // Spotify may or may not return a new refresh_token
+    // If it does, use the new one; otherwise keep the existing one
+    const newRefreshToken = refresh_token || this.refreshToken;
     
+    await this.saveTokens(access_token, expires_in, newRefreshToken);
+    
+    console.log('Successfully refreshed access token');
     return access_token;
   }
 
   // Get valid access token (check if expired and refresh if needed)
   private async getValidAccessToken(): Promise<string> {
-    if (!this.accessToken) {
+    // Ensure service is initialized
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+
+    if (!this.accessToken && !this.refreshToken) {
       throw new Error('No access token available. Please authenticate first.');
+    }
+
+    // If we have a refresh token but no access token, try to refresh
+    if (!this.accessToken && this.refreshToken) {
+      try {
+        console.log('No access token, attempting to refresh...');
+        return await this.refreshAccessToken();
+      } catch (error) {
+        console.error('Failed to refresh token:', error);
+        await this.clearTokens();
+        throw new Error('Access token expired and refresh failed. Please login again.');
+      }
     }
 
     // Check if token is expired (with 5 minute buffer)
@@ -335,7 +395,7 @@ class SpotifyService {
       }
     }
 
-    return this.accessToken;
+    return this.accessToken!;
   }
 
   // Make authenticated API request
@@ -521,7 +581,12 @@ class SpotifyService {
   }
 
   // Check if user is authenticated
-  public isAuthenticated(): boolean {
+  public async isAuthenticated(): Promise<boolean> {
+    // Ensure service is initialized
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+
     // Check if we have an access token that's not expired
     if (this.accessToken && this.tokenExpiry && Date.now() <= this.tokenExpiry - 300000) {
       return true;

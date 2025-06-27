@@ -1,6 +1,6 @@
 import { spotifyService } from './spotify';
 import { OPENAI_API_KEY } from '../env';
-import { ALL_MOOD_EMOJIS } from '../app/constants/emojis';
+import { MOOD_EMOJIS, ALL_MOOD_EMOJIS } from '../app/constants/emojis';
 
 // Types
 export interface PlaylistData {
@@ -16,6 +16,7 @@ export interface PlaylistData {
   spotifyUrl?: string;
   id?: string;
   isSpotifyPlaylist?: boolean;
+  uniquenessScore?: number;
 }
 
 export interface SpotifyTrack {
@@ -48,6 +49,223 @@ interface SpotifyImage {
   width: number;
 }
 
+// Dynamic Emoji Analysis System
+class EmojiAnalyzer {
+  // Comprehensive mood-to-music mapping
+  private static readonly MOOD_TO_MUSIC_MAPPING = {
+    happy: {
+      genres: ['indie-pop', 'dream-pop', 'shoegaze', 'power-pop', 'sunshine-pop'],
+      vibes: ['uplifting', 'energetic', 'bright', 'optimistic'],
+      cultural: ['morning acoustic', 'sunshine indie', 'daylight pop', 'summer vibes'],
+      audioFeatures: { min_energy: 0.6, max_energy: 1.0, min_valence: 0.6, max_valence: 1.0 }
+    },
+    calm: {
+      genres: ['ambient', 'chillwave', 'downtempo', 'neo-classical', 'minimal'],
+      vibes: ['relaxed', 'peaceful', 'serene', 'meditative'],
+      cultural: ['foggy forest ambient', 'morning coffee acoustic', 'candlelight indie', 'zen meditation'],
+      audioFeatures: { min_energy: 0.0, max_energy: 0.4, min_valence: 0.3, max_valence: 0.7 }
+    },
+    love: {
+      genres: ['dream-pop', 'indie-folk', 'neo-soul', 'romantic-pop', 'intimate-acoustic'],
+      vibes: ['romantic', 'intimate', 'warm', 'tender'],
+      cultural: ['cafe romance acoustic', 'starry night dream pop', 'intimate piano ballads', 'sunset beach folk'],
+      audioFeatures: { min_energy: 0.2, max_energy: 0.7, min_valence: 0.4, max_valence: 0.8 }
+    },
+    sad: {
+      genres: ['ambient', 'post-rock', 'neo-classical', 'dream-pop', 'shoegaze'],
+      vibes: ['melancholy', 'nostalgic', 'distant', 'introspective'],
+      cultural: ['rainy day lo-fi', 'midnight bedroom pop', 'winter ambient field recordings', 'lonely city jazz'],
+      audioFeatures: { min_energy: 0.0, max_energy: 0.5, min_valence: 0.0, max_valence: 0.3 }
+    },
+    angry: {
+      genres: ['post-hardcore', 'math-rock', 'noise-rock', 'experimental', 'industrial'],
+      vibes: ['intense', 'chaotic', 'aggressive', 'raw'],
+      cultural: ['underground warehouse noise', 'industrial chaos', 'math rock complexity', 'experimental distortion'],
+      audioFeatures: { min_energy: 0.7, max_energy: 1.0, min_valence: 0.0, max_valence: 0.4 }
+    },
+    confused: {
+      genres: ['experimental', 'avant-garde', 'ambient', 'post-rock', 'math-rock'],
+      vibes: ['disorienting', 'surreal', 'abstract', 'unpredictable'],
+      cultural: ['experimental soundscapes', 'avant-garde composition', 'surreal ambient', 'abstract noise'],
+      audioFeatures: { min_energy: 0.1, max_energy: 0.8, min_valence: 0.1, max_valence: 0.6 }
+    },
+    excited: {
+      genres: ['dance-punk', 'electroclash', 'synthwave', 'indie-dance', 'new-rave'],
+      vibes: ['energetic', 'euphoric', 'celebratory', 'dynamic'],
+      cultural: ['cyberpunk club night', 'underground warehouse techno', 'neon city synthwave', 'late night garage rock'],
+      audioFeatures: { min_energy: 0.6, max_energy: 1.0, min_danceability: 0.5, max_danceability: 1.0 }
+    },
+    dreamy: {
+      genres: ['dream-pop', 'shoegaze', 'ambient', 'space-rock', 'ethereal'],
+      vibes: ['ethereal', 'floating', 'otherworldly', 'hypnotic'],
+      cultural: ['lunar soundscapes', 'cosmic ambient', 'ethereal dreamscapes', 'space rock journey'],
+      audioFeatures: { min_energy: 0.1, max_energy: 0.6, min_acousticness: 0.2, max_acousticness: 0.8 }
+    },
+    nostalgic: {
+      genres: ['retro-pop', 'vintage-synth', 'neo-80s', 'analog-electronic', 'tape-loops'],
+      vibes: ['retro', 'vintage', 'memory-lane', 'analog'],
+      cultural: ['vintage synthwave', 'retro cassette vibes', '80s nostalgia', 'analog warmth'],
+      audioFeatures: { min_energy: 0.2, max_energy: 0.7, min_acousticness: 0.1, max_acousticness: 0.6 }
+    },
+    nature: {
+      genres: ['ambient', 'folk', 'neo-classical', 'organic-electronic', 'field-recordings'],
+      vibes: ['organic', 'natural', 'earthy', 'peaceful'],
+      cultural: ['forest ambient', 'organic folk', 'nature field recordings', 'earthy acoustic'],
+      audioFeatures: { min_energy: 0.0, max_energy: 0.5, min_acousticness: 0.3, max_acousticness: 0.9 }
+    },
+    weather: {
+      genres: ['ambient', 'post-rock', 'atmospheric', 'drone', 'soundscape'],
+      vibes: ['atmospheric', 'dynamic', 'seasonal', 'moody'],
+      cultural: ['storm ambient', 'weather field recordings', 'atmospheric soundscapes', 'seasonal moods'],
+      audioFeatures: { min_energy: 0.0, max_energy: 0.7, min_acousticness: 0.2, max_acousticness: 0.8 }
+    },
+    mysterious: {
+      genres: ['dark-ambient', 'drone', 'experimental', 'occult-rock', 'witch-house'],
+      vibes: ['eerie', 'spiritual', 'hidden', 'mysterious'],
+      cultural: ['dark ambient ritual', 'occult soundscapes', 'mysterious drone', 'spiritual experimental'],
+      audioFeatures: { min_energy: 0.0, max_energy: 0.5, min_valence: 0.0, max_valence: 0.4 }
+    },
+    cozy: {
+      genres: ['ambient', 'indie-folk', 'neo-classical', 'warm-acoustic', 'home-recording'],
+      vibes: ['warm', 'comforting', 'intimate', 'homely'],
+      cultural: ['home recording', 'bedroom pop', 'domestic ambient', 'warm acoustic'],
+      audioFeatures: { min_energy: 0.0, max_energy: 0.4, min_acousticness: 0.4, max_acousticness: 0.9 }
+    }
+  };
+
+  // Analyze emojis and return comprehensive music mapping
+  static analyzeEmojis(emojis: string[]): {
+    primaryMood: string;
+    secondaryMoods: string[];
+    genres: string[];
+    vibes: string[];
+    culturalTerms: string[];
+    audioFeatures: any;
+  } {
+    // Count emoji occurrences by mood
+    const moodCounts: { [mood: string]: number } = {};
+    
+    emojis.forEach(emoji => {
+      for (const [mood, moodEmojis] of Object.entries(MOOD_EMOJIS)) {
+        if (moodEmojis.includes(emoji)) {
+          moodCounts[mood] = (moodCounts[mood] || 0) + 1;
+        }
+      }
+    });
+
+    // Find primary and secondary moods
+    const sortedMoods = Object.entries(moodCounts)
+      .sort(([,a], [,b]) => b - a)
+      .map(([mood]) => mood);
+
+    const primaryMood = sortedMoods[0] || 'calm';
+    const secondaryMoods = sortedMoods.slice(1, 3);
+
+    // Combine music mappings from all moods
+    const allGenres = new Set<string>();
+    const allVibes = new Set<string>();
+    const allCulturalTerms = new Set<string>();
+    const audioFeatures: { [key: string]: { sum: number; count: number } } = {};
+
+    [primaryMood, ...secondaryMoods].forEach(mood => {
+      const mapping = this.MOOD_TO_MUSIC_MAPPING[mood as keyof typeof this.MOOD_TO_MUSIC_MAPPING];
+      if (mapping) {
+        mapping.genres.forEach(genre => allGenres.add(genre));
+        mapping.vibes.forEach(vibe => allVibes.add(vibe));
+        mapping.cultural.forEach(term => allCulturalTerms.add(term));
+        
+        // Merge audio features (average them)
+        Object.entries(mapping.audioFeatures).forEach(([key, value]) => {
+          if (!audioFeatures[key]) {
+            audioFeatures[key] = { sum: 0, count: 0 };
+          }
+          audioFeatures[key].sum += value as number;
+          audioFeatures[key].count += 1;
+        });
+      }
+    });
+
+    // Average the audio features
+    const averagedAudioFeatures: { [key: string]: number } = {};
+    Object.entries(audioFeatures).forEach(([key, { sum, count }]) => {
+      averagedAudioFeatures[key] = sum / count;
+    });
+
+    return {
+      primaryMood,
+      secondaryMoods,
+      genres: Array.from(allGenres),
+      vibes: Array.from(allVibes),
+      culturalTerms: Array.from(allCulturalTerms),
+      audioFeatures: averagedAudioFeatures
+    };
+  }
+
+  // Generate niche search terms based on emoji analysis
+  static generateNicheSearchTerms(emojis: string[], vibe: string): string[] {
+    const analysis = this.analyzeEmojis(emojis);
+    const terms = new Set<string>();
+
+    // Add genre-based terms
+    analysis.genres.forEach(genre => {
+      terms.add(`${genre} underground`);
+      terms.add(`${genre} experimental`);
+      terms.add(`${genre} artists`);
+    });
+
+    // Add vibe-based terms
+    analysis.vibes.forEach(vibe => {
+      terms.add(`${vibe} music`);
+      terms.add(`${vibe} soundscapes`);
+    });
+
+    // Add cultural terms
+    analysis.culturalTerms.forEach(term => {
+      terms.add(term);
+    });
+
+    // Add experimental combinations
+    if (analysis.genres.length >= 2) {
+      const genre1 = analysis.genres[0];
+      const genre2 = analysis.genres[1];
+      terms.add(`${genre1} ${genre2}`);
+      terms.add(`${genre2} ${genre1}`);
+    }
+
+    return Array.from(terms).slice(0, 15); // Limit to 15 terms
+  }
+
+  // Get audio features for Spotify recommendations
+  static getAudioFeatures(emojis: string[], vibe: string): any {
+    const analysis = this.analyzeEmojis(emojis);
+    const baseFeatures: { [key: string]: number } = {
+      min_popularity: 20,
+      max_popularity: 70,
+      min_acousticness: 0.1,
+      max_acousticness: 0.9,
+      min_instrumentalness: 0.0,
+      max_instrumentalness: 0.8,
+      min_energy: 0.1,
+      max_energy: 0.9,
+      min_danceability: 0.1,
+      max_danceability: 0.9,
+      min_valence: 0.1,
+      max_valence: 0.9,
+    };
+
+    // Override with emoji-derived features
+    Object.entries(analysis.audioFeatures).forEach(([key, value]) => {
+      if (key.startsWith('min_')) {
+        baseFeatures[key] = value as number;
+      } else if (key.startsWith('max_')) {
+        baseFeatures[key] = value as number;
+      }
+    });
+
+    return baseFeatures;
+  }
+}
+
 // Simplified Playlist Service
 class PlaylistService {
   // Generate complete playlist with one function call
@@ -64,8 +282,11 @@ class PlaylistService {
       this.generateCoverImage(emojis, vibe).catch(() => undefined)
     ]);
 
-    // 2. Generate tracks
+    // 2. Generate tracks with enhanced uniqueness
     const tracks = await this.generateTracks(emojis, songCount, vibe, playlistInfo.keywords);
+
+    // 3. Calculate uniqueness score
+    const uniquenessScore = this.calculatePlaylistUniquenessScore(tracks, vibe, emojis);
 
     return {
       name: playlistInfo.name,
@@ -78,6 +299,7 @@ class PlaylistService {
       vibe,
       tracks,
       isSpotifyPlaylist: false,
+      uniquenessScore,
     };
   }
 
@@ -154,19 +376,101 @@ Examples: ["indie pop", "energetic", "summer vibes"] or ["jazz", "chill", "late 
     try {
       const parsed = JSON.parse(content);
       return {
-        name: parsed.name || 'My Playlist',
-        description: parsed.description || 'A great mix of songs',
-        colorPalette: parsed.colorPalette || ["#6366f1", "#8b5cf6", "#a855f7"],
-        keywords: parsed.keywords || ["indie", "chill", "vibes"],
+        name: parsed.name || this.generateFallbackName(emojis, vibe),
+        description: parsed.description || this.generateFallbackDescription(emojis, vibe),
+        colorPalette: parsed.colorPalette || this.generateFallbackColors(emojis, vibe),
+        keywords: parsed.keywords || this.generateFallbackKeywords(emojis, vibe),
       };
     } catch {
       return {
-        name: 'My Playlist',
-        description: 'A great mix of songs',
-        colorPalette: ["#6366f1", "#8b5cf6", "#a855f7"],
-        keywords: ["indie", "chill", "vibes"],
+        name: this.generateFallbackName(emojis, vibe),
+        description: this.generateFallbackDescription(emojis, vibe),
+        colorPalette: this.generateFallbackColors(emojis, vibe),
+        keywords: this.generateFallbackKeywords(emojis, vibe),
       };
     }
+  }
+
+  // Generate fallback name based on emoji analysis
+  private generateFallbackName(emojis: string[], vibe: string): string {
+    const analysis = EmojiAnalyzer.analyzeEmojis(emojis);
+    const primaryMood = analysis.primaryMood;
+    
+    const moodToName: { [key: string]: string } = {
+      happy: 'luminance',
+      calm: 'serenity',
+      love: 'tenderness',
+      sad: 'melancholy',
+      angry: 'ferocity',
+      confused: 'enigma',
+      excited: 'euphoria',
+      dreamy: 'ethereal',
+      nostalgic: 'reminiscence',
+      nature: 'organic',
+      weather: 'atmosphere',
+      mysterious: 'obscurity',
+      cozy: 'warmth'
+    };
+    
+    return moodToName[primaryMood] || 'vibes';
+  }
+
+  // Generate fallback description based on emoji analysis
+  private generateFallbackDescription(emojis: string[], vibe: string): string {
+    const analysis = EmojiAnalyzer.analyzeEmojis(emojis);
+    const primaryMood = analysis.primaryMood;
+    
+    const moodToDescription: { [key: string]: string } = {
+      happy: 'A collection of uplifting and bright musical moments.',
+      calm: 'Gentle soundscapes for peaceful contemplation.',
+      love: 'Intimate melodies that speak to the heart.',
+      sad: 'Melancholic tones for introspective moments.',
+      angry: 'Raw energy and intense sonic expression.',
+      confused: 'Surreal and disorienting musical landscapes.',
+      excited: 'Dynamic rhythms that spark celebration.',
+      dreamy: 'Ethereal sounds that transport the mind.',
+      nostalgic: 'Sonic memories from another time.',
+      nature: 'Organic sounds inspired by the natural world.',
+      weather: 'Atmospheric compositions reflecting the elements.',
+      mysterious: 'Enigmatic sounds that hide in shadows.',
+      cozy: 'Warm and comforting musical embrace.'
+    };
+    
+    return moodToDescription[primaryMood] || 'A carefully curated musical journey.';
+  }
+
+  // Generate fallback colors based on emoji analysis
+  private generateFallbackColors(emojis: string[], vibe: string): string[] {
+    const analysis = EmojiAnalyzer.analyzeEmojis(emojis);
+    const primaryMood = analysis.primaryMood;
+    
+    const moodToColors: { [key: string]: string[] } = {
+      happy: ['#FFD700', '#FF6B6B', '#4ECDC4'],
+      calm: ['#87CEEB', '#98D8C8', '#F7DC6F'],
+      love: ['#FF69B4', '#DDA0DD', '#FFB6C1'],
+      sad: ['#708090', '#4682B4', '#2F4F4F'],
+      angry: ['#DC143C', '#8B0000', '#FF4500'],
+      confused: ['#9370DB', '#8A2BE2', '#9932CC'],
+      excited: ['#FF1493', '#00CED1', '#FFD700'],
+      dreamy: ['#E6E6FA', '#DDA0DD', '#B0E0E6'],
+      nostalgic: ['#DEB887', '#F4A460', '#CD853F'],
+      nature: ['#228B22', '#32CD32', '#90EE90'],
+      weather: ['#87CEEB', '#B0C4DE', '#F0F8FF'],
+      mysterious: ['#2F2F2F', '#4B0082', '#191970'],
+      cozy: ['#DEB887', '#F5DEB3', '#D2B48C']
+    };
+    
+    return moodToColors[primaryMood] || ['#6366f1', '#8b5cf6', '#a855f7'];
+  }
+
+  // Generate fallback keywords based on emoji analysis
+  private generateFallbackKeywords(emojis: string[], vibe: string): string[] {
+    const analysis = EmojiAnalyzer.analyzeEmojis(emojis);
+    return [
+      analysis.genres[0] || 'indie',
+      analysis.vibes[0] || 'atmospheric',
+      analysis.culturalTerms[0]?.split(' ')[0] || 'vibes'
+    ];
   }
 
   // Generate cover image using DALL-E
@@ -176,23 +480,26 @@ Examples: ["indie pop", "energetic", "summer vibes"] or ["jazz", "chill", "late 
 
 Instructions:
 - Use the following colors prominently in the composition: ${colorString}
-- The artwork should feature soft gradients, painterly textures, and blurred organic shapes
-- Incorporate a subtle grainy, analog film texture overlay throughout the entire canvas
-- Avoid any sharp lines, symbols, objects, text, or recognizable forms
-- The composition should feel hand-painted, artistic, and emotionally resonant
-- Prioritize balance, aesthetic harmony, and atmospheric depth
+- The artwork should reflect the vibe of: "${vibe}"
+- Style the artwork with bold, atmospheric abstraction — expressive brush strokes, dreamy gradients, or glowing energy fields based on the vibe
+- Integrate painterly textures, fluid motion, or surreal organic forms to evoke emotion
+- Add subtle analog grain or film texture to give it a natural, album-cover feel
+- Avoid any recognizable objects, faces, logos, or symbols — pure expressive abstraction
+- Do not include any text
 
 Style:
-- Abstract expressionism meets modern minimalism
-- Soft brush strokes, gradient blends, moody ambient textures
+- A fusion of abstract expressionism, digital surrealism, and modern ambient art
+- If the vibe is high energy (like party, electronic, workout), include glowing neon effects or kinetic motion
+- If the vibe is chill, sad, or romantic, lean into soft light, blur, and fluid color blending
 
 Mood:
-- Evocative, immersive, tasteful, clean
+- Should match the vibe: "${vibe}"
+- Must feel emotionally immersive, sophisticated, and visually striking
 
 Final Output:
-- Square (1024x1024)
-- Edge-to-edge artwork with no empty space
-- Must look like a professional, organic, natural album cover rather than AI-generated art`;
+- Square (1024x1024 px)
+- Edge-to-edge artwork with no borders
+- Should look like a professionally designed cover that captures the music's essence`;
 
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
@@ -218,133 +525,164 @@ Final Output:
     return data.data?.[0]?.url || '';
   }
 
-  // Generate tracks using simplified approach
+  // Generate tracks using AI-powered approach for diversity
   private async generateTracks(
     emojis: string[], 
     songCount: number, 
     vibe: string, 
     keywords: string[]
   ): Promise<SpotifyTrack[]> {
-    const validEmojis = emojis.filter(emoji => ALL_MOOD_EMOJIS.includes(emoji));
+    console.log('🎵 Generating diverse tracks for:', { emojis, vibe, keywords });
+    
     const allTracks: SpotifyTrack[] = [];
 
-    // 1. Get recommendations based on genres
-    const genres = this.mapEmojisToGenres(validEmojis);
-    if (genres.length > 0) {
-      try {
-        const recommendations = await spotifyService.getRecommendations({
-          seed_genres: genres.slice(0, 5),
-          limit: Math.min(songCount * 2, 40),
-          ...this.getVibeParameters(vibe),
-        });
-        recommendations.tracks.forEach(track => {
+    // 1. Analyze emojis to get comprehensive music mapping
+    const emojiAnalysis = EmojiAnalyzer.analyzeEmojis(emojis);
+    console.log('🔍 Emoji analysis:', emojiAnalysis);
+
+    // 2. Generate niche search terms
+    const nicheTerms = EmojiAnalyzer.generateNicheSearchTerms(emojis, vibe);
+    console.log('🔍 Generated niche terms:', nicheTerms);
+
+    // 3. Get diverse recommendations using multiple approaches
+    const recommendationPromises = [];
+
+    // Approach 1: Genre-based recommendations
+    for (const genre of emojiAnalysis.genres.slice(0, 5)) {
+      recommendationPromises.push(
+        this.getGenreRecommendations([genre], vibe, songCount * 2)
+      );
+    }
+
+    // Approach 2: Niche search terms with random offsets
+    for (const term of nicheTerms.slice(0, 8)) {
+      recommendationPromises.push(
+        this.searchNicheTracksWithOffset(term, vibe, Math.min(8, songCount))
+      );
+    }
+
+    // Approach 3: Artist discovery with seed artists
+    recommendationPromises.push(
+      this.discoverVibeArtistsWithSeeds(vibe, emojis, songCount)
+    );
+
+    // Approach 4: Cultural terms from emoji analysis
+    for (const term of emojiAnalysis.culturalTerms.slice(0, 4)) {
+      recommendationPromises.push(
+        this.searchNicheTracksWithOffset(term, vibe, Math.min(6, songCount))
+      );
+    }
+
+    // Execute all searches in parallel
+    const results = await Promise.allSettled(recommendationPromises);
+    
+    // Collect all tracks
+    results.forEach(result => {
+      if (result.status === 'fulfilled' && result.value) {
+        result.value.forEach(track => {
           if (!allTracks.find(t => t.id === track.id)) {
             allTracks.push(track);
           }
         });
-      } catch (error) {
-        console.warn('Recommendations failed, continuing with search');
       }
-    }
-
-    // 2. Search using keywords
-    for (const keyword of keywords.slice(0, 5)) {
-      if (allTracks.length >= songCount * 2) break;
-      
-      try {
-        const searchResults = await spotifyService.search(
-          `${keyword} music`,
-          ['track'],
-          Math.min(10, songCount - allTracks.length)
-        );
-        
-        searchResults.tracks.items.forEach(track => {
-          if (!allTracks.find(t => t.id === track.id) && allTracks.length < songCount * 2) {
-            allTracks.push(track);
-          }
-        });
-      } catch (error) {
-        console.warn(`Search for "${keyword}" failed`);
-      }
-    }
-
-    // 3. Filter and diversify
-    const filteredTracks = this.filterTracksByVibe(allTracks, vibe);
-    const diversifiedTracks = this.diversifyPlaylist(filteredTracks);
-
-    return diversifiedTracks.slice(0, songCount);
-  }
-
-  // Helper methods
-  private mapEmojisToGenres(emojis: string[]): string[] {
-    const emojiToGenre: { [key: string]: string[] } = {
-      '😊': ['happy', 'pop', 'indie-pop'],
-      '😢': ['sad', 'indie', 'acoustic'],
-      '😡': ['rock', 'metal', 'punk'],
-      '😴': ['chill', 'ambient', 'sleep'],
-      '🎉': ['party', 'dance', 'edm'],
-      '💕': ['romance', 'r-n-b', 'pop'],
-      '🔥': ['hip-hop', 'trap', 'edm'],
-      '🌊': ['chill', 'ambient', 'electronic'],
-      '🌙': ['chill', 'ambient', 'sleep'],
-      '☀️': ['happy', 'pop', 'indie-pop'],
-      '🌧️': ['sad', 'indie', 'acoustic'],
-      '⚡': ['rock', 'electronic', 'edm'],
-      '🎸': ['rock', 'indie', 'alternative'],
-      '🎹': ['piano', 'classical', 'jazz'],
-      '🎤': ['pop', 'r-n-b', 'singer-songwriter'],
-      '🎧': ['electronic', 'ambient', 'chill'],
-      '🏠': ['indie', 'folk', 'acoustic'],
-      '🚗': ['road-trip', 'rock', 'country'],
-      '🏃': ['work-out', 'edm', 'hip-hop'],
-      '📚': ['study', 'ambient', 'classical'],
-      '🍃': ['folk', 'acoustic', 'indie'],
-      '🌺': ['indie-pop', 'folk', 'acoustic'],
-      '🌴': ['reggae', 'latin', 'tropical'],
-      '❄️': ['ambient', 'chill', 'electronic'],
-      '☁️': ['ambient', 'chill', 'rainy-day'],
-      '🌩️': ['rock', 'electronic', 'edm'],
-      '🌬️': ['ambient', 'chill', 'acoustic'],
-    };
-
-    const validGenres = [
-      'acoustic', 'afrobeat', 'alt-rock', 'alternative', 'ambient', 'anime', 'black-metal', 'bluegrass', 'blues', 'bossanova', 'brazil', 'breakbeat', 'british', 'cantopop', 'chicago-house', 'children', 'chill', 'classical', 'club', 'comedy', 'country', 'dance', 'dancehall', 'death-metal', 'deep-house', 'detroit-techno', 'disco', 'disney', 'drum-and-bass', 'dub', 'dubstep', 'edm', 'electro', 'electronic', 'emo', 'folk', 'forro', 'french', 'funk', 'garage', 'german', 'gospel', 'goth', 'grindcore', 'groove', 'grunge', 'guitar', 'happy', 'hard-rock', 'hardcore', 'hardstyle', 'heavy-metal', 'hip-hop', 'holidays', 'honky-tonk', 'house', 'idm', 'indian', 'indie', 'indie-pop', 'industrial', 'iranian', 'j-dance', 'j-idol', 'j-pop', 'j-rock', 'jazz', 'k-pop', 'kids', 'latin', 'latino', 'malay', 'mandopop', 'metal', 'metal-misc', 'metalcore', 'minimal-techno', 'movies', 'mpb', 'new-age', 'new-release', 'opera', 'pagode', 'party', 'philippines-opm', 'piano', 'pop', 'pop-film', 'post-dubstep', 'power-pop', 'progressive-house', 'psych-rock', 'punk', 'punk-rock', 'r-n-b', 'rainy-day', 'reggae', 'reggaeton', 'road-trip', 'rock', 'rock-n-roll', 'rockabilly', 'romance', 'sad', 'salsa', 'samba', 'sertanejo', 'show-tunes', 'singer-songwriter', 'ska', 'sleep', 'songwriter', 'soul', 'soundtracks', 'spanish', 'study', 'summer', 'swedish', 'synth-pop', 'tango', 'techno', 'trance', 'trip-hop', 'turkish', 'work-out', 'world-music'
-    ];
-
-    const genres = new Set<string>();
-    emojis.forEach(emoji => {
-      const emojiGenres = emojiToGenre[emoji] || [];
-      emojiGenres.forEach(genre => {
-        if (validGenres.includes(genre)) {
-          genres.add(genre);
-        }
-      });
     });
 
-    return Array.from(genres);
+    console.log(`📊 Found ${allTracks.length} total tracks`);
+
+    // 4. Advanced filtering and diversification
+    const filteredTracks = this.advancedFilterTracks(allTracks, vibe, emojis);
+    const diversifiedTracks = this.advancedDiversifyPlaylist(filteredTracks, songCount);
+
+    console.log(`🎯 Final playlist: ${diversifiedTracks.length} diverse tracks`);
+    return diversifiedTracks;
   }
 
-  private getVibeParameters(vibe: string) {
-    const vibeLower = vibe.toLowerCase();
-    
-    if (vibeLower.includes('sad') || vibeLower.includes('melancholy')) {
-      return { target_valence: 0.3, target_energy: 0.4 };
-    } else if (vibeLower.includes('happy') || vibeLower.includes('joy')) {
-      return { target_valence: 0.8, target_energy: 0.7 };
-    } else if (vibeLower.includes('chill') || vibeLower.includes('relax')) {
-      return { target_energy: 0.3, target_acousticness: 0.7 };
-    } else if (vibeLower.includes('energetic') || vibeLower.includes('pump')) {
-      return { target_energy: 0.8, target_danceability: 0.7 };
-    } else if (vibeLower.includes('romantic') || vibeLower.includes('love')) {
-      return { target_valence: 0.6, target_acousticness: 0.5 };
-    } else if (vibeLower.includes('party') || vibeLower.includes('dance')) {
-      return { target_energy: 0.8, target_danceability: 0.8 };
+  // Search for niche tracks with random offset to avoid top results
+  private async searchNicheTracksWithOffset(term: string, vibe: string, limit: number): Promise<SpotifyTrack[]> {
+    try {
+      // Use random offset to get deeper results
+      const offset = Math.floor(Math.random() * 100);
+      const searchResults = await spotifyService.search(
+        term,
+        ['track'],
+        Math.min(limit, 10),
+        offset
+      );
+      return searchResults.tracks.items;
+    } catch (error) {
+      console.warn(`Niche search for "${term}" failed:`, error);
+      return [];
     }
-    
-    return {};
   }
 
-  private filterTracksByVibe(tracks: SpotifyTrack[], vibe: string): SpotifyTrack[] {
+  // Discover vibe-specific artists with seed artist approach
+  private async discoverVibeArtistsWithSeeds(vibe: string, emojis: string[], limit: number): Promise<SpotifyTrack[]> {
+    try {
+      const emojiAnalysis = EmojiAnalyzer.analyzeEmojis(emojis);
+      const allTracks: SpotifyTrack[] = [];
+      const discoveredArtists: string[] = [];
+
+      // Use emoji analysis to find obscure artists
+      const searchTerms = [
+        ...emojiAnalysis.genres.map(genre => `${genre} artists`),
+        ...emojiAnalysis.vibes.map(vibe => `${vibe} music`),
+        ...emojiAnalysis.culturalTerms.slice(0, 2)
+      ];
+
+      for (const term of searchTerms.slice(0, 3)) {
+        const searchResults = await spotifyService.search(
+          term,
+          ['track'],
+          Math.min(limit / 3, 8),
+          Math.floor(Math.random() * 50) // Random offset
+        );
+        
+        // Extract artist IDs from found tracks
+        searchResults.tracks.items.forEach(track => {
+          const artistId = track.artists[0]?.id;
+          if (artistId && !discoveredArtists.includes(artistId)) {
+            discoveredArtists.push(artistId);
+          }
+        });
+        
+        allTracks.push(...searchResults.tracks.items);
+      }
+
+      // Use discovered artists as seeds for recommendations
+      if (discoveredArtists.length > 0) {
+        const seedArtists = discoveredArtists.slice(0, 5); // Spotify allows max 5 seed artists
+        const recommendations = await spotifyService.getRecommendations({
+          seed_artists: seedArtists,
+          limit: Math.min(limit, 20),
+          ...EmojiAnalyzer.getAudioFeatures(emojis, vibe),
+        });
+        allTracks.push(...recommendations.tracks);
+      }
+
+      return allTracks;
+    } catch (error) {
+      console.warn('Artist discovery failed:', error);
+      return [];
+    }
+  }
+
+  // Get genre-based recommendations
+  private async getGenreRecommendations(genres: string[], vibe: string, limit: number): Promise<SpotifyTrack[]> {
+    try {
+      const recommendations = await spotifyService.getRecommendations({
+        seed_genres: genres.slice(0, 5),
+        limit: Math.min(limit, 40),
+        ...EmojiAnalyzer.getAudioFeatures([], vibe),
+      });
+      return recommendations.tracks;
+    } catch (error) {
+      console.warn('Genre recommendations failed:', error);
+      return [];
+    }
+  }
+
+  // Enhanced filtering to remove mainstream tracks
+  private advancedFilterTracks(tracks: SpotifyTrack[], vibe: string, emojis: string[]): SpotifyTrack[] {
     const vibeLower = vibe.toLowerCase();
     const vibeWords = vibeLower.split(' ').filter(word => word.length > 2);
     
@@ -352,34 +690,355 @@ Final Output:
       const trackTitle = track.name.toLowerCase();
       const artistName = track.artists.map(artist => artist.name.toLowerCase()).join(' ');
       
-      const hasVibeWordInTitle = vibeWords.some(word => trackTitle.includes(word));
-      const hasVibeWordInArtist = vibeWords.some(word => artistName.includes(word));
+      // Filter out tracks with obvious vibe words in title or artist
+      const hasObviousVibeWord = vibeWords.some(word => 
+        trackTitle.includes(word) || artistName.includes(word)
+      );
       
-      return !hasVibeWordInTitle && !hasVibeWordInArtist;
+      // Filter out tracks with repetitive patterns
+      const hasRepetitivePattern = this.hasRepetitivePattern(trackTitle, artistName);
+      
+      // Filter out mainstream indicators
+      const hasMainstreamIndicators = this.hasMainstreamIndicators(trackTitle, artistName);
+      
+      return !hasObviousVibeWord && !hasRepetitivePattern && !hasMainstreamIndicators;
     });
   }
 
-  private diversifyPlaylist(tracks: SpotifyTrack[], maxTracksPerArtist: number = 2): SpotifyTrack[] {
-    const artistCounts: { [artistId: string]: number } = {};
+  // Check for mainstream indicators
+  private hasMainstreamIndicators(title: string, artist: string): boolean {
+    const mainstreamPatterns = [
+      /feat\./i, /ft\./i, /featuring/i, // Features often indicate mainstream
+      /remix/i, /radio edit/i, /clean version/i, // Remixes and edits
+      /official/i, /music video/i, /lyric video/i, // Official releases
+      /deluxe/i, /extended/i, /bonus/i, // Deluxe editions
+      /live/i, /concert/i, /performance/i, // Live versions
+      /explicit/i, /clean/i, // Explicit/clean versions
+      /acoustic version/i, /piano version/i, // Alternative versions
+      /instrumental/i, /karaoke/i, // Instrumental/karaoke versions
+    ];
+    
+    // Dynamic mainstream detection based on patterns
+    const mainstreamIndicators = [
+      // High follower count indicators (common in mainstream)
+      /verified/i, /official/i, /viral/i, /trending/i,
+      
+      // Chart/playlist indicators
+      /top hits/i, /billboard/i, /charts/i, /hot 100/i,
+      
+      // Commercial indicators
+      /radio/i, /commercial/i, /advertisement/i, /sponsored/i,
+      
+      // Mass appeal indicators
+      /everyone/i, /worldwide/i, /global/i, /international/i,
+      
+      // Popular culture references
+      /tiktok/i, /instagram/i, /youtube/i, /streaming/i,
+    ];
+    
+    const hasMainstreamPattern = mainstreamPatterns.some(pattern => 
+      pattern.test(title) || pattern.test(artist)
+    );
+    
+    const hasMainstreamIndicator = mainstreamIndicators.some(indicator => 
+      indicator.test(title) || indicator.test(artist)
+    );
+    
+    // Check for overly generic/popular terms
+    const genericTerms = [
+      'love', 'heart', 'baby', 'girl', 'boy', 'night', 'day', 'time',
+      'world', 'life', 'dream', 'hope', 'feel', 'want', 'need', 'see',
+      'know', 'think', 'say', 'tell', 'come', 'go', 'get', 'make'
+    ];
+    
+    const hasGenericTerms = genericTerms.some(term => {
+      const regex = new RegExp(`\\b${term}\\b`, 'i');
+      return regex.test(title) || regex.test(artist);
+    });
+    
+    // Check for repetitive/common artist name patterns
+    const commonArtistPatterns = [
+      /^the\s+\w+$/i, // "The [Something]"
+      /^\w+\s+and\s+the\s+\w+$/i, // "[Name] and the [Something]"
+      /^\w+\s+\w+\s+band$/i, // "[Name] [Name] Band"
+      /^\w+\s+collective$/i, // "[Name] Collective"
+      /^\w+\s+project$/i, // "[Name] Project"
+    ];
+    
+    const hasCommonArtistPattern = commonArtistPatterns.some(pattern => 
+      pattern.test(artist)
+    );
+    
+    return hasMainstreamPattern || hasMainstreamIndicator || (hasGenericTerms && hasCommonArtistPattern);
+  }
+
+  // Check for repetitive patterns in track names
+  private hasRepetitivePattern(title: string, artist: string): boolean {
+    // Dynamic pattern detection for repetitive/obvious music
+    const repetitivePatterns = [
+      // Common music industry patterns
+      /feat\./i, /ft\./i, /featuring/i, /with/i,
+      /remix/i, /mix/i, /version/i, /edit/i,
+      /official/i, /original/i, /demo/i, /live/i,
+      
+      // Overly descriptive patterns
+      /happy\s+music/i, /sad\s+song/i, /angry\s+rock/i,
+      /chill\s+vibes/i, /energetic\s+beat/i, /romantic\s+ballad/i,
+      
+      // Generic emotional patterns
+      /feeling\s+\w+/i, /i\s+feel\s+\w+/i, /makes\s+me\s+\w+/i,
+      /when\s+i\s+\w+/i, /if\s+you\s+\w+/i, /because\s+you\s+\w+/i,
+      
+      // Common song title patterns
+      /^the\s+\w+\s+song$/i, /^my\s+\w+\s+song$/i, /^this\s+is\s+\w+$/i,
+      /^i\s+am\s+\w+$/i, /^you\s+are\s+\w+$/i, /^we\s+are\s+\w+$/i,
+      
+      // Repetitive emotional words
+      /love\s+love/i, /sad\s+sad/i, /happy\s+happy/i, /angry\s+angry/i,
+      /cry\s+cry/i, /dance\s+dance/i, /sing\s+sing/i, /play\s+play/i,
+    ];
+    
+    // Check for excessive use of common words
+    const commonWords = ['love', 'heart', 'baby', 'girl', 'boy', 'night', 'day'];
+    const wordCounts: { [word: string]: number } = {};
+    
+    const allText = `${title} ${artist}`.toLowerCase();
+    commonWords.forEach(word => {
+      const regex = new RegExp(`\\b${word}\\b`, 'gi');
+      const matches = allText.match(regex);
+      wordCounts[word] = matches ? matches.length : 0;
+    });
+    
+    const hasExcessiveCommonWords = Object.values(wordCounts).some(count => count > 2);
+    
+    // Check for repetitive punctuation or formatting
+    const repetitiveFormatting = [
+      /\.{3,}/, // Multiple dots
+      /!{2,}/,  // Multiple exclamation marks
+      /#{2,}/,  // Multiple hashtags
+      /\*{2,}/, // Multiple asterisks
+    ];
+    
+    const hasRepetitiveFormatting = repetitiveFormatting.some(pattern => 
+      pattern.test(title) || pattern.test(artist)
+    );
+    
+    return repetitivePatterns.some(pattern => 
+      pattern.test(title) || pattern.test(artist)
+    ) || hasExcessiveCommonWords || hasRepetitiveFormatting;
+  }
+
+  // Calculate playlist uniqueness score
+  private calculatePlaylistUniquenessScore(tracks: SpotifyTrack[], vibe: string, emojis: string[]): number {
+    if (tracks.length === 0) return 0;
+    
+    let score = 0;
+    
+    // 1. Artist diversity (higher score for more unique artists)
+    const uniqueArtists = new Set(tracks.map(track => track.artists[0]?.id).filter(Boolean));
+    const artistDiversityScore = (uniqueArtists.size / tracks.length) * 40; // Max 40 points
+    score += artistDiversityScore;
+    
+    // 2. Genre diversity (estimate from artist names)
+    const genres = new Set<string>();
+    tracks.forEach(track => {
+      const artistName = track.artists[0]?.name?.toLowerCase() || '';
+      const estimatedGenre = this.estimateGenreFromArtist(artistName);
+      if (estimatedGenre) genres.add(estimatedGenre);
+    });
+    const genreDiversityScore = Math.min(genres.size * 5, 30); // Max 30 points
+    score += genreDiversityScore;
+    
+    // 3. Title uniqueness (longer, more unique titles get higher scores)
+    const titleScores = tracks.map(track => {
+      const words = track.name.toLowerCase().split(' ').length;
+      const uniqueWords = new Set(track.name.toLowerCase().split(' ')).size;
+      return Math.min((words + uniqueWords) / 2, 10); // Max 10 points per track
+    });
+    const avgTitleScore = titleScores.reduce((sum, score) => sum + score, 0) / tracks.length;
+    score += avgTitleScore;
+    
+    // 4. Vibe accuracy bonus
+    const vibeAccuracyBonus = this.calculateVibeAccuracyBonus(tracks, vibe, emojis);
+    score += vibeAccuracyBonus;
+    
+    // Normalize to 0-100 scale
+    return Math.min(Math.max(Math.round(score), 0), 100);
+  }
+
+  // Calculate vibe accuracy bonus
+  private calculateVibeAccuracyBonus(tracks: SpotifyTrack[], vibe: string, emojis: string[]): number {
+    const emojiAnalysis = EmojiAnalyzer.analyzeEmojis(emojis);
+    let bonus = 0;
+    
+    // Check if tracks align with the vibe
+    const vibeAlignmentCount = tracks.filter(track => {
+      const trackTitle = track.name.toLowerCase();
+      const artistName = track.artists.map(artist => artist.name.toLowerCase()).join(' ');
+      
+      // Check for vibe-appropriate terms from emoji analysis
+      const vibeAppropriateTerms = [
+        ...emojiAnalysis.vibes,
+        ...emojiAnalysis.genres,
+        ...emojiAnalysis.culturalTerms
+      ];
+      
+      return vibeAppropriateTerms.some(term => 
+        trackTitle.includes(term.toLowerCase()) || artistName.includes(term.toLowerCase())
+      );
+    }).length;
+    
+    // Bonus for tracks that align with vibe without being obvious
+    bonus += (vibeAlignmentCount / tracks.length) * 20; // Max 20 points
+    
+    return bonus;
+  }
+
+  // Helper to check if a track is mainstream
+  private isMainstreamTrack(track: SpotifyTrack): boolean {
+    // Use pattern-based detection and popularity if available
+    const artistNames = track.artists.map(a => a.name).join(' ');
+    // If popularity is available on the track object, use it
+    const popularity = (track as any).popularity;
+    return (
+      this.hasMainstreamIndicators(track.name, artistNames) ||
+      (typeof popularity === 'number' && popularity > 70)
+    );
+  }
+
+  // Advanced diversification with multiple strategies
+  private advancedDiversifyPlaylist(tracks: SpotifyTrack[], targetCount: number): SpotifyTrack[] {
     const diversifiedTracks: SpotifyTrack[] = [];
+    const artistCounts: { [artistId: string]: number } = {};
+    const genreCounts: { [genre: string]: number } = {};
+    const maxTracksPerArtist = 1; // Only 1 track per artist for maximum diversity
+    const maxTracksPerGenre = 3; // Limit tracks per genre
+    const maxMainstreamPercent = 0.2; // Allow up to 20% mainstream
+    let mainstreamCount = 0;
 
-    for (const track of tracks) {
+    // Sort tracks by diversity score
+    const scoredTracks = tracks.map((track: SpotifyTrack) => ({
+      track,
+      score: this.calculateDiversityScore(track, artistCounts, genreCounts)
+    })).sort((a, b) => b.score - a.score);
+
+    for (const { track } of scoredTracks) {
+      if (diversifiedTracks.length >= targetCount) break;
+
       const artistId = track.artists[0]?.id;
-      if (!artistId) continue;
+      const artistName = track.artists[0]?.name?.toLowerCase() || '';
+      const estimatedGenre = this.estimateGenreFromArtist(artistName);
 
-      const currentCount = artistCounts[artistId] || 0;
-      if (currentCount < maxTracksPerArtist) {
-        artistCounts[artistId] = currentCount + 1;
-        diversifiedTracks.push(track);
+      // Check artist/genre limits
+      if (artistId && (artistCounts[artistId] || 0) >= maxTracksPerArtist) continue;
+      if (estimatedGenre && (genreCounts[estimatedGenre] || 0) >= maxTracksPerGenre) continue;
+
+      // Check mainstream limit
+      if (this.isMainstreamTrack(track)) {
+        if (mainstreamCount >= Math.floor(targetCount * maxMainstreamPercent)) continue;
+        mainstreamCount++;
       }
+
+      // Add track
+      if (artistId) artistCounts[artistId] = (artistCounts[artistId] || 0) + 1;
+      if (estimatedGenre) genreCounts[estimatedGenre] = (genreCounts[estimatedGenre] || 0) + 1;
+      diversifiedTracks.push(track);
     }
 
     return diversifiedTracks;
   }
 
+  // Calculate diversity score for a track
+  private calculateDiversityScore(
+    track: SpotifyTrack, 
+    artistCounts: { [artistId: string]: number }, 
+    genreCounts: { [genre: string]: number }
+  ): number {
+    const artistId = track.artists[0]?.id;
+    const artistName = track.artists[0]?.name?.toLowerCase() || '';
+    
+    let score = 0;
+    
+    // Prefer artists we haven't used much
+    if (artistId) {
+      score += 10 - (artistCounts[artistId] || 0) * 5;
+    }
+    
+    // Prefer genres we haven't used much
+    const estimatedGenre = this.estimateGenreFromArtist(artistName);
+    if (estimatedGenre) {
+      score += 5 - (genreCounts[estimatedGenre] || 0) * 2;
+    }
+    
+    // Prefer tracks with unique names
+    const titleWords = track.name.toLowerCase().split(' ').length;
+    score += Math.min(titleWords, 5);
+    
+    return score;
+  }
+
+  // Estimate genre from artist name (dynamic pattern-based detection)
+  private estimateGenreFromArtist(artistName: string): string | null {
+    // Dynamic genre detection patterns
+    const genrePatterns = [
+      // Metal/Hardcore patterns
+      { pattern: /(core|metal|death|black|thrash|doom|grind)/i, genre: 'metal' },
+      
+      // Rock patterns
+      { pattern: /(rock|punk|grunge|garage|indie|alternative)/i, genre: 'rock' },
+      
+      // Electronic patterns
+      { pattern: /(electronic|techno|house|trance|dubstep|ambient|synth|wave)/i, genre: 'electronic' },
+      
+      // Pop patterns
+      { pattern: /(pop|indie-pop|dream-pop|power-pop|synth-pop)/i, genre: 'pop' },
+      
+      // Folk/Acoustic patterns
+      { pattern: /(folk|acoustic|singer-songwriter|americana|bluegrass)/i, genre: 'folk' },
+      
+      // Jazz patterns
+      { pattern: /(jazz|swing|bebop|fusion|smooth)/i, genre: 'jazz' },
+      
+      // Hip-hop patterns
+      { pattern: /(rap|hip-hop|trap|grime|drill)/i, genre: 'hip-hop' },
+      
+      // Classical patterns
+      { pattern: /(classical|orchestra|symphony|chamber|neo-classical)/i, genre: 'classical' },
+      
+      // Experimental patterns
+      { pattern: /(experimental|avant-garde|noise|drone|industrial)/i, genre: 'experimental' },
+      
+      // World music patterns
+      { pattern: /(world|ethnic|traditional|cultural|global)/i, genre: 'world' },
+    ];
+    
+    // Check for genre patterns in artist name
+    for (const { pattern, genre } of genrePatterns) {
+      if (pattern.test(artistName)) {
+        return genre;
+      }
+    }
+    
+    // Check for common artist name suffixes that indicate genre
+    const suffixPatterns = [
+      { pattern: /(band|group|collective|ensemble)$/i, genre: 'rock' },
+      { pattern: /(project|experiment|lab|studio)$/i, genre: 'experimental' },
+      { pattern: /(orchestra|quartet|trio|duo)$/i, genre: 'classical' },
+      { pattern: /(dj|producer|beats|sound)$/i, genre: 'electronic' },
+    ];
+    
+    for (const { pattern, genre } of suffixPatterns) {
+      if (pattern.test(artistName)) {
+        return genre;
+      }
+    }
+    
+    return null;
+  }
+
   // Save playlist to Spotify
   async saveToSpotify(playlistData: PlaylistData): Promise<PlaylistData> {
-    if (!spotifyService.isAuthenticated()) {
+    if (!(await spotifyService.isAuthenticated())) {
       throw new Error('Please connect to Spotify first');
     }
 

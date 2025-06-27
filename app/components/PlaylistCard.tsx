@@ -1,5 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, Image } from 'react-native';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withTiming, 
+  withDelay,
+  Easing,
+  interpolate,
+  Extrapolate,
+  SharedValue
+} from 'react-native-reanimated';
 import { COLORS } from '../constants/colors';
 import Glass from './Glass';
 
@@ -9,6 +19,8 @@ interface PlaylistCardProps {
   songCount?: number;
   isSelected?: boolean;
   coverImageUrl?: string;
+  shouldAnimate?: boolean;
+  scrollY?: SharedValue<number>;
 }
 
 export default function PlaylistCard({ 
@@ -16,10 +28,156 @@ export default function PlaylistCard({
   description, 
   songCount,
   isSelected = false,
-  coverImageUrl
+  coverImageUrl,
+  shouldAnimate = false,
+  scrollY
 }: PlaylistCardProps) {
+  // Animation values
+  const cardOpacity = useSharedValue(shouldAnimate ? 0 : 1);
+  const cardTranslateY = useSharedValue(shouldAnimate ? 50 : 0);
+  const coverScale = useSharedValue(shouldAnimate ? 0.8 : 1);
+  const coverOpacity = useSharedValue(shouldAnimate ? 0 : 1);
+  const titleOpacity = useSharedValue(shouldAnimate ? 0 : 1);
+  const titleTranslateY = useSharedValue(shouldAnimate ? 20 : 0);
+  const descriptionOpacity = useSharedValue(shouldAnimate ? 0 : 1);
+  const descriptionTranslateY = useSharedValue(shouldAnimate ? 20 : 0);
+
+  useEffect(() => {
+    if (shouldAnimate) {
+      // Animate card container
+      cardOpacity.value = withTiming(1, {
+        duration: 800,
+        easing: Easing.out(Easing.cubic),
+      });
+      
+      cardTranslateY.value = withTiming(0, {
+        duration: 800,
+        easing: Easing.out(Easing.cubic),
+      });
+
+      // Animate cover image with delay
+      coverOpacity.value = withDelay(200, withTiming(1, {
+        duration: 600,
+        easing: Easing.out(Easing.cubic),
+      }));
+      
+      coverScale.value = withDelay(200, withTiming(1, {
+        duration: 600,
+        easing: Easing.out(Easing.cubic),
+      }));
+
+      // Animate title with delay
+      titleOpacity.value = withDelay(400, withTiming(1, {
+        duration: 500,
+        easing: Easing.out(Easing.cubic),
+      }));
+      
+      titleTranslateY.value = withDelay(400, withTiming(0, {
+        duration: 500,
+        easing: Easing.out(Easing.cubic),
+      }));
+
+      // Animate description with delay
+      descriptionOpacity.value = withDelay(600, withTiming(1, {
+        duration: 500,
+        easing: Easing.out(Easing.cubic),
+      }));
+      
+      descriptionTranslateY.value = withDelay(600, withTiming(0, {
+        duration: 500,
+        easing: Easing.out(Easing.cubic),
+      }));
+    }
+  }, [shouldAnimate]);
+
+  // Scroll-based animated styles
+  const cardScrollAnimatedStyle = useAnimatedStyle(() => {
+    if (!scrollY) return {};
+    
+    const translateY = interpolate(
+      scrollY.value,
+      [0, 300],
+      [0, -50],
+      Extrapolate.CLAMP
+    );
+    
+    const scale = interpolate(
+      scrollY.value,
+      [0, 300],
+      [1, 0.95],
+      Extrapolate.CLAMP
+    );
+    
+    const opacity = interpolate(
+      scrollY.value,
+      [0, 200, 400],
+      [1, 0.9, 0.8],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      transform: [
+        { translateY },
+        { scale }
+      ],
+      opacity,
+    };
+  });
+
+  const coverScrollAnimatedStyle = useAnimatedStyle(() => {
+    if (!scrollY) return {};
+    
+    const scale = interpolate(
+      scrollY.value,
+      [0, 200],
+      [1, 0.9],
+      Extrapolate.CLAMP
+    );
+    
+    const translateY = interpolate(
+      scrollY.value,
+      [0, 200],
+      [0, -20],
+      Extrapolate.CLAMP
+    );
+
+    return {
+      transform: [
+        { scale },
+        { translateY }
+      ],
+    };
+  });
+
+  // Animated styles
+  const cardAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: cardOpacity.value,
+    transform: [{ translateY: cardTranslateY.value }],
+  }));
+
+  const coverAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: coverOpacity.value,
+    transform: [{ scale: coverScale.value }],
+  }));
+
+  const titleAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: titleOpacity.value,
+    transform: [{ translateY: titleTranslateY.value }],
+  }));
+
+  const descriptionAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: descriptionOpacity.value,
+    transform: [{ translateY: descriptionTranslateY.value }],
+  }));
+
   return (
-    <View>
+    <Animated.View 
+      className="mt-12" 
+      style={[
+        cardAnimatedStyle,
+        cardScrollAnimatedStyle
+      ]}
+    >
       <Glass 
         className="w-full p-4"
         borderRadius={16}
@@ -28,15 +186,19 @@ export default function PlaylistCard({
       >
         <View className="items-center">
           {/* Large Playlist Cover */}
-          <View 
-            className="w-64 h-64 mb-6"
-            style={{
-              shadowColor: '#000000',
-              shadowOffset: { width: 0, height: 12 },
-              shadowOpacity: 0.4,
-              shadowRadius: 20,
-              elevation: 15,
-            }}
+          <Animated.View 
+            className="w-64 h-64 mb-6 rounded-xl"
+            style={[
+              coverAnimatedStyle,
+              coverScrollAnimatedStyle,
+              {
+                shadowColor: '#000000',
+                shadowOffset: { width: 0, height: 12 },
+                shadowOpacity: 0.4,
+                shadowRadius: 20,
+                elevation: 15,
+              }
+            ]}
           >
             <Glass 
               className="w-full h-full"
@@ -52,20 +214,28 @@ export default function PlaylistCard({
                 />
               </View>
             </Glass>
-          </View>
+          </Animated.View>
           
           {/* Title */}
-          <Text className="text-3xl font-bold text-ui-white font-poppins-bold mb-2 text-center leading-tight" numberOfLines={2}>
+          <Animated.Text 
+            className="text-3xl font-bold text-ui-white font-poppins-bold mb-2 text-center leading-tight" 
+            numberOfLines={2}
+            style={titleAnimatedStyle}
+          >
             {name}
-          </Text>
+          </Animated.Text>
           
           {/* Description */}
-          <Text className="text-base text-ui-gray-light font-poppins-bold text-center leading-relaxed px-4" numberOfLines={3}>
+          <Animated.Text 
+            className="text-base text-ui-gray-light font-poppins-bold text-center leading-relaxed px-4" 
+            numberOfLines={3}
+            style={descriptionAnimatedStyle}
+          >
             {description}
-          </Text>
+          </Animated.Text>
           
         </View>
       </Glass>
-    </View>
+    </Animated.View>
   );
 } 

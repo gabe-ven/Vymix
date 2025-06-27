@@ -20,7 +20,7 @@ export default function ProfileScreen() {
     const checkSpotifyStatus = async () => {
       try {
         // Check if user has valid tokens (currently authenticated)
-        const isAuthenticated = spotifyService.isAuthenticated();
+        const isAuthenticated = await spotifyService.isAuthenticated();
         
         // Check if user has ever connected before
         const hasConnectedBefore = user?.uid ? await spotifyService.hasConnectedSpotify(user.uid) : false;
@@ -143,9 +143,6 @@ export default function ProfileScreen() {
 
         {/* Spotify Connection Section */}
         <View className="mb-6">
-          <Text className="text-lg font-bold text-ui-white mb-4 font-poppins-bold">
-            Music Services
-          </Text>
           
           <Glass 
             className="rounded-xl p-4 mb-4"

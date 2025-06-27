@@ -24,7 +24,7 @@ export default function Amount() {
 
   const generatePlaylist = async () => {
     // Check if Spotify is connected
-    const isAuthenticated = spotifyService.isAuthenticated();
+    const isAuthenticated = await spotifyService.isAuthenticated();
     const hasConnectedBefore = user?.uid ? await spotifyService.hasConnectedSpotify(user.uid) : false;
     const isSpotifyConnected = isAuthenticated || hasConnectedBefore;
 
