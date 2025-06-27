@@ -14,7 +14,6 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function Amount() {
   const [songCount, setSongCount] = useState(10);
-  const [isGenerating, setIsGenerating] = useState(false);
   const router = useRouter();
   const { user } = useAuth();
 
@@ -40,76 +39,17 @@ export default function Amount() {
       return;
     }
 
-    setIsGenerating(true);
-    try {
-      // Get stored data
-      const [emojisData, vibeData] = await Promise.all([
-        AsyncStorage.getItem('selectedEmojis'),
-        AsyncStorage.getItem('currentVibe'),
-      ]);
-
-      const emojis = emojisData ? JSON.parse(emojisData) : [];
-      const vibe = vibeData || 'Feeling good';
-
-      console.log('Generating playlist with:', { emojis, songCount, vibe });
-
-      // Generate complete playlist with one call
-      const playlist = await playlistService.generatePlaylist(emojis, songCount, vibe);
-
-      // Save song count and playlist data
-      await AsyncStorage.setItem('songCount', songCount.toString());
-      await AsyncStorage.setItem('playlistData', JSON.stringify(playlist));
-
-      // Navigate to playlist screen
-      router.push('/(tabs)/create/playlist');
-    } catch (error) {
-      console.error('Failed to generate playlist:', error);
-      
-      // Check if it's an authentication error
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      if (errorMessage && (
-        errorMessage.includes('No access token available') || 
-        errorMessage.includes('Access token expired') ||
-        errorMessage.includes('Authentication required')
-      )) {
-        Alert.alert(
-          'Spotify Connection Expired',
-          'Your Spotify connection has expired. Please reconnect to continue.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Reconnect', onPress: () => router.push('/(auth)/connect-spotify') }
-          ]
-        );
-        return;
-      }
-      
-      Alert.alert(
-        'Generation Failed',
-        'Failed to generate playlist. Please try again.',
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setIsGenerating(false);
-    }
+    // Save song count and set generation flag
+    await AsyncStorage.setItem('songCount', songCount.toString());
+    await AsyncStorage.setItem('isGeneratingPlaylist', 'true');
+    
+    // Navigate to playlist screen where generation will happen
+    router.push('/(tabs)/create/playlist');
   };
 
   const handleNext = async () => {
     await generatePlaylist();
   };
-
-  // Show loading animation while generating
-  if (isGenerating) {
-    return (
-      <Layout>
-        <View className="flex-1 justify-center items-center px-4">
-          <LoadingAnimation 
-            message="Creating your perfect playlist..."
-            size="large"
-          />
-        </View>
-      </Layout>
-    );
-  }
 
   return (
     <Layout>
@@ -138,7 +78,6 @@ export default function Amount() {
           >
             <TouchableOpacity
               onPress={handleNext}
-              disabled={isGenerating}
               className="rounded-full px-8 py-4 items-center justify-center"
             >
               <Text className="text-ui-white font-semibold text-xl font-poppins-bold">

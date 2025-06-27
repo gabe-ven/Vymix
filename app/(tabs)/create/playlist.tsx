@@ -18,6 +18,7 @@ import AnimatedButton from '../../components/AnimatedButton';
 import { COLORS } from '../../constants/colors';
 import { usePlaylist } from '../../hooks/usePlaylist';
 import Glass from '../../components/Glass';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface PlaylistData {
   name: string;
@@ -36,20 +37,39 @@ interface PlaylistData {
 
 const Playlist = () => {
   const router = useRouter();
-  const { playlistData, loading, error, regeneratePlaylist, saveToSpotify, loadPlaylist } = usePlaylist();
+  const { playlistData, loading, error, regeneratePlaylist, saveToSpotify, loadPlaylist, generatePlaylist } = usePlaylist();
   const [shouldAnimate, setShouldAnimate] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   
   // Scroll animation values
   const scrollY = useSharedValue(0);
   
   // Load playlist data on mount
   useEffect(() => {
-    loadPlaylist();
+    const initializePlaylist = async () => {
+      setIsInitialLoad(true);
+      
+      // Check if we need to generate a new playlist
+      const isGenerating = await AsyncStorage.getItem('isGeneratingPlaylist');
+      
+      if (isGenerating === 'true') {
+        // Clear the flag and generate new playlist
+        await AsyncStorage.removeItem('isGeneratingPlaylist');
+        await generatePlaylist();
+      } else {
+        // Load existing playlist data
+        await loadPlaylist();
+      }
+      
+      setIsInitialLoad(false);
+    };
+    
+    initializePlaylist();
   }, []);
 
   // Enable animations when playlist data is loaded
   useEffect(() => {
-    if (playlistData && !loading) {
+    if (playlistData && !loading && !isInitialLoad) {
       // Small delay to ensure everything is rendered before starting animations
       const timer = setTimeout(() => {
         setShouldAnimate(true);
@@ -57,7 +77,7 @@ const Playlist = () => {
       
       return () => clearTimeout(timer);
     }
-  }, [playlistData, loading]);
+  }, [playlistData, loading, isInitialLoad]);
 
   // Scroll handler
   const scrollHandler = useAnimatedScrollHandler({
@@ -173,7 +193,7 @@ const Playlist = () => {
     }
   };
 
-  if (loading) {
+  if (loading || isInitialLoad) {
     return (
       <View style={{ flex: 1, backgroundColor: '#000000' }}>
         <LoadingAnimation 

@@ -48,10 +48,10 @@ const SongItem = ({
   scrollAnimation?: any;
   scrollY?: SharedValue<number>;
 }) => {
-  // Animation values for each song item
-  const itemOpacity = useSharedValue(shouldAnimate ? 0 : 1);
-  const itemTranslateX = useSharedValue(shouldAnimate ? -50 : 0);
-  const itemScale = useSharedValue(shouldAnimate ? 0.95 : 1);
+  // Animation values for each song item - always start from initial state
+  const itemOpacity = useSharedValue(0);
+  const itemTranslateX = useSharedValue(-50);
+  const itemScale = useSharedValue(0.95);
 
   useEffect(() => {
     if (shouldAnimate) {
@@ -193,9 +193,9 @@ export default function SongList({
   scrollY: externalScrollY,
   onScroll
 }: SongListProps) {
-  // Animation values for title
-  const titleOpacity = useSharedValue(shouldAnimate ? 0 : 1);
-  const titleTranslateY = useSharedValue(shouldAnimate ? 20 : 0);
+  // Animation values for title - always start from initial state
+  const titleOpacity = useSharedValue(0);
+  const titleTranslateY = useSharedValue(20);
 
   useEffect(() => {
     if (shouldAnimate && title) {

@@ -33,10 +33,10 @@ export default function AnimatedButton({
   shouldAnimate = false,
   scrollY
 }: AnimatedButtonProps) {
-  // Animation values
-  const buttonOpacity = useSharedValue(shouldAnimate ? 0 : 1);
-  const buttonScale = useSharedValue(shouldAnimate ? 0.8 : 1);
-  const buttonTranslateY = useSharedValue(shouldAnimate ? 30 : 0);
+  // Animation values - always start from initial state
+  const buttonOpacity = useSharedValue(0);
+  const buttonScale = useSharedValue(0.8);
+  const buttonTranslateY = useSharedValue(30);
 
   useEffect(() => {
     if (shouldAnimate) {

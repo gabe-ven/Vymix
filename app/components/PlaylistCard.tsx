@@ -32,15 +32,15 @@ export default function PlaylistCard({
   shouldAnimate = false,
   scrollY
 }: PlaylistCardProps) {
-  // Animation values
-  const cardOpacity = useSharedValue(shouldAnimate ? 0 : 1);
-  const cardTranslateY = useSharedValue(shouldAnimate ? 50 : 0);
-  const coverScale = useSharedValue(shouldAnimate ? 0.8 : 1);
-  const coverOpacity = useSharedValue(shouldAnimate ? 0 : 1);
-  const titleOpacity = useSharedValue(shouldAnimate ? 0 : 1);
-  const titleTranslateY = useSharedValue(shouldAnimate ? 20 : 0);
-  const descriptionOpacity = useSharedValue(shouldAnimate ? 0 : 1);
-  const descriptionTranslateY = useSharedValue(shouldAnimate ? 20 : 0);
+  // Animation values - always start from initial state
+  const cardOpacity = useSharedValue(0);
+  const cardTranslateY = useSharedValue(50);
+  const coverScale = useSharedValue(0.8);
+  const coverOpacity = useSharedValue(0);
+  const titleOpacity = useSharedValue(0);
+  const titleTranslateY = useSharedValue(20);
+  const descriptionOpacity = useSharedValue(0);
+  const descriptionTranslateY = useSharedValue(20);
 
   useEffect(() => {
     if (shouldAnimate) {

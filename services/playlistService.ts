@@ -268,6 +268,11 @@ class EmojiAnalyzer {
 
 // Simplified Playlist Service
 class PlaylistService {
+  // Helper function to add delay between API calls
+  private async delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
   // Generate complete playlist with one function call
   async generatePlaylist(
     emojis: string[],
@@ -276,16 +281,16 @@ class PlaylistService {
   ): Promise<PlaylistData> {
     console.log('🎵 Generating playlist:', { emojis, songCount, vibe });
 
-    // 1. Generate playlist info and cover image in parallel
-    const [playlistInfo, coverImageUrl] = await Promise.all([
-      this.generatePlaylistInfo(emojis, songCount, vibe),
-      this.generateCoverImage(emojis, vibe).catch(() => undefined)
-    ]);
+    // 1. Generate playlist info first to get the color palette
+    const playlistInfo = await this.generatePlaylistInfo(emojis, songCount, vibe);
+    
+    // 2. Generate cover image using the dynamic color palette
+    const coverImageUrl = await this.generateCoverImage(emojis, vibe, playlistInfo.colorPalette).catch(() => undefined);
 
-    // 2. Generate tracks with enhanced uniqueness
+    // 3. Generate tracks with enhanced uniqueness
     const tracks = await this.generateTracks(emojis, songCount, vibe, playlistInfo.keywords);
 
-    // 3. Calculate uniqueness score
+    // 4. Calculate uniqueness score
     const uniquenessScore = this.calculatePlaylistUniquenessScore(tracks, vibe, emojis);
 
     return {
@@ -326,14 +331,11 @@ Invent a new word, use poetic language, or combine words in an unexpected way.
 Examples of good names: "nightglow", "vaporhaze", "glasswave", "solstice", "dreamtide", "pulsefield", "lumen", "aether", "velvetine", "mistline".
 
 Description guidelines:
-- Be poetic, artistic, or emotionally resonant — avoid clichés and generic phrases
-- Capture the vibe using tone, feeling, or imagery — not specific genres or instruments
-- Keep the sentence under 20 words
-- No hashtags, emojis, or lists — just one strong sentence
-
-The name should be catchy and reflect the vibe. 
-The description should feel fresh and thoughtful — not robotic or overly promotional.
-End with a period.
+- Write a poetic, evocative, and highly original one-line description, all in lowercase.
+- Use metaphor, vivid imagery, or surreal language to capture the playlist's mood—avoid literal or generic phrases.
+- Make it feel like a whispered secret, a fleeting dream, or a line from a poem.
+- No music terms, no genre names, no cliches, no lists, no hashtags, no emojis.
+- Keep it under 15 words.
 
 For the color palette, generate 3 vibrant, contrasting colors in hex format based on the vibe. 
 IMPORTANT: Do NOT use black (#000000), white (#FFFFFF), or any very dark (#111111, #222222) or very light (#FEFEFE, #EEEEEE) colors. 
@@ -474,32 +476,23 @@ Examples: ["indie pop", "energetic", "summer vibes"] or ["jazz", "chill", "late 
   }
 
   // Generate cover image using DALL-E
-  private async generateCoverImage(emojis: string[], vibe: string): Promise<string> {
-    const colorString = ["#6366f1", "#8b5cf6", "#a855f7"].join(', ');
-    const prompt = `Create a high-quality album cover that completely fills a 1024x1024 canvas with no borders, frames, or empty areas. The style should be abstract, emotional, and inspired by the vibe "${vibe}".
-
-Instructions:
-- Use the following colors prominently in the composition: ${colorString}
-- The artwork should reflect the vibe of: "${vibe}"
-- Style the artwork with bold, atmospheric abstraction — expressive brush strokes, dreamy gradients, or glowing energy fields based on the vibe
-- Integrate painterly textures, fluid motion, or surreal organic forms to evoke emotion
-- Add subtle analog grain or film texture to give it a natural, album-cover feel
-- Avoid any recognizable objects, faces, logos, or symbols — pure expressive abstraction
-- Do not include any text
-
-Style:
-- A fusion of abstract expressionism, digital surrealism, and modern ambient art
-- If the vibe is high energy (like party, electronic, workout), include glowing neon effects or kinetic motion
-- If the vibe is chill, sad, or romantic, lean into soft light, blur, and fluid color blending
-
-Mood:
-- Should match the vibe: "${vibe}"
-- Must feel emotionally immersive, sophisticated, and visually striking
-
-Final Output:
-- Square (1024x1024 px)
-- Edge-to-edge artwork with no borders
-- Should look like a professionally designed cover that captures the music's essence`;
+  private async generateCoverImage(emojis: string[], vibe: string, colorPalette: string[]): Promise<string> {
+    const colorString = colorPalette.join(', ');
+    const emojiString = emojis.join(' ');
+    const prompt = `
+    Create a hand-painted, surreal scene that captures the mood: "${vibe}".
+    The visual style should resemble traditional concept art or illustrated storybooks — with loose, expressive brush strokes, visible sketch lines, and layered textures.
+    
+    Inspiration comes from the feeling of "${vibe}" and the emotional tone of these emojis: ${emojiString}. Let the shapes and colors be abstractly guided by that emotion, not literally.
+    
+    Use a muted or fantastical palette influenced by these colors: ${colorString}.
+    The artwork should feel cinematic, emotionally immersive, and slightly imperfect — as if painted by hand.
+    
+    Final style: painterly, analog, whimsical, textured — with soft lighting, sketch-like details, and a grainy film overlay.
+    
+    No text, symbols, emojis, or recognizable characters.
+    `;
+    
 
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
@@ -512,8 +505,8 @@ Final Output:
         prompt: prompt,
         n: 1,
         size: '1024x1024',
-        quality: 'standard',
-        style: 'vivid',
+        quality: 'hd',
+        style: 'natural',
       }),
     });
 
@@ -544,33 +537,37 @@ Final Output:
     const nicheTerms = EmojiAnalyzer.generateNicheSearchTerms(emojis, vibe);
     console.log('🔍 Generated niche terms:', nicheTerms);
 
-    // 3. Get diverse recommendations using multiple approaches
+    // 3. Get diverse recommendations using multiple approaches with delays
     const recommendationPromises = [];
 
     // Approach 1: Genre-based recommendations
-    for (const genre of emojiAnalysis.genres.slice(0, 5)) {
+    for (const genre of emojiAnalysis.genres.slice(0, 3)) { // Reduced from 5 to 3
       recommendationPromises.push(
         this.getGenreRecommendations([genre], vibe, songCount * 2)
       );
+      await this.delay(200); // Add delay between calls
     }
 
     // Approach 2: Niche search terms with random offsets
-    for (const term of nicheTerms.slice(0, 8)) {
+    for (const term of nicheTerms.slice(0, 5)) { // Reduced from 8 to 5
       recommendationPromises.push(
-        this.searchNicheTracksWithOffset(term, vibe, Math.min(8, songCount))
+        this.searchNicheTracksWithOffset(term, vibe, Math.min(6, songCount))
       );
+      await this.delay(300); // Longer delay for search calls
     }
 
     // Approach 3: Artist discovery with seed artists
     recommendationPromises.push(
       this.discoverVibeArtistsWithSeeds(vibe, emojis, songCount)
     );
+    await this.delay(500); // Delay before next batch
 
     // Approach 4: Cultural terms from emoji analysis
-    for (const term of emojiAnalysis.culturalTerms.slice(0, 4)) {
+    for (const term of emojiAnalysis.culturalTerms.slice(0, 3)) { // Reduced from 4 to 3
       recommendationPromises.push(
-        this.searchNicheTracksWithOffset(term, vibe, Math.min(6, songCount))
+        this.searchNicheTracksWithOffset(term, vibe, Math.min(5, songCount))
       );
+      await this.delay(250);
     }
 
     // Execute all searches in parallel
@@ -627,36 +624,49 @@ Final Output:
         ...emojiAnalysis.genres.map(genre => `${genre} artists`),
         ...emojiAnalysis.vibes.map(vibe => `${vibe} music`),
         ...emojiAnalysis.culturalTerms.slice(0, 2)
-      ];
+      ].filter(term => term && term.length > 0 && term.length < 50); // Filter out invalid terms
+
+      console.log('Artist discovery search terms:', searchTerms);
 
       for (const term of searchTerms.slice(0, 3)) {
-        const searchResults = await spotifyService.search(
-          term,
-          ['track'],
-          Math.min(limit / 3, 8),
-          Math.floor(Math.random() * 50) // Random offset
-        );
-        
-        // Extract artist IDs from found tracks
-        searchResults.tracks.items.forEach(track => {
-          const artistId = track.artists[0]?.id;
-          if (artistId && !discoveredArtists.includes(artistId)) {
-            discoveredArtists.push(artistId);
-          }
-        });
-        
-        allTracks.push(...searchResults.tracks.items);
+        try {
+          const searchResults = await spotifyService.search(
+            term,
+            ['track'],
+            Math.min(limit / 3, 8),
+            Math.floor(Math.random() * 50) // Random offset
+          );
+          
+          // Extract artist IDs from found tracks
+          searchResults.tracks.items.forEach(track => {
+            const artistId = track.artists[0]?.id;
+            if (artistId && !discoveredArtists.includes(artistId)) {
+              discoveredArtists.push(artistId);
+            }
+          });
+          
+          allTracks.push(...searchResults.tracks.items);
+        } catch (searchError) {
+          console.warn(`Search failed for term "${term}":`, searchError);
+          continue; // Continue with next term instead of failing completely
+        }
       }
 
       // Use discovered artists as seeds for recommendations
       if (discoveredArtists.length > 0) {
-        const seedArtists = discoveredArtists.slice(0, 5); // Spotify allows max 5 seed artists
-        const recommendations = await spotifyService.getRecommendations({
-          seed_artists: seedArtists,
-          limit: Math.min(limit, 20),
-          ...EmojiAnalyzer.getAudioFeatures(emojis, vibe),
-        });
-        allTracks.push(...recommendations.tracks);
+        try {
+          const seedArtists = discoveredArtists.slice(0, 5); // Spotify allows max 5 seed artists
+          console.log('Using seed artists for recommendations:', seedArtists);
+          
+          const recommendations = await spotifyService.getRecommendations({
+            seed_artists: seedArtists,
+            limit: Math.min(limit, 20),
+            ...EmojiAnalyzer.getAudioFeatures(emojis, vibe),
+          });
+          allTracks.push(...recommendations.tracks);
+        } catch (recommendationError) {
+          console.warn('Artist-based recommendations failed:', recommendationError);
+        }
       }
 
       return allTracks;
@@ -669,14 +679,27 @@ Final Output:
   // Get genre-based recommendations
   private async getGenreRecommendations(genres: string[], vibe: string, limit: number): Promise<SpotifyTrack[]> {
     try {
+      // Filter out potentially invalid genres and use valid ones
+      const validGenres = genres.filter(genre => 
+        genre && genre.length > 0 && !genre.includes(' ') && genre.length < 20
+      ).slice(0, 5);
+      
+      if (validGenres.length === 0) {
+        console.log('No valid genres found for recommendations');
+        return [];
+      }
+      
+      console.log('Using genres for recommendations:', validGenres);
+      
       const recommendations = await spotifyService.getRecommendations({
-        seed_genres: genres.slice(0, 5),
+        seed_genres: validGenres,
         limit: Math.min(limit, 40),
         ...EmojiAnalyzer.getAudioFeatures([], vibe),
       });
       return recommendations.tracks;
     } catch (error) {
       console.warn('Genre recommendations failed:', error);
+      console.warn('Failed genres:', genres);
       return [];
     }
   }
