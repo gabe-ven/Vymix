@@ -7,22 +7,29 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import SongCountSlider from '../../components/SongCountSlider';
 import { COLORS } from '../../constants/colors';
 import Glass from '../../components/Glass';
+import { LoadingAnimation } from '../../components/LoadingAnimation';
 import { generatePlaylistInfo, generatePlaylistCover } from '../../../services/openai';
 import { playlistGenerator } from '../../../services/playlistGenerator';
 import { spotifyService } from '../../../services/spotify';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Amount() {
   const [songCount, setSongCount] = useState(10);
   const [isGenerating, setIsGenerating] = useState(false);
   const router = useRouter();
+  const { user } = useAuth();
 
   const handleBack = () => {
     router.back();
   };
 
   const generatePlaylist = async () => {
-    // Check if Spotify is connected before generating playlist
-    if (!spotifyService.isAuthenticated()) {
+    // Check if Spotify is connected using the same logic as profile page
+    const isAuthenticated = spotifyService.isAuthenticated();
+    const hasConnectedBefore = user?.uid ? await spotifyService.hasConnectedSpotify(user.uid) : false;
+    const isSpotifyConnected = isAuthenticated || hasConnectedBefore;
+
+    if (!isSpotifyConnected) {
       Alert.alert(
         'Connect Spotify Account',
         'You need to connect your Spotify account to create playlists with real tracks.',
@@ -85,7 +92,11 @@ export default function Amount() {
       router.push('/(tabs)/create/playlist');
     } catch (error) {
       console.error('Failed to generate playlist:', error);
-      alert('Failed to generate playlist. Please try again.');
+      Alert.alert(
+        'Generation Failed',
+        'Failed to generate playlist. Please try again.',
+        [{ text: 'OK' }]
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -94,6 +105,20 @@ export default function Amount() {
   const handleNext = async () => {
     await generatePlaylist();
   };
+
+  // Show loading animation while generating
+  if (isGenerating) {
+    return (
+      <Layout>
+        <View className="flex-1 justify-center items-center px-4">
+          <LoadingAnimation 
+            message="Creating your perfect playlist..."
+            size="large"
+          />
+        </View>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -126,7 +151,7 @@ export default function Amount() {
               className="rounded-full px-8 py-4 items-center justify-center"
             >
               <Text className="text-ui-white font-semibold text-xl font-poppins-bold">
-                {isGenerating ? 'Creating...' : 'Create Playlist'}
+                Create Playlist
               </Text>
             </TouchableOpacity>
           </Glass>
