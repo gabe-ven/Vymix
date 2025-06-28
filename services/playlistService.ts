@@ -241,21 +241,22 @@ Please respond with a JSON object in this exact format:
   "keywords": ["keyword1", "keyword2", "keyword3"]
 }
 
-The playlist name should be extremely unique, creative, and different from typical playlist names. 
-Use one OR two words. It should be lowercase. Avoid generic or common phrases and do NOT use words like "Rage", "Chill", "Vibes", "Energy", "Party", "Focus", "Mood", "Mix", "Playlist", or any other common playlist terms.
-Invent a new word, use poetic language, or combine words in an unexpected way. 
-Examples of good names: "nightglow", "vaporhaze", "glasswave", "solstice", "dreamtide", "pulsefield", "lumen", "aether", "velvetine", "mistline".
+The playlist name should be:
+- Creative and unique - avoid common playlist naming patterns
+- Use 1-3 words maximum, all lowercase
+- Invent new words, use obscure terms, or combine words in unexpected ways
+- Consider the specific emojis and vibe - make it feel personal to this exact combination
+- IMPORTANT: Do NOT include any emoji-style in the playlist name - only use them as inspiration for the mood
+- Examples of the style: "nightglow", "vaporhaze", "glasswave", "solstice", "dreamtide", "pulsefield", "lumen", "aether", "velvetine", "mistline"
 
 Description guidelines:
-- Write a poetic, evocative, and highly original one-line description, all in lowercase.
-- Use metaphor, vivid imagery, or surreal language to capture the playlist's mood—avoid literal or generic phrases.
-- Make it feel like a whispered secret, a fleeting dream, or a line from a poem.
+- Write a highly original one-line description, all in lowercase.
 - No music terms, no genre names, no cliches, no lists, no hashtags, no emojis.
 - Keep it under 15 words. And all lowercase.
 
-For the color palette, generate 3 vibrant, contrasting colors in hex format based on the vibe. 
+For the color palette, generate 3 colors in hex format based on the vibe. 
 IMPORTANT: Do NOT use black (#000000), white (#FFFFFF), or any very dark (#111111, #222222) or very light (#FEFEFE, #EEEEEE) colors. 
-Choose rich, saturated colors that are visually distinct from each other and match the mood.
+Choose colors that are visually distinct from each other and match the mood.
 
 For the keywords, generate 8-12 specific music-related terms that would help find songs on Spotify. These should be:
 - Genre names (e.g., "indie rock", "electronic", "jazz")
@@ -276,7 +277,7 @@ Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel g
       body: JSON.stringify({
         model: 'gpt-4o',
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7,
+        temperature: 0.8, // Good balance of creativity and consistency
         max_tokens: 500,
       }),
     });
@@ -357,7 +358,7 @@ Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel g
     Create a hand-painted, surreal scene that captures the mood: "${vibe}".
     The visual style should resemble traditional concept art or illustrated storybooks — with loose, expressive brush strokes, visible sketch lines, and layered textures.
     
-    Inspiration comes from the feeling of "${vibe}" and the emotional tone of these emojis: ${emojiString}. Let the shapes and colors be abstractly guided by that emotion, not literally.
+    Inspiration comes from the feeling of "${vibe}" and the emotional tone of these emojis: ${emojiString}. DO NOT INCLUDE THE EMOJIS IN THE IMAGE.
     
     Use a muted or fantastical palette influenced by these colors: ${colorString}.
     The artwork should feel cinematic, emotionally immersive, and slightly imperfect — as if painted by hand.

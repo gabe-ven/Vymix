@@ -22,34 +22,23 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
 }) => {
   // Animation values
   const rotateAnim = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(0)).current;
-  const dotsAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const textFadeAnim = useRef(new Animated.Value(0)).current;
+  
+  // Wave bar animations
+  const waveBars = useRef(Array.from({ length: 8 }, () => new Animated.Value(0.2))).current;
 
-  // Typing text state
-  const [currentPhrase, setCurrentPhrase] = useState(0);
+  // Text state
   const [displayText, setDisplayText] = useState('');
+  const [progressText, setProgressText] = useState('');
 
-  // Loading phrases based on mood
-  const getLoadingPhrases = () => {
-    const genericPhrases = [
-      '🎵 Finding the perfect tracks...',
-      '✨ Crafting your playlist...',
-      '🎧 Analyzing your vibe...',
-      '🌟 Discovering amazing music...',
-      '🎶 Curating something special...',
-      '💫 Mixing the right energy...',
-      '🎼 Creating your soundtrack...',
-      '🔥 Building the perfect flow...'
-    ];
+  // Check if we're finding songs
+  const isFindingSongs = progress?.phase?.toLowerCase().includes('found') || 
+                        progress?.phase?.toLowerCase().includes('finding songs') ||
+                        progress?.phase?.toLowerCase().includes('finding');
 
-    return genericPhrases;
-  };
-
-  const loadingPhrases = getLoadingPhrases();
-
+  // Main rotation and text animations
   useEffect(() => {
-    // Smooth rotation animation
     const rotateAnimation = Animated.loop(
       Animated.timing(rotateAnim, {
         toValue: 1,
@@ -59,53 +48,22 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
       })
     );
 
-    // Subtle pulse animation
-    const pulseAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 2000,
-          easing: Easing.inOut(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 0,
-          duration: 2000,
-          easing: Easing.inOut(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ])
-    );
+    const textFadeAnimation = Animated.timing(textFadeAnim, {
+      toValue: 1,
+      duration: 600,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    });
 
-    // Animated dots
-    const dotsAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(dotsAnim, {
-          toValue: 1,
-          duration: 800,
-          easing: Easing.inOut(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(dotsAnim, {
-          toValue: 0,
-          duration: 800,
-          easing: Easing.inOut(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    // Start animations
     rotateAnimation.start();
-    pulseAnimation.start();
-    if (progress) {
-      dotsAnimation.start();
-    }
+    textFadeAnimation.start();
 
-    // Animate progress bar smoothly
-    if (progress) {
+    // Handle progress bar for song finding only
+    if (progress && isFindingSongs) {
       const progressPercentage = (progress.current / progress.total) * 100;
-      console.log('Animating progress to:', progressPercentage);
+      const progressText = `${progress.current}/${progress.total}`;
+      setProgressText(progressText);
+      
       Animated.timing(progressAnim, {
         toValue: progressPercentage,
         duration: 600,
@@ -114,161 +72,186 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
       }).start();
     }
 
-    // If we have progress data, use the actual phase
+    // Set display text
     if (progress?.phase) {
       setDisplayText(progress.phase);
     } else {
-      // Typing text animation for generic phrases
-      const typeText = () => {
-        const phrase = loadingPhrases[currentPhrase];
-        let index = 0;
-        
-        const typeInterval = setInterval(() => {
-          if (index <= phrase.length) {
-            setDisplayText(phrase.slice(0, index));
-            index++;
-          } else {
-            clearInterval(typeInterval);
-            // Wait before next phrase
-            setTimeout(() => {
-              setCurrentPhrase((prev) => (prev + 1) % loadingPhrases.length);
-            }, 2000);
-          }
-        }, 100);
-      };
-
-      typeText();
+      setDisplayText(message);
     }
 
     return () => {
       rotateAnimation.stop();
-      pulseAnimation.stop();
-      dotsAnimation.stop();
     };
-  }, [currentPhrase, progress?.phase, progress?.current, progress?.total]);
+  }, [progress?.phase, progress?.current, progress?.total, isFindingSongs]);
+
+  // Wave bar animations
+  useEffect(() => {
+    const waveAnimations = waveBars.map((bar, index) => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.delay(index * 100), // Stagger the animations
+          Animated.timing(bar, {
+            toValue: 1,
+            duration: 600,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(bar, {
+            toValue: 0.2,
+            duration: 600,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+    });
+
+    // Start all wave animations
+    waveAnimations.forEach(animation => animation.start());
+
+    return () => {
+      waveAnimations.forEach(animation => animation.stop());
+    };
+  }, []);
 
   const getSizeStyles = () => {
     switch (size) {
       case 'small':
-        return { width: 60, height: 60, borderRadius: 30 };
+        return { 
+          containerWidth: 120, 
+          containerHeight: 60, 
+          barWidth: 8, 
+          barSpacing: 4,
+          maxBarHeight: 40
+        };
       case 'large':
-        return { width: 120, height: 120, borderRadius: 60 };
+        return { 
+          containerWidth: 200, 
+          containerHeight: 100, 
+          barWidth: 12, 
+          barSpacing: 6,
+          maxBarHeight: 70
+        };
       default:
-        return { width: 100, height: 100, borderRadius: 50 };
+        return { 
+          containerWidth: 160, 
+          containerHeight: 80, 
+          barWidth: 10, 
+          barSpacing: 5,
+          maxBarHeight: 55
+        };
     }
   };
 
-  // Interpolate rotation
+  // Animation interpolations
   const spin = rotateAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
   });
 
-  // Subtle pulse scale
-  const pulseScale = pulseAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0.95, 1.05, 0.95],
+  const progressBarWidth = progressAnim.interpolate({
+    inputRange: [0, 100],
+    outputRange: ['0%', '100%'],
   });
 
-  // Dots opacity
-  const dotsOpacity = dotsAnim.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0.3, 1, 0.3],
-  });
-
-  // Check if we're in the song finding phase
-  const isFindingSongs = progress?.phase?.toLowerCase().includes('found') || 
-                        progress?.phase?.toLowerCase().includes('finding songs') ||
-                        progress?.phase?.toLowerCase().includes('finding');
-  const isCreatingCover = progress?.phase?.toLowerCase().includes('creating cover') || 
-                         progress?.phase?.toLowerCase().includes('cover');
-
-  // Debug logging
-  console.log('LoadingAnimation Debug:', {
-    progress,
-    phase: progress?.phase,
-    isFindingSongs,
-    isCreatingCover,
-    current: progress?.current,
-    total: progress?.total
-  });
-
-  // Add listener to track progressAnim changes
-  useEffect(() => {
-    const listener = progressAnim.addListener(({ value }) => {
-      console.log('ProgressAnim value changed to:', value);
-    });
-    
-    return () => progressAnim.removeListener(listener);
-  }, [progressAnim]);
+  const sizeStyles = getSizeStyles();
 
   return (
     <Layout>
-      <View className="items-center justify-center flex-1">
-        {/* Main animated circle */}
-        <Animated.View
-          style={[
-            getSizeStyles(),
-            {
-              backgroundColor: COLORS.primary.lime,
-              transform: [
-                { rotate: spin },
-                { scale: pulseScale }
-              ],
-            },
-          ]}
-          className="items-center justify-center"
-        >
-          <Animated.View 
-            style={[
-              getSizeStyles(),
-              { 
-                backgroundColor: COLORS.primary.darkPurple,
-                position: 'absolute',
-                transform: [{ scale: pulseScale }],
-                borderRadius: getSizeStyles().borderRadius,
-              },
-            ]}
-          />
-        </Animated.View>
-        
-        {/* Clean text container */}
-        <View 
-          className="mt-8 px-6 py-4"
-          style={{
-            minHeight: 60,
-            justifyContent: 'center',
-          }}
-        >
-          <Animated.Text 
-            className="text-xl font-poppins text-center text-ui-white"
+      <View className="items-center justify-center flex-1 px-6">
+        {/* Wave bars animation */}
+        <View className="items-center justify-center mb-8">
+          <View 
             style={{
-              minHeight: 30,
+              width: sizeStyles.containerWidth,
+              height: sizeStyles.containerHeight,
+              flexDirection: 'row',
+              alignItems: 'flex-end',
+              justifyContent: 'center',
             }}
           >
-            {displayText}
-            {!progress && <Text className="text-ui-white">|</Text>}
-          </Animated.Text>
-         
-          {/* Clean progress bar - show for any progress data */}
-          {progress && (
-            <View style={{ marginTop: 20, width: '100%' }}>
-              <View className="w-full bg-ui-gray-dark rounded-full h-2 overflow-hidden">
-                <Animated.View 
-                  className="h-2 rounded-full"
-                  style={{ 
-                    width: progressAnim.interpolate({
-                      inputRange: [0, 100],
-                      outputRange: ['0%', '100%'],
-                    }),
-                    backgroundColor: COLORS.primary.lime,
-                  }}
-                />
-              </View>
-            </View>
-          )}
+            {waveBars.map((bar, index) => (
+              <Animated.View
+                key={index}
+                style={{
+                  width: sizeStyles.barWidth,
+                  height: sizeStyles.maxBarHeight,
+                  backgroundColor: COLORS.primary.lime,
+                  marginHorizontal: sizeStyles.barSpacing / 2,
+                  borderRadius: sizeStyles.barWidth / 2,
+                  shadowColor: COLORS.primary.lime,
+                  shadowOffset: { width: 0, height: 0 },
+                  shadowOpacity: 0.6,
+                  shadowRadius: 4,
+                  elevation: 3,
+                  transform: [
+                    {
+                      scaleY: bar.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.2, 1],
+                      })
+                    }
+                  ],
+                }}
+              />
+            ))}
+          </View>
         </View>
+
+        {/* Text */}
+        <Animated.View
+          style={{
+            opacity: textFadeAnim,
+          }}
+          className="items-center mb-4"
+        >
+          <Text className="text-white text-xl font-semibold text-center font-poppins">
+            {displayText}
+          </Text>
+        </Animated.View>
+
+        {/* Progress Bar - Only show when finding songs */}
+        {isFindingSongs && progress && (
+          <View className="w-full mb-4">
+            {/* Progress bar */}
+            <View 
+              className="h-3 bg-gray-800 rounded-full overflow-hidden"
+              style={{ 
+                backgroundColor: COLORS.background.dark,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+                elevation: 4,
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+              }}
+            >
+              <Animated.View
+                style={{
+                  width: progressBarWidth,
+                  height: '100%',
+                  backgroundColor: COLORS.primary.lime,
+                  borderRadius: 6,
+                  shadowColor: COLORS.primary.lime,
+                  shadowOffset: { width: 0, height: 0 },
+                  shadowOpacity: 0.6,
+                  shadowRadius: 4,
+                  elevation: 3,
+                }}
+              />
+            </View>
+            
+            {/* Progress text */}
+            {progressText && (
+              <Text className="text-gray-300 text-base font-medium text-center mt-2 font-poppins">
+                {progressText}
+              </Text>
+            )}
+          </View>
+        )}
       </View>
     </Layout>
   );
-}; 
+};
+     
