@@ -241,13 +241,7 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
                 }}
               />
             </View>
-            
-            {/* Progress text */}
-            {progressText && (
-              <Text className="text-gray-300 text-base font-medium text-center mt-2 font-poppins">
-                {progressText}
-              </Text>
-            )}
+          
           </View>
         )}
       </View>

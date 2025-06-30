@@ -406,7 +406,7 @@ class SpotifyService {
   }
 
   // Make authenticated API request
-  private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  public async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const accessToken = await this.getValidAccessToken();
 
     const controller = new AbortController();
@@ -463,6 +463,55 @@ class SpotifyService {
       }
       throw error;
     }
+  }
+
+  // Get recommendations from Spotify
+  public async getRecommendations(params: {
+    seed_tracks?: string[];
+    seed_genres?: string[];
+    seed_artists?: string[];
+    target_energy?: number;
+    target_valence?: number;
+    target_danceability?: number;
+    target_acousticness?: number;
+    target_instrumentalness?: number;
+    limit?: number;
+    market?: string;
+  }): Promise<{ tracks: SpotifyTrack[] }> {
+    const queryParams = new URLSearchParams();
+    
+    if (params.seed_tracks) {
+      queryParams.append('seed_tracks', params.seed_tracks.join(','));
+    }
+    if (params.seed_genres) {
+      queryParams.append('seed_genres', params.seed_genres.join(','));
+    }
+    if (params.seed_artists) {
+      queryParams.append('seed_artists', params.seed_artists.join(','));
+    }
+    if (params.target_energy !== undefined) {
+      queryParams.append('target_energy', params.target_energy.toString());
+    }
+    if (params.target_valence !== undefined) {
+      queryParams.append('target_valence', params.target_valence.toString());
+    }
+    if (params.target_danceability !== undefined) {
+      queryParams.append('target_danceability', params.target_danceability.toString());
+    }
+    if (params.target_acousticness !== undefined) {
+      queryParams.append('target_acousticness', params.target_acousticness.toString());
+    }
+    if (params.target_instrumentalness !== undefined) {
+      queryParams.append('target_instrumentalness', params.target_instrumentalness.toString());
+    }
+    if (params.limit) {
+      queryParams.append('limit', params.limit.toString());
+    }
+    if (params.market) {
+      queryParams.append('market', params.market);
+    }
+    
+    return this.makeRequest<{ tracks: SpotifyTrack[] }>(`/recommendations?${queryParams.toString()}`);
   }
 
   // Get current user profile

@@ -1,24 +1,6 @@
 import { spotifyService } from './spotify';
 import { OPENAI_API_KEY } from '../env';
 
-/**
- * Playlist Service - Simplified GPT-4o Approach
- * 
- * This service uses GPT-4o to generate specific song titles and artists based on vibe/emojis,
- * then searches for each song individually via Spotify's search API.
- * 
- * SIMPLIFIED WORKFLOW:
- * 1. Use GPT-4o to generate specific song titles and artists based on vibe/emojis
- * 2. Search for each suggested song individually to get Spotify URIs
- * 3. Return the found tracks (no fallbacks)
- * 
- * Features:
- * - AI-generated song suggestions (real songs by real artists)
- * - Individual track searching
- * - Rate limiting and error handling
- * - Clean, simple approach with no fallbacks
- */
-
 // Types
 export interface PlaylistData {
   name: string;
@@ -33,7 +15,6 @@ export interface PlaylistData {
   spotifyUrl?: string;
   id?: string;
   isSpotifyPlaylist?: boolean;
-  uniquenessScore?: number;
 }
 
 export interface SpotifyTrack {
@@ -154,9 +135,6 @@ class PlaylistService {
     // 3. Generate tracks using enhanced search-based discovery
     const tracks = await this.generateTracks(emojis, songCount, vibe, playlistInfo.keywords);
 
-    // 4. Calculate uniqueness score
-    const uniquenessScore = this.calculatePlaylistUniquenessScore(tracks, vibe, emojis);
-
     return {
       name: playlistInfo.name,
       description: playlistInfo.description,
@@ -168,7 +146,6 @@ class PlaylistService {
       vibe,
       tracks,
       isSpotifyPlaylist: false,
-      uniquenessScore,
     };
   }
 
@@ -203,9 +180,6 @@ class PlaylistService {
     // 3. Generate tracks with streaming updates
     const tracks = await this.generateTracksStreaming(emojis, songCount, vibe, playlistInfo.keywords, onProgress);
 
-    // 4. Calculate uniqueness score
-    const uniquenessScore = this.calculatePlaylistUniquenessScore(tracks, vibe, emojis);
-
     const finalPlaylist = {
       name: playlistInfo.name,
       description: playlistInfo.description,
@@ -217,7 +191,6 @@ class PlaylistService {
       vibe,
       tracks,
       isSpotifyPlaylist: false,
-      uniquenessScore,
     };
 
     onProgress?.(finalPlaylist, { current: songCount, total: songCount, phase: 'Complete!' });
@@ -229,7 +202,46 @@ class PlaylistService {
   private async generatePlaylistInfo(emojis: string[], vibe: string) {
     const emojiString = emojis.join(' ');
     
-    const prompt = `Create a music playlist name, description, and color palette based on:
+    // Check if this is a specific request
+    const isSpecific = await this.isSpecificRequest(vibe);
+    
+    let prompt: string;
+    
+    if (isSpecific) {
+      // For specific requests, focus on the source material rather than generic keywords
+      prompt = `Create a music playlist name, description, and color palette for: "${vibe}"
+
+Please respond with a JSON object in this exact format:
+{
+  "name": "Creative playlist name here",
+  "description": "A single compelling sentence that captures the playlist's theme",
+  "colorPalette": ["#hex1", "#hex2", "#hex3"],
+  "keywords": []
+}
+
+The playlist name should be:
+- Creative and unique - avoid common playlist naming patterns
+- Use 1-3 words maximum, all lowercase
+- Invent new words, use obscure terms, or combine words in unexpected ways
+- Consider the specific source material - make it feel personal to "${vibe}"
+- IMPORTANT: Do NOT include any emoji-style in the playlist name - only use them as inspiration for the mood
+- Examples of the style: "nightglow", "vaporhaze", "glasswave", "solstice", "dreamtide", "pulsefield", "lumen", "aether", "velvetine", "mistline"
+
+Description guidelines:
+- Write a highly original one-line description, all in lowercase.
+- Focus on the specific source material and its musical themes.
+- No music terms, no genre names, no cliches, no lists, no hashtags, no emojis.
+- Keep it under 15 words. And all lowercase.
+
+For the color palette, generate 3 colors in hex format based on the visual style and mood of "${vibe}". 
+IMPORTANT: Do NOT use black (#000000), white (#FFFFFF), or any very dark (#111111, #222222) or very light (#FEFEFE, #EEEEEE) colors. 
+Choose colors that are visually distinct from each other and match the source material's aesthetic.
+
+For keywords: Leave as empty array [] since this is a specific request that should focus directly on the source material.`;
+
+    } else {
+      // Original prompt for generic vibe-based requests
+      prompt = `Create a music playlist name, description, and color palette based on:
 - These emojis: ${emojiString}
 - User's vibe/mood: "${vibe}"
 
@@ -267,6 +279,8 @@ For the keywords, generate 8-12 specific music-related terms that would help fin
 - Specific musical terms (e.g., "guitar", "piano", "synth", "drums")
 
 Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel good"] or ["jazz", "chill", "late night", "piano", "smooth", "relaxing"]`;
+
+    }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -322,14 +336,15 @@ Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel g
         name: parsed.name || 'vibes',
         description: parsed.description || 'A carefully curated musical journey.',
         colorPalette: parsed.colorPalette || ['#6366f1', '#8b5cf6', '#a855f7'],
-        keywords: parsed.keywords || ['indie', 'atmospheric', 'vibes'],
+        keywords: isSpecific ? [] : (parsed.keywords || ['indie', 'atmospheric', 'vibes']),
       };
       
       console.log('✅ Generated playlist info:', { 
         name: result.name, 
         description: result.description.substring(0, 50) + '...',
         colorCount: result.colorPalette.length,
-        keywordCount: result.keywords.length
+        keywordCount: result.keywords.length,
+        isSpecific
       });
       
       return result;
@@ -342,7 +357,7 @@ Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel g
         name: 'vibes',
         description: 'A carefully curated musical journey.',
         colorPalette: ['#6366f1', '#8b5cf6', '#a855f7'],
-        keywords: ['indie', 'atmospheric', 'vibes'],
+        keywords: isSpecific ? [] : ['indie', 'atmospheric', 'vibes'],
       };
       
       console.log('⚠️ Using fallback playlist info:', fallback);
@@ -476,6 +491,231 @@ Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel g
     }
   }
 
+  // Simplified AI-driven track generation
+  private async generateTracksWithAI(
+    emojis: string[], 
+    songCount: number, 
+    vibe: string, 
+    keywords: string[],
+    seed: string
+  ): Promise<SpotifyTrack[]> {
+    console.log('🤖 Generating tracks for:', { emojis, vibe, songCount });
+    
+    // No history tracking - use empty set for uniqueness within this session
+    const usedTrackIds = new Set<string>();
+    
+    const tracks: SpotifyTrack[] = [];
+    let attempts = 0;
+    const maxAttempts = 5; // Allow more attempts to ensure we get the full count
+    
+    while (tracks.length < songCount && attempts < maxAttempts) {
+      attempts++;
+      console.log(`🎯 Attempt ${attempts}: Need ${songCount - tracks.length} more songs`);
+      
+      // Check if this is a specific request (anime, movie, etc.) or a generic vibe
+      const isSpecific = await this.isSpecificRequest(vibe);
+      const remainingSongs = songCount - tracks.length;
+      const prompt = isSpecific 
+        ? this.generateSpecificRequestPrompt(vibe, emojis, seed, remainingSongs, attempts)
+        : this.generateVariedPrompt(emojis, vibe, keywords, seed, remainingSongs, attempts);
+
+      console.log(`🎯 Using ${isSpecific ? 'specific' : 'vibe-based'} prompt for: "${vibe}"`);
+
+      try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.9, // Increased temperature for more variety
+            max_tokens: 1000, // Increased for comprehensive suggestions
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`OpenAI API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+        
+        if (!content) {
+          throw new Error('No response from OpenAI');
+        }
+
+        // Parse song suggestions
+        const lines = content.split('\n').filter((line: string) => line.trim().length > 0);
+        const suggestions: Array<{title: string, artist: string}> = [];
+        
+        for (const line of lines) {
+          const match = line.match(/"([^"]+)"\s+by\s+(.+)/i);
+          if (match) {
+            suggestions.push({
+              title: match[1].trim(),
+              artist: match[2].trim()
+            });
+          }
+        }
+        
+        console.log(`✅ Found ${suggestions.length} song suggestions`);
+        
+        // Search for each suggestion on Spotify with variety
+        for (const suggestion of suggestions) {
+          if (tracks.length >= songCount) break;
+          
+          try {
+            const searchQuery = this.createValidSearchQuery(suggestion.title, suggestion.artist);
+            
+            // Use enhanced search with variety
+            const selectedTrack = await this.searchWithVariety(searchQuery, usedTrackIds, tracks);
+            
+            if (selectedTrack) {
+              tracks.push(selectedTrack);
+              usedTrackIds.add(selectedTrack.id); // Track within this session
+              console.log(`✅ Found: "${selectedTrack.name}" by ${selectedTrack.artists.map(a => a.name).join(', ')} (${tracks.length}/${songCount})`);
+            }
+            
+            await this.delay(100);
+          } catch (error) {
+            console.warn(`Search failed for "${suggestion.title}":`, error);
+          }
+        }
+        
+        // If we found enough songs, break
+        if (tracks.length >= songCount) {
+          console.log(`🎯 Successfully found all ${songCount} songs!`);
+          break;
+        }
+        
+      } catch (error) {
+        console.error('AI generation failed:', error);
+      }
+    }
+    
+    console.log(`🎯 Final result: ${tracks.length} tracks found (requested: ${songCount})`);
+    return tracks.slice(0, songCount);
+  }
+
+  // Streaming version of simplified AI-driven track generation
+  private async generateTracksWithAIStreaming(
+    emojis: string[], 
+    songCount: number, 
+    vibe: string, 
+    keywords: string[],
+    seed: string,
+    onProgress?: (playlist: Partial<PlaylistData>, progress: { current: number; total: number; phase: string }) => void
+  ): Promise<SpotifyTrack[]> {
+    console.log('🤖 Generating tracks with streaming for:', { emojis, vibe, songCount });
+    
+    // No history tracking - use empty set for uniqueness within this session
+    const usedTrackIds = new Set<string>();
+    
+    const tracks: SpotifyTrack[] = [];
+    let attempts = 0;
+    const maxAttempts = 5; // Allow more attempts to ensure we get the full count
+    
+    while (tracks.length < songCount && attempts < maxAttempts) {
+      attempts++;
+      console.log(`🎯 Attempt ${attempts}: Need ${songCount - tracks.length} more songs`);
+      
+      onProgress?.({ tracks: [...tracks] }, { current: tracks.length, total: songCount, phase: 'Generating songs...' });
+      
+      // Check if this is a specific request (anime, movie, etc.) or a generic vibe
+      const isSpecific = await this.isSpecificRequest(vibe);
+      const remainingSongs = songCount - tracks.length;
+      const prompt = isSpecific 
+        ? this.generateSpecificRequestPrompt(vibe, emojis, seed, remainingSongs, attempts)
+        : this.generateVariedPrompt(emojis, vibe, keywords, seed, remainingSongs, attempts);
+
+      console.log(`🎯 Using ${isSpecific ? 'specific' : 'vibe-based'} prompt for: "${vibe}"`);
+
+      try {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o',
+            messages: [{ role: 'user', content: prompt }],
+            temperature: 0.9, // Increased temperature for more variety
+            max_tokens: 1000, // Increased for comprehensive suggestions
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`OpenAI API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content;
+        
+        if (!content) {
+          throw new Error('No response from OpenAI');
+        }
+
+        // Parse song suggestions
+        const lines = content.split('\n').filter((line: string) => line.trim().length > 0);
+        const suggestions: Array<{title: string, artist: string}> = [];
+        
+        for (const line of lines) {
+          const match = line.match(/"([^"]+)"\s+by\s+(.+)/i);
+          if (match) {
+            suggestions.push({
+              title: match[1].trim(),
+              artist: match[2].trim()
+            });
+          }
+        }
+        
+        console.log(`✅ Found ${suggestions.length} song suggestions`);
+        
+        onProgress?.({ tracks: [...tracks] }, { current: tracks.length, total: songCount, phase: 'Finding songs on Spotify...' });
+        
+        // Search for each suggestion on Spotify with variety
+        for (const suggestion of suggestions) {
+          if (tracks.length >= songCount) break;
+          
+          try {
+            const searchQuery = this.createValidSearchQuery(suggestion.title, suggestion.artist);
+            
+            // Use enhanced search with variety
+            const selectedTrack = await this.searchWithVariety(searchQuery, usedTrackIds, tracks);
+            
+            if (selectedTrack) {
+              tracks.push(selectedTrack);
+              usedTrackIds.add(selectedTrack.id); // Track within this session
+              console.log(`✅ Found: "${selectedTrack.name}" by ${selectedTrack.artists.map(a => a.name).join(', ')} (${tracks.length}/${songCount})`);
+              
+              onProgress?.({ tracks: [...tracks] }, { current: tracks.length, total: songCount, phase: `Found ${tracks.length} of ${songCount} songs...` });
+            }
+            
+            await this.delay(100);
+          } catch (error) {
+            console.warn(`Search failed for "${suggestion.title}":`, error);
+          }
+        }
+        
+        // If we found enough songs, break
+        if (tracks.length >= songCount) {
+          console.log(`🎯 Successfully found all ${songCount} songs!`);
+          break;
+        }
+        
+      } catch (error) {
+        console.error('AI generation failed:', error);
+      }
+    }
+    
+    console.log(`🎯 Final result: ${tracks.length} tracks found (requested: ${songCount})`);
+    return tracks.slice(0, songCount);
+  }
+
   // Enhanced track generation using LLM-generated song titles and artists
   private async generateTracks(
     emojis: string[], 
@@ -491,15 +731,24 @@ Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel g
       throw new Error('Spotify service is not available. Please check your connection and authentication.');
     }
     
-    // Step 1: Generate specific song titles and artists using GPT-4o
-    const songSuggestions = await this.generateSongSuggestions(emojis, vibe, songCount, keywords);
-    console.log('🎼 Generated song suggestions:', songSuggestions.length);
+    // Generate unique seed for this playlist to ensure randomness
+    const playlistSeed = this.generatePlaylistSeed(emojis, vibe, songCount);
+    console.log('🎲 Generated playlist seed:', playlistSeed);
     
-    // Step 2: Search for each suggested song to get Spotify URIs
-    const tracks = await this.findTracksFromSuggestions(songSuggestions, songCount);
-    
-    console.log(`🎯 Final playlist: ${tracks.length} tracks (requested: ${songCount})`);
-    return tracks;
+    // Check if this is a specific request
+    const isSpecific = await this.isSpecificRequest(vibe);
+    if (isSpecific) {
+      console.log('🎯 Detected specific request, focusing on source material directly');
+      // For specific requests, we don't use keywords as they can interfere
+      const tracks = await this.generateTracksWithAI(emojis, songCount, vibe, [], playlistSeed);
+      console.log(`🎯 Final playlist: ${tracks.length} tracks (requested: ${songCount})`);
+      return tracks;
+    } else {
+      // Use enhanced AI approach for generic vibe-based requests
+      const tracks = await this.generateTracksWithAI(emojis, songCount, vibe, keywords, playlistSeed);
+      console.log(`🎯 Final playlist: ${tracks.length} tracks (requested: ${songCount})`);
+      return tracks;
+    }
   }
 
   // Streaming track generation with progress updates
@@ -518,314 +767,73 @@ Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel g
       throw new Error('Spotify service is not available. Please check your connection and authentication.');
     }
     
-    // Step 1: Generate specific song titles and artists using GPT-4o
-    onProgress?.({ 
-      emojis, 
-      songCount, 
-      vibe,
-      tracks: []
-    }, { current: 0, total: songCount, phase: 'Finding songs...' });
+    // Generate unique seed for this playlist
+    const playlistSeed = this.generatePlaylistSeed(emojis, vibe, songCount);
+    console.log('🎲 Generated playlist seed:', playlistSeed);
     
-    const songSuggestions = await this.generateSongSuggestions(emojis, vibe, songCount, keywords);
-    console.log('🎼 Generated song suggestions:', songSuggestions.length);
-    
-    // Step 2: Search for each suggested song to get Spotify URIs with streaming updates
-    const tracks = await this.findTracksFromSuggestionsStreaming(songSuggestions, songCount, onProgress);
-    
-    console.log(`🎯 Final playlist: ${tracks.length} tracks (requested: ${songCount})`);
-    return tracks;
-  }
-
-  // Generate specific song titles and artists using LLM
-  private async generateSongSuggestions(emojis: string[], vibe: string, songCount: number, keywords: string[]): Promise<Array<{title: string, artist: string}>> {
-    const emojiString = emojis.join(' ');
-    const keywordString = keywords.join(', ');
-    
-    const prompt = `Mood: "${vibe}"
-Emojis: ${emojiString}
-Music Keywords: ${keywordString}
-
-Generate a playlist of ${songCount + 10} songs that match this mood and imagery. Use the provided music keywords to guide your song selection. Mix known tracks with unique, niche picks. Each song should emotionally reflect this vibe. Avoid repeating artists.
-
-Format: "Song Title – Artist"
-
-Please respond with a JSON array of objects in this exact format:
-[
-  {"title": "Song Title", "artist": "Artist Name"},
-  {"title": "Another Song", "artist": "Another Artist"}
-]
-
-Guidelines:
-- Use the provided music keywords (${keywordString}) to guide your song selection
-- Choose real, existing songs that match the vibe and mood
-- Include a mix of popular and lesser-known tracks
-- Consider the emotional tone suggested by the emojis
-- Include songs from different genres that fit the mood
-- Make sure song titles and artist names are accurate
-- Avoid very obscure songs that might not be on Spotify
-- Include songs from different decades and styles
-- Consider the energy level and tempo that matches the vibe
-- Focus on songs that are likely to be available on Spotify
-- Include both contemporary and classic songs
-- Prioritize songs that align with the provided keywords
-Make sure all suggestions are real songs by real artists that would be available on Spotify.`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.8,
-        max_tokens: 1500,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-    
-    if (!content) {
-      throw new Error('No response from OpenAI');
-    }
-
-    try {
-      // Clean up the response content to handle common JSON formatting issues
-      let cleanedContent = content.trim();
+    // Check if this is a specific request
+    const isSpecific = await this.isSpecificRequest(vibe);
+    if (isSpecific) {
+      console.log('🎯 Detected specific request, focusing on source material directly');
+      // Use simplified AI approach with streaming updates, no keywords
+      onProgress?.({ 
+        emojis, 
+        songCount, 
+        vibe,
+        tracks: []
+      }, { current: 0, total: songCount, phase: 'Starting AI track generation...' });
       
-      // Remove any markdown code blocks if present
-      cleanedContent = cleanedContent.replace(/```json\s*/g, '').replace(/```\s*$/g, '');
+      const tracks = await this.generateTracksWithAIStreaming(emojis, songCount, vibe, [], playlistSeed, onProgress);
+      console.log(`🎯 Final playlist: ${tracks.length} tracks (requested: ${songCount})`);
+      return tracks;
+    } else {
+      // Use simplified AI approach with streaming updates
+      onProgress?.({ 
+        emojis, 
+        songCount, 
+        vibe,
+        tracks: []
+      }, { current: 0, total: songCount, phase: 'Starting AI track generation...' });
       
-      // Remove any leading/trailing backticks or other characters
-      cleanedContent = cleanedContent.replace(/^[`'"]+/, '').replace(/[`'"]+$/, '');
-      
-      // Try to extract JSON array if it's wrapped in other text
-      const jsonMatch = cleanedContent.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        cleanedContent = jsonMatch[0];
-      }
-      
-      console.log('🔍 Attempting to parse cleaned content:', cleanedContent.substring(0, 200) + '...');
-      
-      const parsed = JSON.parse(cleanedContent);
-      if (!Array.isArray(parsed)) {
-        throw new Error('Invalid response format - expected array');
-      }
-      
-      // Validate the structure and clean up the data
-      const validSuggestions = parsed
-        .filter(item => 
-          item && 
-          typeof item.title === 'string' && 
-          typeof item.artist === 'string' &&
-          item.title.trim().length > 0 &&
-          item.artist.trim().length > 0
-        )
-        .map(item => ({
-          title: item.title.trim(),
-          artist: item.artist.trim()
-        }));
-      
-      console.log(`✅ Generated ${validSuggestions.length} valid song suggestions`);
-      return validSuggestions;
-    } catch (error) {
-      console.error('Failed to parse song suggestions:', error);
-      console.error('Raw content was:', content);
-      
-      // Fallback: try to extract song suggestions from the text using regex
-      try {
-        console.log('🔄 Attempting fallback parsing...');
-        const fallbackSuggestions = this.parseSongSuggestionsFromText(content);
-        if (fallbackSuggestions.length > 0) {
-          console.log(`✅ Fallback parsing found ${fallbackSuggestions.length} suggestions`);
-          return fallbackSuggestions;
-        }
-      } catch (fallbackError) {
-        console.error('Fallback parsing also failed:', fallbackError);
-      }
-      
-      throw new Error('Failed to generate song suggestions. Please try again.');
+      const tracks = await this.generateTracksWithAIStreaming(emojis, songCount, vibe, keywords, playlistSeed, onProgress);
+      console.log(`🎯 Final playlist: ${tracks.length} tracks (requested: ${songCount})`);
+      return tracks;
     }
   }
 
-  // Search for each suggested song to get Spotify URIs
-  private async findTracksFromSuggestions(songSuggestions: Array<{title: string, artist: string}>, targetCount: number): Promise<SpotifyTrack[]> {
-    const tracks: SpotifyTrack[] = [];
-    let consecutiveFailures = 0;
-    const maxConsecutiveFailures = 10; // Stop if we fail to find 10 songs in a row
+  // Generate a unique seed for this playlist to ensure randomness
+  private generatePlaylistSeed(emojis: string[], vibe: string, songCount: number): string {
+    const timestamp = Date.now();
+    const emojiHash = emojis.join('').split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+    const vibeHash = vibe.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
     
-    console.log(`🔍 Searching for ${songSuggestions.length} suggested songs`);
+    // Enhanced randomness with multiple entropy sources
+    const randomFactor1 = Math.random() * 1000000;
+    const randomFactor2 = Math.random() * 1000000;
+    const randomFactor3 = Math.random() * 1000000;
     
-    // Search for each song individually
-    for (const suggestion of songSuggestions) {
-      if (tracks.length >= targetCount) {
-        console.log(`✅ Found enough tracks (${tracks.length}/${targetCount}), stopping search`);
-        break;
-      }
-      
-      // Stop if we've had too many consecutive failures
-      if (consecutiveFailures >= maxConsecutiveFailures) {
-        console.log(`⚠️ Stopping search after ${maxConsecutiveFailures} consecutive failures`);
-        break;
-      }
-      
-      try {
-        const searchQuery = `${suggestion.title} ${suggestion.artist}`;
-        console.log(`🔍 Searching for: "${searchQuery}" (${tracks.length + 1}/${targetCount})`);
-        
-        const searchResponse = await spotifyService.search(
-          searchQuery,
-          ['track'],
-          1, // Get just the top result
-          0
-        );
-        
-        if (searchResponse.tracks.items.length > 0) {
-          const track = searchResponse.tracks.items[0];
-          console.log(`✅ Found: "${track.name}" by ${track.artists.map(a => a.name).join(', ')}`);
-          tracks.push(track);
-          consecutiveFailures = 0; // Reset failure counter
-        } else {
-          consecutiveFailures++;
-          console.log(`❌ No results found for "${searchQuery}" (failure ${consecutiveFailures})`);
-        }
-        
-        // Add small delay to respect rate limits
-        await this.delay(50); // Reduced delay for faster processing
-        
-      } catch (error) {
-        consecutiveFailures++;
-        console.warn(`Search failed for "${suggestion.title}" by ${suggestion.artist}:`, error);
-      }
+    // Add microsecond precision and process-specific randomness
+    const microTime = performance.now();
+    const processRandom = Math.random() * 1000000;
+    
+    // Create a more complex seed with multiple layers of randomness
+    const seed = `${timestamp}-${microTime}-${emojiHash}-${vibeHash}-${songCount}-${randomFactor1}-${randomFactor2}-${randomFactor3}-${processRandom}`;
+    
+    // Create a hash of the seed for consistency
+    const seedHash = this.hashString(seed);
+    
+    return `${seedHash}-${timestamp}`;
+  }
+
+  // Simple hash function for seed consistency
+  private hashString(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
     }
-    
-    console.log(`✅ Found ${tracks.length} tracks from suggestions`);
-    return tracks;
-  }
-
-  // Streaming search for each suggested song with progress updates
-  private async findTracksFromSuggestionsStreaming(
-    songSuggestions: Array<{title: string, artist: string}>, 
-    targetCount: number,
-    onProgress?: (playlist: Partial<PlaylistData>, progress: { current: number; total: number; phase: string }) => void
-  ): Promise<SpotifyTrack[]> {
-    const tracks: SpotifyTrack[] = [];
-    let consecutiveFailures = 0;
-    const maxConsecutiveFailures = 10; // Stop if we fail to find 10 songs in a row
-    
-    console.log(`🔍 Searching for ${songSuggestions.length} suggested songs with streaming`);
-    
-    // Search for each song individually
-    for (const suggestion of songSuggestions) {
-      if (tracks.length >= targetCount) {
-        console.log(`✅ Found enough tracks (${tracks.length}/${targetCount}), stopping search`);
-        break;
-      }
-      
-      // Stop if we've had too many consecutive failures
-      if (consecutiveFailures >= maxConsecutiveFailures) {
-        console.log(`⚠️ Stopping search after ${maxConsecutiveFailures} consecutive failures`);
-        break;
-      }
-      
-      try {
-        const searchQuery = `${suggestion.title} ${suggestion.artist}`;
-        console.log(`🔍 Searching for: "${searchQuery}" (${tracks.length + 1}/${targetCount})`);
-        
-        const searchResponse = await spotifyService.search(
-          searchQuery,
-          ['track'],
-          1, // Get just the top result
-          0
-        );
-        
-        if (searchResponse.tracks.items.length > 0) {
-          const track = searchResponse.tracks.items[0];
-          console.log(`✅ Found: "${track.name}" by ${track.artists.map(a => a.name).join(', ')}`);
-          tracks.push(track);
-          consecutiveFailures = 0; // Reset failure counter
-          
-          // Send progress update with current tracks
-          onProgress?.({ 
-            tracks: [...tracks] // Send a copy of current tracks
-          }, { 
-            current: tracks.length, 
-            total: targetCount, 
-            phase: `Found ${tracks.length} of ${targetCount} songs...` 
-          });
-        } else {
-          consecutiveFailures++;
-          console.log(`❌ No results found for "${searchQuery}" (failure ${consecutiveFailures})`);
-        }
-        
-        // Add small delay to respect rate limits
-        await this.delay(50); // Reduced delay for faster processing
-        
-      } catch (error) {
-        consecutiveFailures++;
-        console.warn(`Search failed for "${suggestion.title}" by ${suggestion.artist}:`, error);
-      }
-    }
-    
-    console.log(`✅ Found ${tracks.length} tracks from suggestions`);
-    return tracks;
-  }
-
-  // Calculate vibe accuracy bonus
-  private calculateVibeAccuracyBonus(tracks: SpotifyTrack[], vibe: string, emojis: string[]): number {
-    let bonus = 0;
-    
-    // Check if tracks align with the vibe
-    const vibeAlignmentCount = tracks.filter(track => {
-      const trackTitle = track.name.toLowerCase();
-      const artistName = track.artists.map(artist => artist.name.toLowerCase()).join(' ');
-      
-      // Check for vibe-appropriate terms
-      const vibeTerms = vibe.toLowerCase().split(' ');
-      
-      return vibeTerms.some(term => 
-        trackTitle.includes(term) || artistName.includes(term)
-      );
-    }).length;
-    
-    // Bonus for tracks that align with vibe
-    bonus += (vibeAlignmentCount / tracks.length) * 20; // Max 20 points
-    
-    return bonus;
-  }
-
-  // Calculate playlist uniqueness score
-  private calculatePlaylistUniquenessScore(tracks: SpotifyTrack[], vibe: string, emojis: string[]): number {
-    if (tracks.length === 0) return 0;
-    
-    let score = 0;
-    
-    // 1. Artist diversity (higher score for more unique artists)
-    const uniqueArtists = new Set(tracks.map(track => track.artists[0]?.id).filter(Boolean));
-    const artistDiversityScore = (uniqueArtists.size / tracks.length) * 40; // Max 40 points
-    score += artistDiversityScore;
-    
-    // 2. Title uniqueness (longer, more unique titles get higher scores)
-    const titleScores = tracks.map(track => {
-      const words = track.name.toLowerCase().split(' ').length;
-      const uniqueWords = new Set(track.name.toLowerCase().split(' ')).size;
-      return Math.min((words + uniqueWords) / 2, 10); // Max 10 points per track
-    });
-    const avgTitleScore = titleScores.reduce((sum, score) => sum + score, 0) / tracks.length;
-    score += avgTitleScore;
-    
-    // 3. Vibe accuracy bonus
-    const vibeAccuracyBonus = this.calculateVibeAccuracyBonus(tracks, vibe, emojis);
-    score += vibeAccuracyBonus;
-    
-    // Normalize to 0-100 scale
-    return Math.min(Math.max(Math.round(score), 0), 100);
+    return Math.abs(hash).toString(36);
   }
 
   // Save playlist to Spotify
@@ -864,46 +872,243 @@ Make sure all suggestions are real songs by real artists that would be available
     return result;
   }
 
-  // Fallback method to parse song suggestions from text when JSON parsing fails
-  private parseSongSuggestionsFromText(text: string): Array<{title: string, artist: string}> {
-    const suggestions: Array<{title: string, artist: string}> = [];
+  // Create a valid search query that stays within Spotify's 250 character limit
+  private createValidSearchQuery(title: string, artist: string): string {
+    // Clean and truncate the inputs
+    const cleanTitle = title.trim().replace(/[^\w\s\-'&]/g, '').substring(0, 50);
+    const cleanArtist = artist.trim().replace(/[^\w\s\-'&]/g, '').substring(0, 50);
     
-    // Try different patterns to extract song - artist pairs
-    const patterns = [
-      // Pattern: "Song Title" - "Artist Name"
-      /"([^"]+)"\s*[-–—]\s*"([^"]+)"/g,
-      // Pattern: Song Title - Artist Name (without quotes)
-      /([^-\n]+?)\s*[-–—]\s*([^\n]+)/g,
-      // Pattern: Song Title by Artist Name
-      /([^b\n]+?)\s+by\s+([^\n]+)/gi,
-    ];
+    // Create the search query
+    let searchQuery = `${cleanTitle} ${cleanArtist}`;
     
-    for (const pattern of patterns) {
-      const matches = text.matchAll(pattern);
-      for (const match of matches) {
-        const title = match[1]?.trim();
-        const artist = match[2]?.trim();
-        
-        if (title && artist && title.length > 0 && artist.length > 0) {
-          // Avoid duplicates
-          const exists = suggestions.some(s => 
-            s.title.toLowerCase() === title.toLowerCase() && 
-            s.artist.toLowerCase() === artist.toLowerCase()
-          );
-          
-          if (!exists) {
-            suggestions.push({ title, artist });
-          }
-        }
-      }
+    // Ensure it's within Spotify's 250 character limit
+    if (searchQuery.length > 240) { // Leave some buffer
+      // Try with just title and first word of artist
+      const artistFirstWord = cleanArtist.split(' ')[0];
+      searchQuery = `${cleanTitle} ${artistFirstWord}`;
       
-      // If we found suggestions with this pattern, use them
-      if (suggestions.length > 0) {
-        break;
+      // If still too long, truncate title
+      if (searchQuery.length > 240) {
+        const maxTitleLength = 240 - artistFirstWord.length - 1; // -1 for space
+        searchQuery = `${cleanTitle.substring(0, maxTitleLength)} ${artistFirstWord}`;
       }
     }
     
-    return suggestions;
+    return searchQuery;
+  }
+
+  // Get a random search offset to increase variety
+  private getRandomSearchOffset(): number {
+    // Random offset between 0-20 to get different search results
+    return Math.floor(Math.random() * 20);
+  }
+
+  // Enhanced search with variety
+  private async searchWithVariety(query: string, usedTrackIds: Set<string>, existingTracks: SpotifyTrack[]): Promise<SpotifyTrack | null> {
+    const offset = this.getRandomSearchOffset();
+    const limit = 10; // Search more results for variety
+    
+    try {
+      const searchResponse = await spotifyService.search(query, ['track'], limit, offset);
+      
+      if (searchResponse.tracks.items.length > 0) {
+        // Find the first track that hasn't been used before
+        for (const track of searchResponse.tracks.items) {
+          if (!usedTrackIds.has(track.id) && !existingTracks.some(t => t.id === track.id)) {
+            return track;
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(`Search failed for "${query}":`, error);
+    }
+    
+    return null;
+  }
+
+  // Generate varied prompts for AI to ensure different responses
+  private generateVariedPrompt(emojis: string[], vibe: string, keywords: string[], seed: string, songCount: number, attempt: number): string {
+    const promptVariations = [
+      `You are a music expert creating a unique playlist. Suggest ${songCount * 3} songs that match this vibe: "${vibe}"
+
+🎧 Emojis for inspiration: ${emojis.join(' ')}
+🔑 Keywords to guide the sound: ${keywords.join(', ')}
+🎲 Random seed for variety: ${seed}
+
+CRITICAL REQUIREMENTS:
+- Focus on how the songs SOUND (melody, production, mood), not just lyrics
+- Prefer **indie**, **underground**, or **lesser-known** tracks — avoid obvious mainstream picks
+- Include a mix of **genres**, **eras**, and **unexpected gems**
+- Each playlist should feel fresh — avoid repeating songs from earlier requests
+- Surprise me with **creative deep cuts** or hidden gems
+- IMPORTANT: Use the random seed to ensure variety - different seeds should produce different suggestions
+
+Format:
+"Song Title" by Artist Name
+"Another Song" by Another Artist
+(One song per line, no numbering, no commentary)`,
+
+      `Create a diverse music selection for this mood: "${vibe}"
+
+Visual cues: ${emojis.join(' ')}
+Musical direction: ${keywords.join(', ')}
+Variety seed: ${seed}
+
+Requirements:
+- Focus on sonic texture and atmosphere
+- Choose underground and alternative artists
+- Mix different decades and styles
+- Avoid mainstream chart-toppers
+- Use the seed to ensure uniqueness
+
+Format:
+"Song Title" by Artist Name`,
+
+      `As a music curator, discover ${songCount * 3} tracks for: "${vibe}"
+
+Inspiration: ${emojis.join(' ')}
+Sound palette: ${keywords.join(', ')}
+Uniqueness factor: ${seed}
+
+Curate tracks that:
+- Match the emotional resonance
+- Come from diverse musical backgrounds
+- Include hidden gems and deep cuts
+- Feel cohesive yet surprising
+- Use the seed for variety
+
+Format:
+"Song Title" by Artist Name`
+    ];
+
+    // Use the attempt number and seed to select different prompt variations
+    const variationIndex = (parseInt(seed.slice(-2), 36) + attempt) % promptVariations.length;
+    return promptVariations[variationIndex];
+  }
+
+  // Detect if the request is for something specific (anime, movie, TV show, artist, etc.)
+  private async isSpecificRequest(vibe: string): Promise<boolean> {
+    try {
+      const prompt = `Analyze this music request and determine if it's specific or generic:
+
+Request: "${vibe}"
+
+A SPECIFIC request refers to:
+- Named entities (anime, movies, TV shows, games, artists, albums, songs)
+- Specific franchises, series, or intellectual properties
+- Named characters, locations, or events
+- Specific cultural or regional music styles
+- Named musical genres or subcultures
+
+A GENERIC request refers to:
+- Moods, emotions, or feelings (happy, sad, energetic, chill)
+- General vibes or atmospheres (summer vibes, night vibes, workout)
+- Broad musical qualities (upbeat, relaxing, intense)
+- General activities or situations (party, study, sleep)
+
+Examples:
+- "Attack on Titan music" → SPECIFIC (named anime)
+- "Star Wars soundtrack" → SPECIFIC (named movie franchise)
+- "The Weeknd songs" → SPECIFIC (named artist)
+- "Japanese music" → SPECIFIC (named cultural style)
+- "hype and energetic" → GENERIC (mood/feeling)
+- "chill vibes" → GENERIC (mood/atmosphere)
+- "workout music" → GENERIC (activity)
+- "summer vibes" → GENERIC (seasonal mood)
+
+Respond with only "SPECIFIC" or "GENERIC".`;
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.1, // Low temperature for consistent classification
+          max_tokens: 10,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content?.trim().toUpperCase();
+      
+      if (!content) {
+        throw new Error('No response from OpenAI');
+      }
+
+      const isSpecific = content === 'SPECIFIC';
+      console.log(`🎯 AI classified "${vibe}" as ${isSpecific ? 'SPECIFIC' : 'GENERIC'}`);
+      
+      return isSpecific;
+    } catch (error) {
+      console.error('Failed to classify request, defaulting to generic:', error);
+      // Fallback to generic if AI classification fails
+      return false;
+    }
+  }
+
+  // Generate prompt for specific requests (anime, movies, etc.)
+  private generateSpecificRequestPrompt(vibe: string, emojis: string[], seed: string, songCount: number, attempt: number): string {
+    const promptVariations = [
+      `You are a music expert specializing in ${vibe}. Suggest ${songCount * 3} songs that are directly related to "${vibe}".
+
+🎧 Context: ${emojis.join(' ')}
+🎲 Variety seed: ${seed}
+
+CRITICAL REQUIREMENTS:
+- Focus on songs that are DIRECTLY related to "${vibe}"
+- Include official soundtracks, theme songs, covers, and inspired music
+- If it's an anime/movie/show, include opening/ending themes and background music
+- If it's an artist, include their songs and similar artists
+- If it's a game, include soundtrack and inspired music
+- Use the seed to ensure variety in your suggestions
+- Be specific and accurate to the source material
+
+Format:
+"Song Title" by Artist Name
+"Another Song" by Another Artist
+(One song per line, no numbering, no commentary)`,
+
+      `Create a music collection specifically for: "${vibe}"
+
+Visual context: ${emojis.join(' ')}
+Uniqueness factor: ${seed}
+
+Requirements:
+- Focus on music that is directly connected to "${vibe}"
+- Include official releases, fan covers, and inspired compositions
+- Maintain authenticity to the source material
+- Use the seed for variety in selection
+- Be precise and relevant
+
+Format:
+"Song Title" by Artist Name`,
+
+      `As a specialist in "${vibe}" music, curate ${songCount * 3} tracks that capture its essence.
+
+Inspiration: ${emojis.join(' ')}
+Variety seed: ${seed}
+
+Curate tracks that:
+- Are directly related to "${vibe}"
+- Include official soundtracks and theme music
+- Feature covers and inspired compositions
+- Maintain the authentic feel of the source
+- Use the seed for diverse selection
+
+Format:
+"Song Title" by Artist Name`
+    ];
+
+    const variationIndex = (parseInt(seed.slice(-2), 36) + attempt) % promptVariations.length;
+    return promptVariations[variationIndex];
   }
 }
 
