@@ -568,10 +568,10 @@ Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel g
           if (tracks.length >= songCount) break;
           
           try {
-            const searchQuery = this.createValidSearchQuery(suggestion.title, suggestion.artist);
+            const searchQuery = this.createValidSearchQuery(suggestion.title, suggestion.artist, isSpecific);
             
             // Use enhanced search with variety
-            const selectedTrack = await this.searchWithVariety(searchQuery, usedTrackIds, tracks);
+            const selectedTrack = await this.searchWithVariety(searchQuery, usedTrackIds, tracks, isSpecific);
             
             if (selectedTrack) {
               tracks.push(selectedTrack);
@@ -622,7 +622,10 @@ Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel g
       attempts++;
       console.log(`🎯 Attempt ${attempts}: Need ${songCount - tracks.length} more songs`);
       
-      onProgress?.({ tracks: [...tracks] }, { current: tracks.length, total: songCount, phase: 'Generating songs...' });
+      // Only show "Generating songs..." on the first attempt
+      if (attempts === 1) {
+        onProgress?.({ tracks: [...tracks] }, { current: tracks.length, total: songCount, phase: 'Generating songs...' });
+      }
       
       // Check if this is a specific request (anime, movie, etc.) or a generic vibe
       const isSpecific = await this.isSpecificRequest(vibe);
@@ -675,17 +678,17 @@ Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel g
         
         console.log(`✅ Found ${suggestions.length} song suggestions`);
         
-        onProgress?.({ tracks: [...tracks] }, { current: tracks.length, total: songCount, phase: 'Finding songs on Spotify...' });
+        onProgress?.({ tracks: [...tracks] }, { current: tracks.length, total: songCount, phase: 'Finding songs...' });
         
         // Search for each suggestion on Spotify with variety
         for (const suggestion of suggestions) {
           if (tracks.length >= songCount) break;
           
           try {
-            const searchQuery = this.createValidSearchQuery(suggestion.title, suggestion.artist);
+            const searchQuery = this.createValidSearchQuery(suggestion.title, suggestion.artist, isSpecific);
             
             // Use enhanced search with variety
-            const selectedTrack = await this.searchWithVariety(searchQuery, usedTrackIds, tracks);
+            const selectedTrack = await this.searchWithVariety(searchQuery, usedTrackIds, tracks, isSpecific);
             
             if (selectedTrack) {
               tracks.push(selectedTrack);
@@ -873,28 +876,50 @@ Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel g
   }
 
   // Create a valid search query that stays within Spotify's 250 character limit
-  private createValidSearchQuery(title: string, artist: string): string {
-    // Clean and truncate the inputs
-    const cleanTitle = title.trim().replace(/[^\w\s\-'&]/g, '').substring(0, 50);
-    const cleanArtist = artist.trim().replace(/[^\w\s\-'&]/g, '').substring(0, 50);
-    
-    // Create the search query
-    let searchQuery = `${cleanTitle} ${cleanArtist}`;
-    
-    // Ensure it's within Spotify's 250 character limit
-    if (searchQuery.length > 240) { // Leave some buffer
-      // Try with just title and first word of artist
-      const artistFirstWord = cleanArtist.split(' ')[0];
-      searchQuery = `${cleanTitle} ${artistFirstWord}`;
+  private createValidSearchQuery(title: string, artist: string, isSpecific: boolean = false): string {
+    // For specific requests, prioritize the artist name
+    if (isSpecific) {
+      // Clean and truncate the artist name
+      const cleanArtist = artist.trim().replace(/[^\w\s\-'&]/g, '').substring(0, 100);
       
-      // If still too long, truncate title
-      if (searchQuery.length > 240) {
-        const maxTitleLength = 240 - artistFirstWord.length - 1; // -1 for space
-        searchQuery = `${cleanTitle.substring(0, maxTitleLength)} ${artistFirstWord}`;
+      // For artist-specific requests, search by artist name first
+      let searchQuery = cleanArtist;
+      
+      // If the title is provided and not just a generic term, include it
+      const cleanTitle = title.trim().replace(/[^\w\s\-'&]/g, '').substring(0, 50);
+      if (cleanTitle && cleanTitle.length > 2 && !cleanTitle.toLowerCase().includes('song') && !cleanTitle.toLowerCase().includes('track')) {
+        searchQuery = `${cleanTitle} ${cleanArtist}`;
       }
+      
+      // Ensure it's within Spotify's 250 character limit
+      if (searchQuery.length > 240) {
+        searchQuery = cleanArtist.substring(0, 240);
+      }
+      
+      return searchQuery;
+    } else {
+      // Original logic for generic requests
+      const cleanTitle = title.trim().replace(/[^\w\s\-'&]/g, '').substring(0, 50);
+      const cleanArtist = artist.trim().replace(/[^\w\s\-'&]/g, '').substring(0, 50);
+      
+      // Create the search query
+      let searchQuery = `${cleanTitle} ${cleanArtist}`;
+      
+      // Ensure it's within Spotify's 250 character limit
+      if (searchQuery.length > 240) { // Leave some buffer
+        // Try with just title and first word of artist
+        const artistFirstWord = cleanArtist.split(' ')[0];
+        searchQuery = `${cleanTitle} ${artistFirstWord}`;
+        
+        // If still too long, truncate title
+        if (searchQuery.length > 240) {
+          const maxTitleLength = 240 - artistFirstWord.length - 1; // -1 for space
+          searchQuery = `${cleanTitle.substring(0, maxTitleLength)} ${artistFirstWord}`;
+        }
+      }
+      
+      return searchQuery;
     }
-    
-    return searchQuery;
   }
 
   // Get a random search offset to increase variety
@@ -904,18 +929,44 @@ Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel g
   }
 
   // Enhanced search with variety
-  private async searchWithVariety(query: string, usedTrackIds: Set<string>, existingTracks: SpotifyTrack[]): Promise<SpotifyTrack | null> {
-    const offset = this.getRandomSearchOffset();
-    const limit = 10; // Search more results for variety
+  private async searchWithVariety(query: string, usedTrackIds: Set<string>, existingTracks: SpotifyTrack[], isSpecific: boolean = false): Promise<SpotifyTrack | null> {
+    // For specific requests, use more precise search without random offsets
+    const offset = isSpecific ? 0 : this.getRandomSearchOffset();
+    const limit = isSpecific ? 5 : 10; // Fewer results for specific requests to prioritize exact matches
     
     try {
       const searchResponse = await spotifyService.search(query, ['track'], limit, offset);
       
       if (searchResponse.tracks.items.length > 0) {
-        // Find the first track that hasn't been used before
-        for (const track of searchResponse.tracks.items) {
-          if (!usedTrackIds.has(track.id) && !existingTracks.some(t => t.id === track.id)) {
-            return track;
+        // For specific requests, prioritize exact matches
+        if (isSpecific) {
+          // Look for exact artist name matches first
+          for (const track of searchResponse.tracks.items) {
+            const trackArtistNames = track.artists.map(a => a.name.toLowerCase());
+            const queryLower = query.toLowerCase();
+            
+            // Check if any artist name contains the query or vice versa
+            const isExactMatch = trackArtistNames.some(artistName => 
+              artistName.includes(queryLower) || queryLower.includes(artistName)
+            );
+            
+            if (isExactMatch && !usedTrackIds.has(track.id) && !existingTracks.some(t => t.id === track.id)) {
+              return track;
+            }
+          }
+          
+          // If no exact match found, fall back to first available track
+          for (const track of searchResponse.tracks.items) {
+            if (!usedTrackIds.has(track.id) && !existingTracks.some(t => t.id === track.id)) {
+              return track;
+            }
+          }
+        } else {
+          // For generic requests, use the original variety approach
+          for (const track of searchResponse.tracks.items) {
+            if (!usedTrackIds.has(track.id) && !existingTracks.some(t => t.id === track.id)) {
+              return track;
+            }
           }
         }
       }
