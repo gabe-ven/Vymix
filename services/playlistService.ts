@@ -216,9 +216,13 @@ The playlist name should be:
 
 Description guidelines:
 - Write a highly original one-line description, all in lowercase.
-- Focus on the specific source material and its musical themes.
-- No music terms, no genre names, no cliches, no lists, no hashtags, no emojis.
+- Be SPECIFIC to "${vibe}" - reference the actual content, characters, themes, or atmosphere
+- Capture the unique essence and emotional core of the source material
+- No generic music terms, no genre names, no cliches, no lists, no hashtags, no emojis
 - Keep it under 15 words. And all lowercase.
+- Examples for anime: "the sound of titans breaking walls" or "when eren's rage meets the sea"
+- Examples for movies: "where lightsabers hum in the dark" or "the force flows through everything"
+- Examples for artists: "weeknd's neon-lit midnight drives" or "taylor's folklore forest whispers"
 
 For the color palette, generate 3 colors in hex format based on the visual style and mood of "${vibe}". 
 IMPORTANT: Do NOT use black (#000000), white (#FFFFFF), or any very dark (#111111, #222222) or very light (#FEFEFE, #EEEEEE) colors. 
@@ -358,19 +362,46 @@ Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel g
     
     console.log('🎨 Generating cover image for:', { vibe, emojis, colorPalette });
     
-    // Single unified prompt for all requests
-    const prompt = `
-Create a surreal, hand-painted digital artwork that visually expresses the essence of: ${vibe}.
-The style should resemble painterly concept art or illustrated storybooks — with loose brush strokes, textured layers, and expressive imperfections.
+    // Check if this is a specific request to customize the prompt
+    const isSpecific = await this.isSpecificRequest(vibe);
+    
+    let prompt: string;
+    
+    if (isSpecific) {
+      // Specific prompt for named content (anime, movies, artists, etc.)
+      prompt = `
+Create an impressionist, hand-painted artwork in the style of oil on canvas that captures the emotional essence and atmosphere of: "${vibe}".
+
+The artwork should visually reference the world, iconic locations, landscapes, architecture, props, or visual motifs from "${vibe}". Focus on the scenery, atmosphere, and mood that make "${vibe}" unique. You may abstractly interpret famous scenes or settings, but do NOT include recognizable characters or direct copies of existing artwork.
+
+Style: impressionist painting, loose expressive brushstrokes, vivid color, analog, painterly, oil on canvas, plein air, imperfect, hand-painted look. No photorealism, no cartoon, no digital smoothness.
+Color palette: ${colorString} - use these colors as the primary palette.
+
+The style should be inspired by:
+- Studio Ghibli background art
+- Lo-fi fantasy album covers
+- Impressionist painters
+- Artists like Ian McQue, Simon Stålenhag, or Eyvind Earle
+- The texture of oil pastels or gouache on canvas
+
+Desired look: grainy, sketch-like, whimsical, imperfect. Visible brushstrokes. No hard outlines. No glossy realism. Subtle lighting and analog warmth.
+
+MANDATORY: No text, logos, or emojis in the image. Create an original artistic interpretation, not a direct reference to any existing content.
+`;
+    } else {
+      // Generic prompt for vibe-based requests
+      prompt = `
+Create an impressionist, hand-painted artwork in the style of oil on canvas that visually expresses the essence of: ${vibe}.
+The style should be impressionist painting, loose expressive brushstrokes, vivid color, analog, painterly, oil on canvas, plein air, imperfect, hand-painted look. No photorealism, no cartoon, no digital smoothness.
 
 Inspiration comes from the mood/topic of "${vibe}" and these emojis: ${emojiString}. DO NOT INCLUDE THE EMOJIS IN THE IMAGE.
 
 Use a cinematic, analog-inspired color palette with dreamlike or fantastical tones.
 
-The style should be heavily inspired by:
+The style should be inspired by:
 - Studio Ghibli background art
 - Lo-fi fantasy album covers
-- Impressionist digital painters
+- Impressionist painters
 - Artists like Ian McQue, Simon Stålenhag, or Eyvind Earle
 - The texture of oil pastels or gouache on canvas
 
@@ -378,6 +409,7 @@ Desired look: grainy, sketch-like, whimsical, imperfect. Visible brushstrokes. N
 
 MANDATORY: No text, logos, or emojis in the image.
 `;
+    }
 
     console.log('🎨 Sending prompt to DALL-E:', prompt.substring(0, 200) + '...');
     
