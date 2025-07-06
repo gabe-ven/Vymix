@@ -120,7 +120,9 @@ class PlaylistService {
     }
   }
 
-  // Internal playlist generation method
+  /**
+   * Internal: Generate playlist (non-streaming)
+   */
   private async _generatePlaylist(
     emojis: string[],
     songCount: number,
@@ -149,7 +151,9 @@ class PlaylistService {
     };
   }
 
-  // Internal streaming playlist generation method
+  /**
+   * Internal: Generate playlist with streaming updates
+   */
   private async _generatePlaylistStreaming(
     emojis: string[],
     songCount: number,
@@ -157,24 +161,11 @@ class PlaylistService {
     onProgress?: (playlist: Partial<PlaylistData>, progress: { current: number; total: number; phase: string }) => void
   ): Promise<PlaylistData> {
     // 1. Generate playlist info first to get the color palette
-    onProgress?.({ 
-      emojis, 
-      songCount, 
-      vibe,
-      tracks: []
-    }, { current: 0, total: songCount, phase: 'Generating playlist info...' });
-    
+    onProgress?.({ emojis, songCount, vibe, tracks: [] }, { current: 0, total: songCount, phase: 'Generating playlist info...' });
     const playlistInfo = await this.generatePlaylistInfo(emojis, vibe);
-    
+
     // 2. Generate cover image using the dynamic color palette
-    onProgress?.({ 
-      ...playlistInfo,
-      emojis, 
-      songCount, 
-      vibe,
-      tracks: []
-    }, { current: 0, total: songCount, phase: 'Creating cover art...' });
-    
+    onProgress?.({ ...playlistInfo, emojis, songCount, vibe, tracks: [] }, { current: 0, total: songCount, phase: 'Creating cover art...' });
     const coverImageUrl = await this.generateCoverImage(emojis, vibe, playlistInfo.colorPalette).catch(() => undefined);
 
     // 3. Generate tracks with streaming updates
@@ -194,21 +185,18 @@ class PlaylistService {
     };
 
     onProgress?.(finalPlaylist, { current: songCount, total: songCount, phase: 'Complete!' });
-
     return finalPlaylist;
   }
 
-  // Generate playlist info using OpenAI
+  /**
+   * Generate playlist info using OpenAI (returns name, description, colorPalette, keywords)
+   */
   private async generatePlaylistInfo(emojis: string[], vibe: string) {
     const emojiString = emojis.join(' ');
-    
-    // Check if this is a specific request
     const isSpecific = await this.isSpecificRequest(vibe);
-    
     let prompt: string;
-    
+
     if (isSpecific) {
-      // For specific requests, focus on the source material rather than generic keywords
       prompt = `Create a music playlist name, description, and color palette for: "${vibe}"
 
 Please respond with a JSON object in this exact format:
@@ -225,7 +213,6 @@ The playlist name should be:
 - Invent new words, use obscure terms, or combine words in unexpected ways
 - Consider the specific source material - make it feel personal to "${vibe}"
 - IMPORTANT: Do NOT include any emoji-style in the playlist name - only use them as inspiration for the mood
-- Examples of the style: "nightglow", "vaporhaze", "glasswave", "solstice", "dreamtide", "pulsefield", "lumen", "aether", "velvetine", "mistline"
 
 Description guidelines:
 - Write a highly original one-line description, all in lowercase.
@@ -238,9 +225,7 @@ IMPORTANT: Do NOT use black (#000000), white (#FFFFFF), or any very dark (#11111
 Choose colors that are visually distinct from each other and match the source material's aesthetic.
 
 For keywords: Leave as empty array [] since this is a specific request that should focus directly on the source material.`;
-
     } else {
-      // Original prompt for generic vibe-based requests
       prompt = `Create a music playlist name, description, and color palette based on:
 - These emojis: ${emojiString}
 - User's vibe/mood: "${vibe}"
@@ -279,7 +264,6 @@ For the keywords, generate 8-12 specific music-related terms that would help fin
 - Specific musical terms (e.g., "guitar", "piano", "synth", "drums")
 
 Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel good"] or ["jazz", "chill", "late night", "piano", "smooth", "relaxing"]`;
-
     }
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -315,7 +299,7 @@ Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel g
       cleanedContent = cleanedContent.replace(/```json\s*/g, '').replace(/```\s*$/g, '');
       
       // Remove any leading/trailing backticks or other characters
-      cleanedContent = cleanedContent.replace(/^[`'"]+/, '').replace(/[`'"]+$/, '');
+      cleanedContent = cleanedContent.replace(/^[`'\"]+/, '').replace(/[`'\"]+$/, '');
       
       // Try to extract JSON object if it's wrapped in other text
       const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
@@ -365,23 +349,37 @@ Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel g
     }
   }
 
-  // Generate cover image using DALL-E
+  /**
+   * Generate cover image using DALL-E (with colorPalette)
+   */
   private async generateCoverImage(emojis: string[], vibe: string, colorPalette: string[]): Promise<string> {
     const colorString = colorPalette.join(', ');
     const emojiString = emojis.join(' ');
+    
+    console.log('🎨 Generating cover image for:', { vibe, emojis, colorPalette });
+    
+    // Single unified prompt for all requests
     const prompt = `
-    Create a hand-painted, surreal scene that captures the mood: "${vibe}".
-    The visual style should resemble traditional concept art or illustrated storybooks — with loose, expressive brush strokes, visible sketch lines, and layered textures.
-    
-    Inspiration comes from the feeling of "${vibe}" and the emotional tone of these emojis: ${emojiString}. DO NOT INCLUDE THE EMOJIS IN THE IMAGE.
-    
-    Use a muted or fantastical palette influenced by these colors: ${colorString}.
-    The artwork should feel cinematic, emotionally immersive, and slightly imperfect — as if painted by hand.
-    
-    Final style: painterly, analog, whimsical, textured — with soft lighting, sketch-like details, and a grainy film overlay.
-    
-    MANDATORY: No text, symbols, emojis.
-    `;
+Create a surreal, hand-painted digital artwork that visually expresses the essence of: ${vibe}.
+The style should resemble painterly concept art or illustrated storybooks — with loose brush strokes, textured layers, and expressive imperfections.
+
+Inspiration comes from the mood/topic of "${vibe}" and these emojis: ${emojiString}. DO NOT INCLUDE THE EMOJIS IN THE IMAGE.
+
+Use a cinematic, analog-inspired color palette with dreamlike or fantastical tones.
+
+The style should be heavily inspired by:
+- Studio Ghibli background art
+- Lo-fi fantasy album covers
+- Impressionist digital painters
+- Artists like Ian McQue, Simon Stålenhag, or Eyvind Earle
+- The texture of oil pastels or gouache on canvas
+
+Desired look: grainy, sketch-like, whimsical, imperfect. Visible brushstrokes. No hard outlines. No glossy realism. Subtle lighting and analog warmth.
+
+MANDATORY: No text, logos, or emojis in the image.
+`;
+
+    console.log('🎨 Sending prompt to DALL-E:', prompt.substring(0, 200) + '...');
     
     const response = await fetch('https://api.openai.com/v1/images/generations', {
       method: 'POST',
@@ -401,10 +399,12 @@ Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel g
     });
 
     if (!response.ok) {
+      console.error('🎨 DALL-E API error:', response.status, response.statusText);
       throw new Error(`DALL-E API error: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log('🎨 DALL-E response received, image URL:', data.data?.[0]?.url ? 'Success' : 'Failed');
     return data.data?.[0]?.url || '';
   }
 
