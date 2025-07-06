@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { Buffer } from 'buffer';
 import { SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET } from '../env';
 
@@ -584,6 +585,205 @@ class SpotifyService {
     }
     
     return playlist;
+  }
+
+  // Upload cover image to a playlist
+  public async uploadPlaylistCoverImage(
+    playlistId: string,
+    imageUrl: string
+  ): Promise<void> {
+    try {
+      console.log(`🖼️ Uploading cover image to playlist ${playlistId}`);
+      
+      // Download the image from the URL
+      const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) {
+        throw new Error(`Failed to download image: ${imageResponse.status}`);
+      }
+      
+      // Get the image as arrayBuffer first
+      const arrayBuffer = await imageResponse.arrayBuffer();
+      const originalSize = arrayBuffer.byteLength;
+      const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+      
+      console.log(`📏 Original image size: ${(originalSize / 1024).toFixed(2)}KB`);
+      
+      const maxSizeBytes = 200 * 1024; // 200KB - more conservative for faster uploads
+      let finalBase64: string;
+      
+      if (originalSize > maxSizeBytes) {
+        console.log(`📦 Image too large, compressing...`);
+        try {
+          finalBase64 = await this.compressImageFromUrl(imageUrl, maxSizeBytes);
+        } catch (error) {
+          console.warn('Failed to compress image, skipping cover upload:', error);
+          return; // Skip cover upload if compression fails
+        }
+      } else {
+        // Convert to base64 directly
+        finalBase64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      }
+      
+      // Final size check - if still too large, skip upload
+      const finalSize = (finalBase64.length * 0.75);
+      if (finalSize > 200 * 1024) {
+        console.warn(`⚠️ Image still too large (${(finalSize / 1024).toFixed(2)}KB), skipping cover upload`);
+        return;
+      }
+      
+      // Upload to Spotify with extended timeout for large images
+      await this.uploadImageWithTimeout(playlistId, finalBase64);
+      
+      console.log(`✅ Successfully uploaded cover image to playlist ${playlistId}`);
+    } catch (error) {
+      console.error(`❌ Failed to upload cover image to playlist ${playlistId}:`, error);
+      // Don't throw the error - playlist creation should still succeed even if cover upload fails
+    }
+  }
+
+  // Upload image with extended timeout for large base64 data
+  private async uploadImageWithTimeout(playlistId: string, base64Data: string): Promise<void> {
+    const accessToken = await this.getValidAccessToken();
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout for image uploads
+
+    try {
+      console.log(`📤 Uploading ${(base64Data.length * 0.75 / 1024).toFixed(2)}KB image to Spotify...`);
+      
+      const response = await fetch(`https://api.spotify.com/v1/playlists/${playlistId}/images`, {
+        method: 'PUT',
+        signal: controller.signal,
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'image/jpeg',
+        },
+        body: base64Data, // Send raw base64 data, not wrapped in JSON
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          await this.clearTokens();
+          throw new Error('Authentication required. Please login again.');
+        }
+        
+        // Try to get detailed error information from response body
+        let errorDetails = response.statusText;
+        try {
+          const errorBody = await response.json();
+          if (errorBody.error) {
+            errorDetails = `${errorBody.error.message || errorBody.error} (${response.status})`;
+          } else if (errorBody.message) {
+            errorDetails = `${errorBody.message} (${response.status})`;
+          }
+        } catch (parseError) {
+          // If we can't parse the error body, use status text
+          errorDetails = `${response.statusText || 'Unknown error'} (${response.status})`;
+        }
+        
+        console.error(`Spotify image upload error:`, {
+          status: response.status,
+          statusText: response.statusText,
+          errorDetails,
+          playlistId
+        });
+        
+        throw new Error(`Spotify image upload error: ${errorDetails}`);
+      }
+
+      console.log(`✅ Image upload successful for playlist ${playlistId}`);
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Image upload timeout. The image might be too large.');
+      }
+      throw error;
+    }
+  }
+
+  // Compress image to fit within size limit using React Native ImageManipulator
+  private async compressImageFromUrl(imageUrl: string, maxSizeBytes: number): Promise<string> {
+    try {
+      // Spotify recommends 300x300 minimum, 3000x3000 maximum
+      const maxDimension = 3000;
+      const minDimension = 300;
+      
+      // Try different quality levels to get under 256KB - be more aggressive
+      const qualityLevels = [0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1, 0.05];
+      let width = 800; // Start smaller for faster uploads
+      let height = 800;
+      
+      for (const quality of qualityLevels) {
+        try {
+          const result = await ImageManipulator.manipulateAsync(
+            imageUrl, // Use the URL directly
+            [
+              {
+                resize: {
+                  width: Math.max(minDimension, Math.min(maxDimension, width)),
+                  height: Math.max(minDimension, Math.min(maxDimension, height))
+                }
+              }
+            ],
+            {
+              compress: quality,
+              format: ImageManipulator.SaveFormat.JPEG,
+              base64: true
+            }
+          );
+          
+          const compressedBase64 = result.base64 || '';
+          // Estimate size (base64 is about 33% larger than binary)
+          const estimatedSize = (compressedBase64.length * 0.75);
+          
+          console.log(`📏 Quality ${quality}: ${(estimatedSize / 1024).toFixed(2)}KB`);
+          
+          if (estimatedSize <= maxSizeBytes) {
+            console.log(`✅ Compressed with quality ${quality}, size: ${(estimatedSize / 1024).toFixed(2)}KB`);
+            return compressedBase64;
+          }
+          
+          // If still too large, reduce dimensions for next iteration
+          width = Math.floor(width * 0.8);
+          height = Math.floor(height * 0.8);
+          
+        } catch (error) {
+          console.warn(`Failed to compress with quality ${quality}:`, error);
+          continue;
+        }
+      }
+      
+      // If all quality levels failed, try with lowest quality and smallest size
+      console.log(`⚠️ Trying lowest quality with minimal size...`);
+      const finalResult = await ImageManipulator.manipulateAsync(
+        imageUrl,
+        [
+          {
+            resize: {
+              width: minDimension,
+              height: minDimension
+            }
+          }
+        ],
+        {
+          compress: 0.05,
+          format: ImageManipulator.SaveFormat.JPEG,
+          base64: true
+        }
+      );
+      
+      const finalBase64 = finalResult.base64 || '';
+      const estimatedSize = (finalBase64.length * 0.75);
+      
+      console.log(`⚠️ Using lowest quality, size: ${(estimatedSize / 1024).toFixed(2)}KB`);
+      return finalBase64;
+      
+    } catch (error) {
+      console.error('Failed to compress image:', error);
+      throw new Error('Failed to compress image for Spotify upload');
+    }
   }
 
   // Get user's playlists

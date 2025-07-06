@@ -864,6 +864,19 @@ Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel g
     );
     console.log('Playlist created successfully:', spotifyPlaylist.id);
 
+    // Upload cover image if available
+    if (playlistData.coverImageUrl) {
+      console.log('Uploading cover image to Spotify playlist...');
+      try {
+        await spotifyService.uploadPlaylistCoverImage(spotifyPlaylist.id, playlistData.coverImageUrl);
+        console.log('Cover image uploaded successfully');
+      } catch (error) {
+        console.warn('Failed to upload cover image, but playlist was created successfully:', error);
+      }
+    } else {
+      console.log('No cover image available to upload');
+    }
+
     const result = {
       ...playlistData,
       id: spotifyPlaylist.id,
