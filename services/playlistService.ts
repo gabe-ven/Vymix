@@ -1,5 +1,6 @@
 import { spotifyService } from './spotify';
 import { OPENAI_API_KEY } from '../env';
+import firestore from '@react-native-firebase/firestore';
 
 // Types
 export interface PlaylistData {
@@ -15,6 +16,9 @@ export interface PlaylistData {
   spotifyUrl?: string;
   id?: string;
   isSpotifyPlaylist?: boolean;
+  userId?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface SpotifyTrack {
@@ -1328,3 +1332,104 @@ Format:
 }
 
 export const playlistService = new PlaylistService(); 
+
+export const savePlaylistToFirestore = async (playlistData: Omit<PlaylistData, 'id' | 'userId' | 'createdAt' | 'updatedAt'>, userId: string): Promise<string> => {
+  try {
+    console.log('🔥 Saving playlist to Firestore:', { userId, playlistName: playlistData.name });
+    
+    const playlistToSave = {
+      ...playlistData,
+      userId,
+      createdAt: firestore.FieldValue.serverTimestamp(),
+      updatedAt: firestore.FieldValue.serverTimestamp(),
+    };
+
+    console.log('🔥 Playlist data to save:', playlistToSave);
+    
+    const docRef = await firestore().collection('playlists').add(playlistToSave);
+    
+    console.log('✅ Playlist saved successfully with ID:', docRef.id);
+    return docRef.id;
+  } catch (error) {
+    console.error('❌ Error saving playlist to Firestore:', error);
+    console.error('❌ Error details:', {
+      code: (error as any)?.code,
+      message: (error as any)?.message,
+      stack: (error as any)?.stack
+    });
+    throw error;
+  }
+};
+
+export const getUserPlaylists = async (userId: string): Promise<PlaylistData[]> => {
+  try {
+    console.log('🔍 Fetching playlists for user:', userId);
+    console.log('🔍 Using collection: playlists');
+    
+    const querySnapshot = await firestore()
+      .collection('playlists')
+      .where('userId', '==', userId)
+      .get();
+
+    console.log('🔍 Query completed, found', querySnapshot.size, 'documents');
+    
+    const playlists: PlaylistData[] = [];
+
+    querySnapshot.forEach((docSnapshot) => {
+      const data = docSnapshot.data();
+      console.log('🔍 Document data:', { id: docSnapshot.id, name: data.name, userId: data.userId });
+      playlists.push({
+        id: docSnapshot.id,
+        ...data,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
+      } as PlaylistData);
+    });
+
+    // Sort in memory (oldest first, newest at bottom)
+    playlists.sort((a, b) => {
+      const dateA = a.createdAt || new Date(0);
+      const dateB = b.createdAt || new Date(0);
+      return dateA.getTime() - dateB.getTime(); // Ascending order
+    });
+
+    console.log('🔍 Returning', playlists.length, 'playlists');
+    return playlists;
+  } catch (error) {
+    console.error('❌ Error fetching user playlists:', error);
+    console.error('❌ Error details:', {
+      code: (error as any)?.code,
+      message: (error as any)?.message,
+      stack: (error as any)?.stack
+    });
+    throw error;
+  }
+};
+
+export const deletePlaylist = async (playlistId: string): Promise<void> => {
+  try {
+    await firestore().collection('playlists').doc(playlistId).delete();
+  } catch (error) {
+    console.error('Error deleting playlist:', error);
+    throw error;
+  }
+};
+
+// Test function to verify Firestore connection
+export const testFirestoreConnection = async (): Promise<boolean> => {
+  try {
+    console.log('🧪 Testing Firestore connection...');
+    
+    // Try to write a test document
+    await firestore().collection('test').add({
+      test: true,
+      timestamp: new Date()
+    });
+    
+    console.log('✅ Firestore connection successful');
+    return true;
+  } catch (error) {
+    console.error('❌ Firestore connection failed:', error);
+    return false;
+  }
+}; 

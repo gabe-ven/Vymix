@@ -1,16 +1,15 @@
-import React, { useEffect, useState, useRef } from "react";
-import { Image, Text, TouchableOpacity, View, ActivityIndicator, ImageBackground } from "react-native";
+import React, { useEffect, useState } from "react";
+import { Image, Text, TouchableOpacity, View, ActivityIndicator } from "react-native";
 import * as WebBrowser from "expo-web-browser";
 import * as Google from "expo-auth-session/providers/google";
 import { GOOGLE_CLIENT_IDS } from "../../env";
 import { useRouter } from "expo-router";
 import { appleAuth } from '@invertase/react-native-apple-authentication';
 import auth, { GoogleAuthProvider } from '@react-native-firebase/auth';
-import { Video, ResizeMode } from 'expo-av';
-import { StyleSheet } from 'react-native';
 import { Glass } from '../components/Glass';
 import { COLORS } from '../constants/colors';
 import { spotifyService } from '../../services/spotify';
+import { Layout } from '../components/Layout';
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
@@ -23,14 +22,6 @@ export default function LoginScreen() {
   const [userLoggedIn, setUserLoggedIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const videoRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.setStatusAsync({ rate: 1 , shouldCorrectPitch: false });
-    }
-  }, []);
 
   // Check Spotify connection and route accordingly
   const checkSpotifyAndRoute = async (user: any) => {
@@ -120,17 +111,7 @@ export default function LoginScreen() {
   }
   
   return (
-    <View style={{ flex: 1 }}>
-      <Video
-        ref={videoRef}
-        source={require('../../assets/videos/THERMAL.mp4')}
-        style={StyleSheet.absoluteFill}
-        resizeMode={ResizeMode.COVER}
-        isLooping
-        shouldPlay
-        isMuted
-      />
-      
+    <Layout>
       {/* Main Content Container */}
       <View style={{ flex: 1, justifyContent: 'space-between', paddingTop: 120, paddingBottom: 80 }}>
         
@@ -228,6 +209,6 @@ export default function LoginScreen() {
           </View>
         </View>
       </View>
-    </View>
+    </Layout>
   );
 }
