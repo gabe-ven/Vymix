@@ -357,37 +357,27 @@ Examples: ["indie pop", "energetic", "summer vibes", "guitar", "upbeat", "feel g
    * Generate cover image using DALL-E (with colorPalette)
    */
   private async generateCoverImage(emojis: string[], vibe: string, colorPalette: string[]): Promise<string> {
-    const colorString = colorPalette.join(', ');
-    const emojiString = emojis.join(' ');
-    
-    console.log('🎨 Generating cover image for:', { vibe, emojis, colorPalette });
-    
-    // Check if this is a specific request to customize the prompt
-    const isSpecific = await this.isSpecificRequest(vibe);
+    try {
+      // Check if OpenAI API key is configured
+      if (!OPENAI_API_KEY) {
+        console.warn('🎨 OpenAI API key not configured, skipping cover image generation');
+        return '';
+      }
+      
+      const colorString = colorPalette.join(', ');
+      const emojiString = emojis.join(' ');
+      
+      console.log('🎨 Generating cover image for:', { vibe, emojis, colorPalette });
+      
+      // Check if this is a specific request to customize the prompt
+      const isSpecific = await this.isSpecificRequest(vibe);
     
     let prompt: string;
     
     if (isSpecific) {
-      // Specific prompt for named content (anime, movies, artists, etc.)
-      prompt = `
-Create an impressionist, hand-painted artwork in the style of oil on canvas that captures the emotional essence and atmosphere of: "${vibe}".
-
-The artwork should visually reference the world, iconic locations, landscapes, architecture, props, or visual motifs from "${vibe}". Focus on the scenery, atmosphere, and mood that make "${vibe}" unique. You may abstractly interpret famous scenes or settings, but do NOT include recognizable characters or direct copies of existing artwork.
-
-Style: impressionist painting, loose expressive brushstrokes, vivid color, analog, painterly, oil on canvas, plein air, imperfect, hand-painted look. No photorealism, no cartoon, no digital smoothness.
-Color palette: ${colorString} - use these colors as the primary palette.
-
-The style should be inspired by:
-- Studio Ghibli background art
-- Lo-fi fantasy album covers
-- Impressionist painters
-- Artists like Ian McQue, Simon Stålenhag, or Eyvind Earle
-- The texture of oil pastels or gouache on canvas
-
-Desired look: grainy, sketch-like, whimsical, imperfect. Visible brushstrokes. No hard outlines. No glossy realism. Subtle lighting and analog warmth.
-
-MANDATORY: No text, logos, or emojis in the image. Create an original artistic interpretation, not a direct reference to any existing content.
-`;
+      // For specific requests (like "Batman songs"), extract the mood/theme and create a generic artistic prompt
+      const artisticPrompt = await this.generateArtisticPromptFromSpecificRequest(vibe, colorString);
+      prompt = artisticPrompt;
     } else {
       // Generic prompt for vibe-based requests
       prompt = `
@@ -431,13 +421,142 @@ MANDATORY: No text, logos, or emojis in the image.
     });
 
     if (!response.ok) {
-      console.error('🎨 DALL-E API error:', response.status, response.statusText);
-      throw new Error(`DALL-E API error: ${response.status}`);
+      // Try to get detailed error information from response body
+      let errorDetails = response.statusText;
+      try {
+        const errorBody = await response.json();
+        if (errorBody.error) {
+          errorDetails = `${errorBody.error.message || errorBody.error} (${response.status})`;
+        } else if (errorBody.message) {
+          errorDetails = `${errorBody.message} (${response.status})`;
+        }
+      } catch (parseError) {
+        // If we can't parse the error body, use status text
+        errorDetails = `${response.statusText || 'Unknown error'} (${response.status})`;
+      }
+      
+      console.error('🎨 DALL-E API error:', response.status, errorDetails);
+      console.error('🎨 Prompt that caused error:', prompt.substring(0, 500) + '...');
+      throw new Error(`DALL-E API error: ${errorDetails}`);
     }
 
     const data = await response.json();
     console.log('🎨 DALL-E response received, image URL:', data.data?.[0]?.url ? 'Success' : 'Failed');
     return data.data?.[0]?.url || '';
+    } catch (error) {
+      console.error('🎨 DALL-E image generation failed:', error);
+      
+      // Provide specific guidance based on error type
+      if (error instanceof Error) {
+        const message = error.message.toLowerCase();
+        if (message.includes('400')) {
+          console.warn('🎨 DALL-E 400 error - likely content policy violation or invalid prompt');
+        } else if (message.includes('401')) {
+          console.warn('🎨 DALL-E 401 error - API key issue');
+        } else if (message.includes('429')) {
+          console.warn('🎨 DALL-E 429 error - rate limit exceeded');
+        } else if (message.includes('timeout')) {
+          console.warn('🎨 DALL-E timeout error');
+        }
+      }
+      
+      console.warn('🎨 Continuing without cover image...');
+      return ''; // Return empty string to indicate no cover image
+    }
+  }
+
+  /**
+   * Generate artistic prompt from specific requests by extracting mood/theme
+   * This avoids copyright issues by creating generic artistic descriptions
+   */
+  private async generateArtisticPromptFromSpecificRequest(vibe: string, colorString: string): Promise<string> {
+    try {
+      const prompt = `Analyze this music request and extract the artistic mood, atmosphere, and visual themes that could inspire album artwork. DO NOT mention any specific copyrighted characters, franchises, or intellectual property.
+
+Request: "${vibe}"
+
+Extract and describe:
+1. The overall mood/atmosphere (e.g., dark, mysterious, heroic, peaceful, energetic)
+2. Visual themes and elements (e.g., urban landscapes, nature, technology, fantasy, sci-fi)
+3. Color associations and lighting (e.g., neon-lit, sunset, moonlight, stormy)
+4. Artistic style inspiration (e.g., noir, cyberpunk, pastoral, cosmic)
+
+Respond with ONLY a brief artistic description (2-3 sentences) that captures the essence without any copyrighted references. Focus on the emotional and visual qualities that would make compelling album artwork.
+
+Example transformations:
+- "Batman songs" → "dark urban atmosphere with mysterious shadows and neon-lit cityscapes"
+- "Studio Ghibli vibes" → "whimsical pastoral landscapes with soft natural lighting and dreamlike atmosphere"
+- "Star Wars music" → "cosmic sci-fi atmosphere with dramatic lighting and futuristic elements"`;
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+          max_tokens: 150,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const artisticDescription = data.choices?.[0]?.message?.content?.trim();
+      
+      if (!artisticDescription) {
+        throw new Error('No response from OpenAI');
+      }
+
+      console.log('🎨 Generated artistic description:', artisticDescription);
+
+      // Create the DALL-E prompt using the extracted artistic description
+      const dallEPrompt = `
+Create an impressionist, hand-painted artwork in the style of oil on canvas that captures: ${artisticDescription}
+
+Style: impressionist painting, loose expressive brushstrokes, vivid color, analog, painterly, oil on canvas, plein air, imperfect, hand-painted look. No photorealism, no cartoon, no digital smoothness.
+Color palette: ${colorString} - use these colors as the primary palette.
+
+The style should be inspired by:
+- Studio Ghibli background art
+- Lo-fi fantasy album covers
+- Impressionist painters
+- Artists like Ian McQue, Simon Stålenhag, or Eyvind Earle
+- The texture of oil pastels or gouache on canvas
+
+Desired look: grainy, sketch-like, whimsical, imperfect. Visible brushstrokes. No hard outlines. No glossy realism. Subtle lighting and analog warmth.
+
+MANDATORY: No text, logos, emojis, or recognizable characters in the image. Create an original artistic interpretation with cinematic atmosphere.
+`;
+
+      return dallEPrompt;
+    } catch (error) {
+      console.error('Failed to generate artistic prompt, using fallback:', error);
+      
+      // Fallback to a generic cinematic prompt
+      return `
+Create an impressionist, hand-painted artwork in the style of oil on canvas that captures a cinematic, atmospheric mood.
+
+Style: impressionist painting, loose expressive brushstrokes, vivid color, analog, painterly, oil on canvas, plein air, imperfect, hand-painted look. No photorealism, no cartoon, no digital smoothness.
+Color palette: ${colorString} - use these colors as the primary palette.
+
+The style should be inspired by:
+- Studio Ghibli background art
+- Lo-fi fantasy album covers
+- Impressionist painters
+- Artists like Ian McQue, Simon Stålenhag, or Eyvind Earle
+- The texture of oil pastels or gouache on canvas
+
+Desired look: grainy, sketch-like, whimsical, imperfect. Visible brushstrokes. No hard outlines. No glossy realism. Subtle lighting and analog warmth.
+
+MANDATORY: No text, logos, emojis, or recognizable characters in the image. Create an original artistic interpretation with cinematic atmosphere.
+`;
+    }
   }
 
   // Get user-friendly error message for Spotify issues

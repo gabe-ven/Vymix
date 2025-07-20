@@ -2,11 +2,11 @@ import { View, Text, TouchableOpacity, Image, Alert } from 'react-native';
 import { Layout } from '@/app/components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { FontAwesome, Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { COLORS } from '../constants/colors';
 import Glass from '../components/Glass';
 import { spotifyService, SpotifyUser } from '../../services/spotify';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
@@ -15,41 +15,48 @@ export default function ProfileScreen() {
   const [spotifyUser, setSpotifyUser] = useState<SpotifyUser | null>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    // Check Spotify connection status and fetch user data
-    const checkSpotifyStatus = async () => {
-      try {
-        // Check if user has valid tokens (currently authenticated)
-        const isAuthenticated = await spotifyService.isAuthenticated();
-        
-        // Check if user has ever connected before
-        const hasConnectedBefore = user?.uid ? await spotifyService.hasConnectedSpotify(user.uid) : false;
-        
-        // Show as connected if either currently authenticated OR has connected before
-        const connected = isAuthenticated || hasConnectedBefore;
-        setIsSpotifyConnected(connected);
-        
-        // If currently authenticated, fetch Spotify user data
-        if (isAuthenticated) {
-          try {
-            const currentUser = await spotifyService.getCurrentUser();
-            setSpotifyUser(currentUser);
-          } catch (error) {
-            console.error('Error fetching Spotify user data:', error);
-            setSpotifyUser(null);
-          }
-        } else {
+  // Check Spotify connection status and fetch user data
+  const checkSpotifyStatus = async () => {
+    try {
+      // Check if user has valid tokens (currently authenticated)
+      const isAuthenticated = await spotifyService.isAuthenticated();
+      
+      // Check if user has ever connected before
+      const hasConnectedBefore = user?.uid ? await spotifyService.hasConnectedSpotify(user.uid) : false;
+      
+      // Show as connected if either currently authenticated OR has connected before
+      const connected = isAuthenticated || hasConnectedBefore;
+      setIsSpotifyConnected(connected);
+      
+      // If currently authenticated, fetch Spotify user data
+      if (isAuthenticated) {
+        try {
+          const currentUser = await spotifyService.getCurrentUser();
+          setSpotifyUser(currentUser);
+        } catch (error) {
+          console.error('Error fetching Spotify user data:', error);
           setSpotifyUser(null);
         }
-      } catch (error) {
-        console.error('Error checking Spotify status:', error);
-        setIsSpotifyConnected(false);
+      } else {
         setSpotifyUser(null);
       }
-    };
-    
+    } catch (error) {
+      console.error('Error checking Spotify status:', error);
+      setIsSpotifyConnected(false);
+      setSpotifyUser(null);
+    }
+  };
+
+  useEffect(() => {
     checkSpotifyStatus();
   }, [user]);
+
+  // Refresh Spotify status when profile tab is focused
+  useFocusEffect(
+    useCallback(() => {
+      checkSpotifyStatus();
+    }, [user])
+  );
 
   const handleSignOut = async () => {
     try {

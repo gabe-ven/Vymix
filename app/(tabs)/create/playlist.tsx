@@ -330,6 +330,7 @@ const Playlist = () => {
               coverImageUrl={playlistData.coverImageUrl}
               shouldAnimate={shouldAnimate}
               scrollY={scrollY}
+              tracks={playlistData.tracks}
             />
           </View>
           {/* Action Buttons */}

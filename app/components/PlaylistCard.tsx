@@ -21,6 +21,7 @@ interface PlaylistCardProps {
   coverImageUrl?: string;
   shouldAnimate?: boolean;
   scrollY?: SharedValue<number>;
+  tracks?: any[]; // Add tracks prop for fallback album covers
 }
 
 export default function PlaylistCard({ 
@@ -30,7 +31,8 @@ export default function PlaylistCard({
   isSelected = false,
   coverImageUrl,
   shouldAnimate = false,
-  scrollY
+  scrollY,
+  tracks = []
 }: PlaylistCardProps) {
   // Animation values - always start from initial state
   const cardOpacity = useSharedValue(0);
@@ -170,6 +172,55 @@ export default function PlaylistCard({
     transform: [{ translateY: descriptionTranslateY.value }],
   }));
 
+  // Get first 4 tracks for fallback album covers
+  const firstFourTracks = tracks.slice(0, 4);
+
+  // Render fallback album covers grid
+  const renderAlbumCoversGrid = () => {
+    if (firstFourTracks.length === 0) return null;
+
+    return (
+      <View className="w-full h-full rounded-lg overflow-hidden">
+        <View className="flex-1 flex-row">
+          {/* Top row */}
+          <View className="flex-1 flex-col">
+            <View className="flex-1">
+              <Image 
+                source={{ uri: firstFourTracks[0]?.album?.images?.[0]?.url }}
+                className="w-full h-full"
+                resizeMode="cover"
+              />
+            </View>
+            <View className="flex-1">
+              <Image 
+                source={{ uri: firstFourTracks[1]?.album?.images?.[0]?.url }}
+                className="w-full h-full"
+                resizeMode="cover"
+              />
+            </View>
+          </View>
+          {/* Bottom row */}
+          <View className="flex-1 flex-col">
+            <View className="flex-1">
+              <Image 
+                source={{ uri: firstFourTracks[2]?.album?.images?.[0]?.url }}
+                className="w-full h-full"
+                resizeMode="cover"
+              />
+            </View>
+            <View className="flex-1">
+              <Image 
+                source={{ uri: firstFourTracks[3]?.album?.images?.[0]?.url }}
+                className="w-full h-full"
+                resizeMode="cover"
+              />
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <Animated.View 
       className="mt-12" 
@@ -207,11 +258,15 @@ export default function PlaylistCard({
               backgroundColor={COLORS.transparent.white[10]}
             >
               <View className="flex-1 items-center justify-center">
-                <Image 
-                  source={coverImageUrl ? { uri: coverImageUrl } : require('../../assets/images/cover.png')}
-                  className="w-full h-full rounded-lg"
-                  resizeMode="cover"
-                />
+                {coverImageUrl ? (
+                  <Image 
+                    source={{ uri: coverImageUrl }}
+                    className="w-full h-full rounded-lg"
+                    resizeMode="cover"
+                  />
+                ) : (
+                  renderAlbumCoversGrid()
+                )}
               </View>
             </Glass>
           </Animated.View>

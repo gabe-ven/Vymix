@@ -33,7 +33,25 @@ export default function Amount() {
         'You need to connect your Spotify account to create playlists with real tracks.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Connect Spotify', onPress: () => router.push('/(auth)/connect-spotify') }
+          { 
+            text: 'Connect Spotify', 
+            onPress: async () => {
+              try {
+                await spotifyService.loginToSpotify(user?.uid);
+                // After successful login, proceed with playlist generation
+                await AsyncStorage.setItem('songCount', songCount.toString());
+                await AsyncStorage.setItem('isGeneratingPlaylist', 'true');
+                router.push('/(tabs)/create/playlist');
+              } catch (error) {
+                console.error('Spotify login failed:', error);
+                Alert.alert(
+                  'Connection Failed',
+                  'Failed to connect to Spotify. Please try again.',
+                  [{ text: 'OK' }]
+                );
+              }
+            }
+          }
         ]
       );
       return;
