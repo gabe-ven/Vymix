@@ -1,6 +1,7 @@
 import { spotifyService } from './spotify';
 import { OPENAI_API_KEY } from '../env';
 import firestore from '@react-native-firebase/firestore';
+import storage from '@react-native-firebase/storage';
 
 // Types
 export interface PlaylistData {
@@ -164,32 +165,68 @@ class PlaylistService {
     vibe: string,
     onProgress?: (playlist: Partial<PlaylistData>, progress: { current: number; total: number; phase: string }) => void
   ): Promise<PlaylistData> {
-    // 1. Generate playlist info first to get the color palette
-    onProgress?.({ emojis, songCount, vibe, tracks: [] }, { current: 0, total: songCount, phase: 'Generating playlist info...' });
-    const playlistInfo = await this.generatePlaylistInfo(emojis, vibe);
-
-    // 2. Generate cover image using the dynamic color palette
-    onProgress?.({ ...playlistInfo, emojis, songCount, vibe, tracks: [] }, { current: 0, total: songCount, phase: 'Creating cover art...' });
-    const coverImageUrl = await this.generateCoverImage(emojis, vibe, playlistInfo.colorPalette).catch(() => undefined);
-
-    // 3. Generate tracks with streaming updates
-    const tracks = await this.generateTracksStreaming(emojis, songCount, vibe, playlistInfo.keywords, onProgress);
-
-    const finalPlaylist = {
-      name: playlistInfo.name,
-      description: playlistInfo.description,
-      colorPalette: playlistInfo.colorPalette,
-      keywords: playlistInfo.keywords,
-      coverImageUrl,
-      emojis,
-      songCount: tracks.length,
-      vibe,
-      tracks,
-      isSpotifyPlaylist: false,
-    };
-
-    onProgress?.(finalPlaylist, { current: songCount, total: songCount, phase: 'Complete!' });
-    return finalPlaylist;
+    try {
+      console.log('🎵 Generating playlist with streaming for:', { emojis, songCount, vibe });
+      
+      // Step 1: Generate playlist info (name, description, colors, keywords)
+      onProgress?.({}, { current: 1, total: 4, phase: 'Generating playlist info...' });
+      const playlistInfo = await this.generatePlaylistInfo(emojis, vibe);
+      
+      console.log('🎵 Generated playlist info:', {
+        name: playlistInfo.name,
+        description: playlistInfo.description,
+        colorPalette: playlistInfo.colorPalette,
+        keywords: playlistInfo.keywords
+      });
+      
+      // Step 2: Generate cover image
+      onProgress?.({ ...playlistInfo }, { current: 2, total: 4, phase: 'Generating cover image...' });
+      console.log('🎵 Starting cover image generation...');
+      
+      let coverImageUrl = '';
+      try {
+        coverImageUrl = await this.generateCoverImage(emojis, vibe, playlistInfo.colorPalette);
+        console.log('🎵 Cover image generation result:', coverImageUrl ? 'SUCCESS' : 'FAILED');
+      } catch (coverError) {
+        console.error('🎵 Cover image generation failed:', coverError);
+        coverImageUrl = ''; // Ensure it's empty string if failed
+      }
+      
+      // Step 3: Generate tracks
+      onProgress?.({ ...playlistInfo, coverImageUrl }, { current: 3, total: 4, phase: 'Finding songs...' });
+      const tracks = await this.generateTracksStreaming(emojis, songCount, vibe, playlistInfo.keywords, onProgress);
+      
+      console.log('🎵 Generated tracks:', tracks.length);
+      
+      // Step 4: Create final playlist
+      onProgress?.({ ...playlistInfo, coverImageUrl, tracks }, { current: 4, total: 4, phase: 'Finalizing playlist...' });
+      
+      const playlist: PlaylistData = {
+        name: playlistInfo.name,
+        description: playlistInfo.description,
+        colorPalette: playlistInfo.colorPalette,
+        keywords: playlistInfo.keywords,
+        coverImageUrl: coverImageUrl, // This might be empty string if generation failed
+        emojis,
+        songCount,
+        vibe,
+        tracks,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      console.log('🎵 Final playlist created:', {
+        name: playlist.name,
+        trackCount: playlist.tracks.length,
+        hasCoverImage: !!playlist.coverImageUrl,
+        coverImageUrl: playlist.coverImageUrl ? 'PRESENT' : 'MISSING'
+      });
+      
+      return playlist;
+    } catch (error) {
+      console.error('🎵 Error in playlist generation:', error);
+      throw error;
+    }
   }
 
   /**
@@ -417,7 +454,7 @@ MANDATORY: No text, logos, or emojis in the image.
         model: 'dall-e-3',
         prompt: prompt,
         n: 1,
-        size: '1024x1024', // Square format for Spotify
+        size: '1024x1024', // DALL-E 3 minimum size
         quality: 'standard', // Use standard quality to keep file size under 256KB
         style: 'natural',
         response_format: 'url', // Ensure we get a URL
@@ -445,8 +482,61 @@ MANDATORY: No text, logos, or emojis in the image.
     }
 
     const data = await response.json();
-    console.log('🎨 DALL-E response received, image URL:', data.data?.[0]?.url ? 'Success' : 'Failed');
-    return data.data?.[0]?.url || '';
+    const imageUrl = data.data?.[0]?.url;
+    
+    if (!imageUrl) {
+      console.warn('🎨 No image URL received from DALL-E');
+      return '';
+    }
+
+    console.log('🎨 DALL-E response received, downloading and uploading to Firebase Storage...');
+    
+    // Download the image and upload to Firebase Storage for permanent storage
+    try {
+      const imageResponse = await fetch(imageUrl);
+      if (!imageResponse.ok) {
+        throw new Error(`Failed to download image: ${imageResponse.status}`);
+      }
+      
+      const arrayBuffer = await imageResponse.arrayBuffer();
+      const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+      
+      // Generate unique filename
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(2, 15);
+      const filename = `playlist-covers/${timestamp}-${randomId}.jpg`;
+      
+      // Upload to Firebase Storage
+      const storageRef = storage().ref(filename);
+      
+      // Convert ArrayBuffer to base64 for React Native compatibility
+      const uint8Array = new Uint8Array(arrayBuffer);
+      let binaryString = '';
+      
+      // Process in chunks to avoid stack overflow
+      const chunkSize = 8192;
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const chunk = uint8Array.slice(i, i + chunkSize);
+        binaryString += String.fromCharCode.apply(null, chunk as any);
+      }
+      
+      const base64 = btoa(binaryString);
+      
+      console.log('🎨 Uploading image to Firebase Storage...');
+      await storageRef.putString(base64, 'base64', { contentType });
+      
+      // Get the permanent download URL
+      const downloadURL = await storageRef.getDownloadURL();
+      
+      console.log('🎨 Successfully uploaded image to Firebase Storage:', downloadURL);
+      return downloadURL;
+      
+    } catch (uploadError) {
+      console.error('🎨 Failed to upload image to Firebase Storage:', uploadError);
+      console.warn('🎨 Falling back to temporary URL (may expire)');
+      return imageUrl; // Fallback to temporary URL if upload fails
+    }
+    
     } catch (error) {
       console.error('🎨 DALL-E image generation failed:', error);
       
@@ -1098,50 +1188,52 @@ MANDATORY: No text, logos, emojis, or recognizable characters in the image. Crea
 
   // Enhanced search with variety
   private async searchWithVariety(query: string, usedTrackIds: Set<string>, existingTracks: SpotifyTrack[], isSpecific: boolean = false): Promise<SpotifyTrack | null> {
-    // For specific requests, use more precise search without random offsets
-    const offset = isSpecific ? 0 : this.getRandomSearchOffset();
-    const limit = isSpecific ? 5 : 10; // Fewer results for specific requests to prioritize exact matches
+    const maxRetries = 3;
+    let lastError: any = null;
     
-    try {
-      const searchResponse = await spotifyService.search(query, ['track'], limit, offset);
-      
-      if (searchResponse.tracks.items.length > 0) {
-        // For specific requests, prioritize exact matches
-        if (isSpecific) {
-          // Look for exact artist name matches first
-          for (const track of searchResponse.tracks.items) {
-            const trackArtistNames = track.artists.map(a => a.name.toLowerCase());
-            const queryLower = query.toLowerCase();
-            
-            // Check if any artist name contains the query or vice versa
-            const isExactMatch = trackArtistNames.some(artistName => 
-              artistName.includes(queryLower) || queryLower.includes(artistName)
-            );
-            
-            if (isExactMatch && !usedTrackIds.has(track.id) && !existingTracks.some(t => t.id === track.id)) {
-              return track;
-            }
-          }
-          
-          // If no exact match found, fall back to first available track
-          for (const track of searchResponse.tracks.items) {
-            if (!usedTrackIds.has(track.id) && !existingTracks.some(t => t.id === track.id)) {
-              return track;
-            }
-          }
-        } else {
-          // For generic requests, use the original variety approach
-          for (const track of searchResponse.tracks.items) {
-            if (!usedTrackIds.has(track.id) && !existingTracks.some(t => t.id === track.id)) {
-              return track;
-            }
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const searchQuery = this.createValidSearchQuery(query, '', isSpecific);
+        const offset = this.getRandomSearchOffset();
+        
+        console.log(`🎯 Search attempt ${attempt}/${maxRetries} for: "${searchQuery}" (offset: ${offset})`);
+        
+        const searchResponse = await spotifyService.search(searchQuery, ['track'], 10, offset);
+
+        if (searchResponse.tracks.items.length === 0) {
+          console.log(`🎯 No tracks found for: "${searchQuery}"`);
+          return null;
+        }
+
+        // Find a track that hasn't been used yet
+        for (const track of searchResponse.tracks.items) {
+          if (!usedTrackIds.has(track.id)) {
+            console.log(`✅ Found: "${track.name}" by ${track.artists.map((a: SpotifyArtist) => a.name).join(', ')}`);
+            return track;
           }
         }
+
+        console.log(`🎯 All tracks already used for: "${searchQuery}"`);
+        return null;
+        
+      } catch (error) {
+        lastError = error;
+        console.warn(`Search failed for "${query}":`, error);
+        
+        // If it's a 502 error and we have retries left, continue
+        if (error instanceof Error && error.message.includes('502') && attempt < maxRetries) {
+          console.log(`🎯 502 error, retrying in ${attempt * 2} seconds...`);
+          await this.delay(attempt * 2000);
+          continue;
+        }
+        
+        // For other errors or final attempt, break
+        break;
       }
-    } catch (error) {
-      console.warn(`Search failed for "${query}":`, error);
     }
     
+    // If we get here, all retries failed
+    console.warn(`Search failed for "${query}" after ${maxRetries} attempts:`, lastError);
     return null;
   }
 
@@ -1344,9 +1436,16 @@ export const savePlaylistToFirestore = async (playlistData: Omit<PlaylistData, '
       updatedAt: firestore.FieldValue.serverTimestamp(),
     };
 
-    console.log('🔥 Playlist data to save:', playlistToSave);
+    console.log('🔥 Playlist data to save:', {
+      name: playlistToSave.name,
+      songCount: playlistToSave.songCount,
+      hasCoverImage: !!playlistToSave.coverImageUrl,
+      coverImageUrl: playlistToSave.coverImageUrl ? 'Firebase Storage URL' : 'None'
+    });
     
-    const docRef = await firestore().collection('playlists').add(playlistToSave);
+    const docRef = await firestore()
+      .collection('playlists')
+      .add(playlistToSave);
     
     console.log('✅ Playlist saved successfully with ID:', docRef.id);
     return docRef.id;
@@ -1408,9 +1507,49 @@ export const getUserPlaylists = async (userId: string): Promise<PlaylistData[]> 
 
 export const deletePlaylist = async (playlistId: string): Promise<void> => {
   try {
-    await firestore().collection('playlists').doc(playlistId).delete();
+    console.log('🗑️ Attempting to delete playlist:', playlistId);
+    
+    // First check if the playlist exists
+    const docRef = firestore().collection('playlists').doc(playlistId);
+    const docSnapshot = await docRef.get();
+    
+    if (!docSnapshot.exists) {
+      console.log('⚠️ Playlist does not exist:', playlistId);
+      return; // Already deleted or never existed
+    }
+    
+    console.log('🗑️ Found playlist to delete:', {
+      id: playlistId,
+      name: docSnapshot.data()?.name,
+      userId: docSnapshot.data()?.userId
+    });
+    
+    // Delete the document
+    await docRef.delete();
+    console.log('✅ Successfully deleted playlist:', playlistId);
+    
   } catch (error) {
-    console.error('Error deleting playlist:', error);
+    console.error('❌ Error deleting playlist:', playlistId, error);
+    console.error('❌ Error details:', {
+      code: (error as any)?.code,
+      message: (error as any)?.message,
+      stack: (error as any)?.stack
+    });
+    throw error;
+  }
+};
+
+// Force delete a specific playlist (for debugging)
+export const forceDeletePlaylist = async (playlistId: string): Promise<void> => {
+  try {
+    console.log('🗑️ FORCE deleting playlist:', playlistId);
+    
+    const docRef = firestore().collection('playlists').doc(playlistId);
+    await docRef.delete();
+    console.log('✅ FORCE deleted playlist:', playlistId);
+    
+  } catch (error) {
+    console.error('❌ FORCE delete failed:', playlistId, error);
     throw error;
   }
 };

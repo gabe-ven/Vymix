@@ -8,6 +8,8 @@ import { LoadingAnimation } from '@/app/components/LoadingAnimation';
 import AnimatedButton from '@/app/components/AnimatedButton';
 import { testFirestoreConnection } from '@/services/playlistService';
 import { PlaylistData } from '@/services/playlistService';
+import { forceDeletePlaylist } from '@/services/playlistService';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function MixesScreen() {
   const { playlists, loading, error, loadPlaylists, removePlaylist } = useSavedPlaylists();
@@ -24,11 +26,30 @@ export default function MixesScreen() {
     });
   }, [playlists.length, loading, error]);
 
+  // Refresh playlists when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🎵 MixesScreen focused, refreshing playlists...');
+      loadPlaylists(true); // Force refresh when screen is focused
+    }, [loadPlaylists])
+  );
+
   const onRefresh = async () => {
     console.log('🔄 Pull to refresh triggered');
     setRefreshing(true);
     await loadPlaylists(true); // Force refresh
     setRefreshing(false);
+  };
+
+  const handleForceDelete = async () => {
+    try {
+      console.log('🗑️ Force deleting stuck playlist...');
+      await forceDeletePlaylist('0iEhUOutlZbMQvp5sq4t');
+      await loadPlaylists(true); // Force refresh after deletion
+      console.log('✅ Force delete completed');
+    } catch (error) {
+      console.error('❌ Force delete failed:', error);
+    }
   };
 
   const handleDeletePlaylist = async (playlistId: string) => {
@@ -94,6 +115,11 @@ export default function MixesScreen() {
                   const result = await testFirestoreConnection();
                   console.log('Test result:', result);
                 }}
+                shouldAnimate={true}
+              />
+              <AnimatedButton
+                title="Force Delete Stuck"
+                onPress={handleForceDelete}
                 shouldAnimate={true}
               />
             </View>

@@ -77,6 +77,43 @@ export const useSavedPlaylists = () => {
       setPlaylists(cached.playlists);
       setLoading(false);
       setError(null);
+      
+      // Validate cache by checking if playlists still exist in Firestore
+      try {
+        const freshPlaylists = await getUserPlaylists(user.uid);
+        const cachedIds = new Set(cached.playlists.map(p => p.id));
+        const freshIds = new Set(freshPlaylists.map(p => p.id));
+        
+        // Check if any cached playlists no longer exist
+        const missingPlaylists = cached.playlists.filter(p => !freshIds.has(p.id));
+        if (missingPlaylists.length > 0) {
+          console.log('⚠️ Found stale cached playlists:', missingPlaylists.length);
+          console.log('⚠️ Missing playlist IDs:', missingPlaylists.map(p => p.id));
+          
+          // Update cache with fresh data
+          const updatedCache = {
+            playlists: freshPlaylists,
+            timestamp: Date.now()
+          };
+          playlistCache.set(user.uid, updatedCache);
+          await saveCacheToStorage(user.uid, updatedCache);
+          setPlaylists(freshPlaylists);
+          console.log('✅ Updated cache with fresh data:', freshPlaylists.length);
+        } else {
+          console.log('✅ Cache validation passed');
+        }
+      } catch (validationError) {
+        console.warn('⚠️ Cache validation failed, using fresh data:', validationError);
+        // If validation fails, fetch fresh data
+        const freshPlaylists = await getUserPlaylists(user.uid);
+        const updatedCache = {
+          playlists: freshPlaylists,
+          timestamp: Date.now()
+        };
+        playlistCache.set(user.uid, updatedCache);
+        await saveCacheToStorage(user.uid, updatedCache);
+        setPlaylists(freshPlaylists);
+      }
       return;
     }
 
@@ -99,38 +136,24 @@ export const useSavedPlaylists = () => {
       // Cache the results
       const cacheData = {
         playlists: userPlaylists,
-        timestamp: now
+        timestamp: Date.now()
       };
       playlistCache.set(user.uid, cacheData);
-      
-      // Save to persistent storage
       await saveCacheToStorage(user.uid, cacheData);
       
       setPlaylists(userPlaylists);
-    } catch (err: any) {
-      console.error('Error loading playlists:', err);
-      
-      // If we have cached data but it's expired, use it as fallback
-      if (cached && cached.playlists.length > 0) {
-        console.log('⚠️ Using expired cache as fallback:', cached.playlists.length);
-        setPlaylists(cached.playlists);
-        setLoading(false);
-        setError(null);
-        return;
-      }
-      
-      // Handle specific Firestore errors
-      if (err?.code === 'permission-denied') {
-        setError('Database not set up yet. Please create Firestore database in test mode.');
-      } else if (err?.code === 'unavailable') {
-        setError('Database temporarily unavailable. Please try again.');
-      } else if (err?.message === 'User not authenticated') {
-        setError('Please sign in again to access your playlists.');
-      } else {
-        setError('Failed to load playlists');
-      }
-    } finally {
       setLoading(false);
+      setError(null);
+    } catch (err) {
+      console.error('❌ Error loading playlists:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load playlists');
+      setLoading(false);
+      
+      // If fresh fetch fails, try to use expired cache as fallback
+      if (cached) {
+        console.log('🔄 Using expired cache as fallback');
+        setPlaylists(cached.playlists);
+      }
     }
   }, [user?.uid]);
 
@@ -173,8 +196,15 @@ export const useSavedPlaylists = () => {
 
   const removePlaylist = useCallback(async (playlistId: string) => {
     try {
+      console.log('🗑️ Removing playlist:', playlistId);
       await deletePlaylist(playlistId);
-      setPlaylists(prev => prev.filter(p => p.id !== playlistId));
+      
+      // Update local state
+      setPlaylists(prev => {
+        const filtered = prev.filter(p => p.id !== playlistId);
+        console.log('🗑️ Updated local state:', { before: prev.length, after: filtered.length });
+        return filtered;
+      });
       
       // Update cache
       if (user?.uid) {
@@ -186,12 +216,23 @@ export const useSavedPlaylists = () => {
           };
           playlistCache.set(user.uid, updatedCache);
           await saveCacheToStorage(user.uid, updatedCache);
+          console.log('🗑️ Updated cache:', { before: cached.playlists.length, after: updatedCache.playlists.length });
         }
       }
     } catch (err) {
       console.error('Error deleting playlist:', err);
       throw err;
     }
+  }, [user?.uid]);
+
+  const clearCache = useCallback(async () => {
+    if (!user?.uid) return;
+    
+    console.log('🧹 Clearing cache for user:', user.uid);
+    playlistCache.delete(user.uid);
+    await AsyncStorage.removeItem(CACHE_KEY_PREFIX + user.uid);
+    setPlaylists([]);
+    console.log('🧹 Cache cleared');
   }, [user?.uid]);
 
   // Initialize playlists immediately when user changes
@@ -229,5 +270,6 @@ export const useSavedPlaylists = () => {
     loadPlaylists,
     savePlaylist,
     removePlaylist,
+    clearCache,
   };
 }; 
