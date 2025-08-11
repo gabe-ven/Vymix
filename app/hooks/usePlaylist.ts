@@ -82,6 +82,7 @@ export const usePlaylist = () => {
             if (!prev) {
               // If no previous data, create initial structure with required fields
               return {
+                id: `temp-${Date.now()}`, // Temporary ID for loading state
                 name: partialPlaylist.name || 'Loading...',
                 description: partialPlaylist.description || 'Loading...',
                 colorPalette: partialPlaylist.colorPalette || ['#6366f1', '#8b5cf6', '#a855f7'],

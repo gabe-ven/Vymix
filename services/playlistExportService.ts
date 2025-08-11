@@ -1,10 +1,16 @@
-import { PlaylistData, SpotifyTrack } from './types/playlistTypes';
 import { playlistValidationService } from './playlistValidationService';
+import { PlaylistData, SpotifyTrack } from './types/playlistTypes';
+
+// Interface for export data (without internal IDs)
+export interface ExportPlaylistData extends Omit<PlaylistData, 'id' | 'userId'> {
+  id?: string; // Optional for export
+  userId?: string; // Optional for export
+}
 
 export interface ExportFormat {
   version: string;
   exportDate: string;
-  playlist: PlaylistData;
+  playlist: ExportPlaylistData;
 }
 
 export interface ImportResult {
@@ -236,6 +242,7 @@ export class PlaylistExportService {
       }
 
       const playlist: PlaylistData = {
+        id: `imported-${Date.now()}`, // Generate unique ID for imported playlist
         name: 'Imported Playlist',
         description: 'Playlist imported from CSV',
         colorPalette: ['#6366f1', '#8b5cf6', '#a855f7'],
@@ -297,7 +304,7 @@ export class PlaylistExportService {
   /**
    * Sanitizes playlist data for export
    */
-  private sanitizeForExport(playlist: PlaylistData): PlaylistData {
+  private sanitizeForExport(playlist: PlaylistData): ExportPlaylistData {
     return {
       ...playlist,
       id: undefined, // Remove internal ID for export
@@ -349,8 +356,8 @@ export class PlaylistExportService {
       // Add import metadata
       const importedPlaylist: PlaylistData = {
         ...sanitizedPlaylist,
-        id: undefined,
-        userId: undefined,
+        id: `imported-${Date.now()}`, // Generate unique ID for imported playlist
+        userId: undefined, // No user ID for imported playlists
         createdAt: new Date(),
         updatedAt: new Date()
       };

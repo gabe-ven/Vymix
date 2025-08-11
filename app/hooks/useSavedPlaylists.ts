@@ -157,13 +157,23 @@ export const useSavedPlaylists = () => {
     }
   }, [user?.uid]);
 
-  const savePlaylist = useCallback(async (playlistData: Omit<PlaylistData, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
+  const savePlaylist = useCallback(async (playlistData: Omit<PlaylistData, 'userId' | 'createdAt' | 'updatedAt'> & { id?: string }) => {
     if (!user?.uid) {
       throw new Error('User not authenticated');
     }
 
+    console.log('💾 savePlaylist called with:', {
+      playlistName: playlistData.name,
+      hasId: !!playlistData.id,
+      playlistId: playlistData.id || 'none'
+    });
+
     try {
       const playlistId = await savePlaylistToFirestore(playlistData, user.uid);
+      
+      console.log('💾 savePlaylistToFirestore returned ID:', playlistId);
+      console.log('💾 Original playlistData ID:', playlistData.id);
+      console.log('💾 ID match:', playlistId === playlistData.id ? '✅ YES' : '❌ NO');
       
       // Add the new playlist to the local state
       const newPlaylist: PlaylistData = {
@@ -174,13 +184,80 @@ export const useSavedPlaylists = () => {
         updatedAt: new Date(),
       };
       
-      setPlaylists(prev => [newPlaylist, ...prev]);
+      setPlaylists(prev => {
+        // Check if playlist with this ID already exists
+        const existingIndex = prev.findIndex(p => p.id === playlistId);
+        if (existingIndex !== -1) {
+          console.log('⚠️ Playlist already exists in state, updating instead of adding:', playlistId);
+          // Update existing playlist
+          const updated = [...prev];
+          updated[existingIndex] = newPlaylist;
+          return updated;
+        }
+        
+        // Also check for content similarity to prevent duplicates with different IDs
+        const contentSimilarIndex = prev.findIndex(p => 
+          p.name === newPlaylist.name &&
+          p.emojis.length === newPlaylist.emojis.length &&
+          p.emojis.every(emoji => newPlaylist.emojis.includes(emoji)) &&
+          p.vibe === newPlaylist.vibe &&
+          p.songCount === newPlaylist.songCount
+        );
+        
+        if (contentSimilarIndex !== -1) {
+          console.log('⚠️ Content-similar playlist found, updating instead of adding:', {
+            existingId: prev[contentSimilarIndex].id,
+            newId: playlistId
+          });
+          // Update existing playlist with new data
+          const updated = [...prev];
+          updated[contentSimilarIndex] = newPlaylist;
+          return updated;
+        }
+        
+        // Add new playlist
+        console.log('✅ Adding new playlist to state:', playlistId);
+        return [newPlaylist, ...prev];
+      });
       
       // Update cache
       const cached = playlistCache.get(user.uid);
       if (cached) {
+        const existingIndex = cached.playlists.findIndex(p => p.id === playlistId);
+        let updatedPlaylists;
+        
+        if (existingIndex !== -1) {
+          console.log('⚠️ Playlist already exists in cache, updating instead of adding:', playlistId);
+          // Update existing playlist in cache
+          updatedPlaylists = [...cached.playlists];
+          updatedPlaylists[existingIndex] = newPlaylist;
+        } else {
+          // Check for content similarity in cache
+          const contentSimilarIndex = cached.playlists.findIndex(p => 
+            p.name === newPlaylist.name &&
+            p.emojis.length === newPlaylist.emojis.length &&
+            p.emojis.every(emoji => newPlaylist.emojis.includes(emoji)) &&
+            p.vibe === newPlaylist.vibe &&
+            p.songCount === newPlaylist.songCount
+          );
+          
+          if (contentSimilarIndex !== -1) {
+            console.log('⚠️ Content-similar playlist found in cache, updating instead of adding:', {
+              existingId: cached.playlists[contentSimilarIndex].id,
+              newId: playlistId
+            });
+            // Update existing playlist in cache
+            updatedPlaylists = [...cached.playlists];
+            updatedPlaylists[contentSimilarIndex] = newPlaylist;
+          } else {
+            // Add new playlist to cache
+            console.log('✅ Adding new playlist to cache:', playlistId);
+            updatedPlaylists = [newPlaylist, ...cached.playlists];
+          }
+        }
+        
         const updatedCache = {
-          playlists: [newPlaylist, ...cached.playlists],
+          playlists: updatedPlaylists,
           timestamp: Date.now()
         };
         playlistCache.set(user.uid, updatedCache);

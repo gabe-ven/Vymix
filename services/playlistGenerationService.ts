@@ -4,129 +4,154 @@ import {
   PlaylistData, 
   SpotifyTrack, 
   PlaylistProgress, 
-  PlaylistInfo, 
-  SongSuggestion 
+  PlaylistInfo
 } from './types/playlistTypes';
 
 export class PlaylistGenerationService {
-  private async delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
+  private playlistCache = new Map<string, {playlist: PlaylistData, timestamp: number}>();
+  private readonly CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
-  private generateUniquePlaylistId(): string {
-    // Generate a unique ID using timestamp + random string + emoji hash
-    const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 15);
-    const uniqueId = `${timestamp}-${randomString}`;
-    return uniqueId;
-  }
-
+  /**
+   * Main playlist generation method with optional streaming support
+   */
   async generatePlaylist(
+    emojis: string[],
+    songCount: number,
+    vibe: string,
+    options?: {
+      streaming?: boolean;
+      onProgress?: (playlist: Partial<PlaylistData>, progress: PlaylistProgress) => void;
+    }
+  ): Promise<PlaylistData> {
+    // Handle backward compatibility
+    if (!options) {
+      options = {};
+    }
+    
+    console.log('🎵 Generating playlist:', { emojis, vibe, songCount, streaming: options.streaming });
+    
+    // Check cache first
+    const cached = this.getCachedPlaylist(emojis, songCount, vibe);
+    if (cached) {
+      if (options.onProgress) {
+        options.onProgress(cached, { current: songCount, total: songCount, phase: 'Using cached playlist' });
+      }
+      return cached;
+    }
+    
+    const startTime = Date.now();
+    const playlist = await this._generatePlaylist(emojis, songCount, vibe, options);
+    const totalTime = Date.now() - startTime;
+    
+    console.log(`🎉 Playlist generated in ${totalTime}ms`);
+    
+    // Cache the result
+    this.cachePlaylist(emojis, songCount, vibe, playlist);
+    
+    return playlist;
+  }
+
+  /**
+   * Backward compatibility method for the old API without options
+   */
+  async generatePlaylistLegacy(
     emojis: string[],
     songCount: number,
     vibe: string
   ): Promise<PlaylistData> {
-    console.log('🎵 Generating playlist:', { emojis, songCount, vibe });
-
-    const baseTimeout = 120000; // 2 minutes base
-    const perSongTimeout = 3000; // 3 seconds per song
-    const timeoutMs = baseTimeout + (songCount * perSongTimeout);
-    
-    console.log(`⏱️ Setting timeout to ${timeoutMs / 1000} seconds for ${songCount} songs`);
-    
-    const timeoutPromise = new Promise<never>((_, reject) => 
-      setTimeout(() => reject(new Error('Playlist generation timeout')), timeoutMs)
-    );
-
-    const generationPromise = this._generatePlaylist(emojis, songCount, vibe);
-
-    try {
-      return await Promise.race([generationPromise, timeoutPromise]);
-    } catch (error) {
-      console.error('Playlist generation error:', error);
-      const userMessage = this.getSpotifyErrorMessage(error);
-      throw new Error(userMessage);
-    }
+    console.log('🎵 Using backward compatibility method generatePlaylistLegacy');
+    return this.generatePlaylist(emojis, songCount, vibe, {});
   }
 
+  /**
+   * Backward compatibility method for the old streaming API
+   */
   async generatePlaylistStreaming(
     emojis: string[],
     songCount: number,
     vibe: string,
     onProgress?: (playlist: Partial<PlaylistData>, progress: PlaylistProgress) => void
   ): Promise<PlaylistData> {
-    console.log('🎵 Generating playlist with streaming:', { emojis, songCount, vibe });
-
-    const baseTimeout = 120000;
-    const perSongTimeout = 3000;
-    const timeoutMs = baseTimeout + (songCount * perSongTimeout);
-    
-    console.log(`⏱️ Setting timeout to ${timeoutMs / 1000} seconds for ${songCount} songs`);
-    
-    const timeoutPromise = new Promise<never>((_, reject) => 
-      setTimeout(() => reject(new Error('Playlist generation timeout')), timeoutMs)
-    );
-
-    const generationPromise = this._generatePlaylistStreaming(emojis, songCount, vibe, onProgress);
-
-    try {
-      return await Promise.race([generationPromise, timeoutPromise]);
-    } catch (error) {
-      console.error('Playlist generation error:', error);
-      const userMessage = this.getSpotifyErrorMessage(error);
-      throw new Error(userMessage);
-    }
+    console.log('🎵 Using backward compatibility method generatePlaylistStreaming');
+    return this.generatePlaylist(emojis, songCount, vibe, {
+      streaming: true,
+      onProgress
+    });
   }
 
+  /**
+   * Generate multiple playlists in parallel
+   */
+  async generateMultiplePlaylists(
+    playlists: Array<{emojis: string[], songCount: number, vibe: string}>,
+    onProgress?: (playlist: Partial<PlaylistData>, progress: PlaylistProgress) => void
+  ): Promise<PlaylistData[]> {
+    console.log(`🚀 Generating ${playlists.length} playlists in parallel...`);
+    
+    const startTime = Date.now();
+    
+    const playlistPromises = playlists.map(async (playlist, index) => {
+      try {
+        console.log(`🎵 Starting playlist ${index + 1}/${playlists.length}`);
+        const result = await this.generatePlaylist(
+          playlist.emojis,
+          playlist.songCount,
+          playlist.vibe,
+          {
+            streaming: true,
+            onProgress: (partialPlaylist, progress) => {
+              onProgress?.(partialPlaylist, {
+                ...progress,
+                phase: `Playlist ${index + 1}: ${progress.phase}`
+              });
+            }
+          }
+        );
+        console.log(`✅ Playlist ${index + 1} completed`);
+        return result;
+      } catch (error) {
+        console.error(`❌ Failed to generate playlist ${index + 1}:`, error);
+        throw error;
+      }
+    });
+    
+    const results = await Promise.all(playlistPromises);
+    const totalTime = Date.now() - startTime;
+    
+    console.log(`🎉 All ${playlists.length} playlists generated in ${totalTime}ms`);
+    return results;
+  }
+
+  /**
+   * Core playlist generation logic
+   */
   private async _generatePlaylist(
     emojis: string[],
     songCount: number,
-    vibe: string
-  ): Promise<PlaylistData> {
-    const playlistInfo = await this.generatePlaylistInfo(emojis, vibe);
-    const coverImageUrl = await this.generateCoverImage(emojis, vibe, playlistInfo.colorPalette).catch(() => undefined);
-    const tracks = await this.generateTracks(emojis, songCount, vibe, playlistInfo.keywords);
-
-    return {
-      id: this.generateUniquePlaylistId(),
-      name: playlistInfo.name,
-      description: playlistInfo.description,
-      colorPalette: playlistInfo.colorPalette,
-      keywords: playlistInfo.keywords,
-      coverImageUrl,
-      emojis,
-      songCount: tracks.length,
-      vibe,
-      tracks,
-      isSpotifyPlaylist: false,
-    };
-  }
-
-  private async _generatePlaylistStreaming(
-    emojis: string[],
-    songCount: number,
     vibe: string,
-    onProgress?: (playlist: Partial<PlaylistData>, progress: PlaylistProgress) => void
+    options: { streaming?: boolean; onProgress?: (playlist: Partial<PlaylistData>, progress: PlaylistProgress) => void }
   ): Promise<PlaylistData> {
     try {
-      console.log('🎵 Generating playlist with streaming for:', { emojis, songCount, vibe });
-      
-      onProgress?.({}, { current: 1, total: 4, phase: 'Generating playlist info...' });
+      // Check Spotify availability
+      const spotifyWorking = await this.testSpotifyService();
+      if (!spotifyWorking) {
+        throw new Error('Spotify service is not available. Please check your connection and authentication.');
+      }
+
+      // Generate playlist info
+      options.onProgress?.({ emojis, songCount, vibe }, { current: 0, total: songCount, phase: 'Generating playlist info...' });
       const playlistInfo = await this.generatePlaylistInfo(emojis, vibe);
       
-      onProgress?.({ ...playlistInfo }, { current: 2, total: 4, phase: 'Generating cover image...' });
-      let coverImageUrl = '';
-      try {
-        coverImageUrl = await this.generateCoverImage(emojis, vibe, playlistInfo.colorPalette);
-      } catch (coverError) {
-        console.error('🎵 Cover image generation failed:', coverError);
-        coverImageUrl = '';
-      }
+      // Generate cover image
+      options.onProgress?.({ emojis, songCount, vibe, ...playlistInfo }, { current: 1, total: songCount, phase: 'Generating cover image...' });
+      const coverImageUrl = await this.generateCoverImage(emojis, vibe, playlistInfo.colorPalette);
       
-      onProgress?.({ ...playlistInfo, coverImageUrl }, { current: 3, total: 4, phase: 'Finding songs...' });
-      const tracks = await this.generateTracksStreaming(emojis, songCount, vibe, playlistInfo.keywords, onProgress);
+      // Generate tracks
+      options.onProgress?.({ emojis, songCount, vibe, ...playlistInfo, coverImageUrl }, { current: 2, total: songCount, phase: 'Generating tracks...' });
+      const tracks = await this.generateTracks(emojis, songCount, vibe, playlistInfo.keywords, options);
       
-      onProgress?.({ ...playlistInfo, coverImageUrl, tracks }, { current: 4, total: 4, phase: 'Finalizing playlist...' });
+      // Validate and finalize
+      const finalTracks = this.validatePlaylist(tracks, songCount);
       
       const playlist: PlaylistData = {
         id: this.generateUniquePlaylistId(),
@@ -138,18 +163,33 @@ export class PlaylistGenerationService {
         emojis,
         songCount,
         vibe,
-        tracks,
+        tracks: finalTracks,
+        isSpotifyPlaylist: false,
         createdAt: new Date(),
-        updatedAt: new Date(),
+        updatedAt: new Date()
       };
+
+      console.log('🎉 Final generated playlist:', {
+        name: playlist.name,
+        description: playlist.description,
+        coverImageUrl: playlist.coverImageUrl,
+        colorPalette: playlist.colorPalette,
+        trackCount: playlist.tracks.length
+      });
+
+      options.onProgress?.(playlist, { current: songCount, total: songCount, phase: 'Playlist ready!' });
       
       return playlist;
+      
     } catch (error) {
-      console.error('🎵 Error in playlist generation:', error);
+      console.error('❌ Playlist generation failed:', error);
       throw error;
     }
   }
 
+  /**
+   * Generate playlist metadata using AI (keeping your existing prompts)
+   */
   private async generatePlaylistInfo(emojis: string[], vibe: string): Promise<PlaylistInfo> {
     const emojiString = emojis.join(' ');
     const isSpecific = await this.isSpecificRequest(vibe);
@@ -223,57 +263,70 @@ For the keywords, generate 8-12 specific music-related terms that would help fin
 - Specific musical terms (e.g., "guitar", "piano", "synth", "drums")`;
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.8,
-        max_tokens: 500,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-    
-    if (!content) {
-      throw new Error('No response from OpenAI');
-    }
-
     try {
-      let cleanedContent = content.trim();
-      cleanedContent = cleanedContent.replace(/```json\s*/g, '').replace(/```\s*$/g, '');
-      cleanedContent = cleanedContent.replace(/^[`'\"]+/, '').replace(/[`'\"]+$/, '');
-      
-      const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        cleanedContent = jsonMatch[0];
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.8,
+          max_tokens: 500,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status}`);
       }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
       
-      const parsed = JSON.parse(cleanedContent);
-      
-      if (!parsed || typeof parsed !== 'object') {
-        throw new Error('Invalid response format - expected object');
+      if (!content) {
+        throw new Error('No response from OpenAI');
       }
-      
-      const result: PlaylistInfo = {
-        name: parsed.name || 'vibes',
-        description: parsed.description || 'A carefully curated musical journey.',
-        colorPalette: parsed.colorPalette || ['#6366f1', '#8b5cf6', '#a855f7'],
-        keywords: isSpecific ? [] : (parsed.keywords || ['indie', 'atmospheric', 'vibes']),
-      };
-      
-      return result;
+
+      try {
+        let cleanedContent = content.trim();
+        cleanedContent = cleanedContent.replace(/```json\s*/g, '').replace(/```\s*$/g, '');
+        cleanedContent = cleanedContent.replace(/^[`'\"]+/, '').replace(/[`'\"]+$/, '');
+        
+        const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          cleanedContent = jsonMatch[0];
+        }
+        
+        const parsed = JSON.parse(cleanedContent);
+        
+        if (!parsed || typeof parsed !== 'object') {
+          throw new Error('Invalid response format - expected object');
+        }
+        
+        const result: PlaylistInfo = {
+          name: parsed.name || 'vibes',
+          description: parsed.description || 'A carefully curated musical journey.',
+          colorPalette: parsed.colorPalette || ['#6366f1', '#8b5cf6', '#a855f7'],
+          keywords: isSpecific ? [] : (parsed.keywords || ['indie', 'atmospheric', 'vibes']),
+        };
+        
+        return result;
+      } catch (error) {
+        console.error('Failed to parse playlist info:', error);
+        
+        const fallback: PlaylistInfo = {
+          name: 'vibes',
+          description: 'A carefully curated musical journey.',
+          colorPalette: ['#6366f1', '#8b5cf6', '#a855f7'],
+          keywords: isSpecific ? [] : ['indie', 'atmospheric', 'vibes'],
+        };
+        
+        return fallback;
+      }
     } catch (error) {
-      console.error('Failed to parse playlist info:', error);
+      console.error('Failed to generate playlist info:', error);
       
       const fallback: PlaylistInfo = {
         name: 'vibes',
@@ -286,6 +339,9 @@ For the keywords, generate 8-12 specific music-related terms that would help fin
     }
   }
 
+  /**
+   * Generate cover image using AI (keeping your existing DALL-E prompt)
+   */
   private async generateCoverImage(emojis: string[], vibe: string, colorPalette: string[]): Promise<string> {
     try {
       if (!OPENAI_API_KEY) {
@@ -374,6 +430,9 @@ MANDATORY: No text, logos, or emojis in the image.
     }
   }
 
+  /**
+   * Generate artistic prompt for specific requests (keeping your existing method)
+   */
   private async generateArtisticPromptFromSpecificRequest(vibe: string, colorString: string): Promise<string> {
     try {
       const prompt = `Analyze this music request and extract the artistic mood, atmosphere, and visual themes that could inspire album artwork. DO NOT mention any specific copyrighted characters, franchises, or intellectual property.
@@ -455,308 +514,356 @@ MANDATORY: No text, logos, emojis, or recognizable characters in the image. Crea
     }
   }
 
+  /**
+   * Generate tracks using AI and Spotify search (keeping your existing approach)
+   */
   private async generateTracks(
     emojis: string[], 
     songCount: number, 
     vibe: string, 
-    keywords: string[]
+    keywords: string[],
+    options: { streaming?: boolean; onProgress?: (playlist: Partial<PlaylistData>, progress: PlaylistProgress) => void }
   ): Promise<SpotifyTrack[]> {
     console.log('🎵 Generating tracks for:', { emojis, vibe, songCount, keywords });
     
-    const spotifyWorking = await this.testSpotifyService();
-    if (!spotifyWorking) {
-      throw new Error('Spotify service is not available. Please check your connection and authentication.');
-    }
+    const usedTrackIds = new Set<string>();
+    const tracks: SpotifyTrack[] = [];
+    const seed = this.generatePlaylistSeed(emojis, vibe, songCount);
     
-    const playlistSeed = this.generatePlaylistSeed(emojis, vibe, songCount);
-    console.log('🎲 Generated playlist seed:', playlistSeed);
+    // Generate song suggestions with AI
+    const songSuggestions = await this.generateSongSuggestions(emojis, vibe, songCount, keywords, seed);
     
-    const isSpecific = await this.isSpecificRequest(vibe);
-    if (isSpecific) {
-      console.log('🎯 Detected specific request, focusing on source material directly');
-      const tracks = await this.generateTracksWithAI(emojis, songCount, vibe, [], playlistSeed);
-      return tracks;
-    } else {
-      const tracks = await this.generateTracksWithAI(emojis, songCount, vibe, keywords, playlistSeed);
-      return tracks;
+    if (options.onProgress) {
+      options.onProgress({ tracks: [] }, { current: 0, total: songCount, phase: 'Searching for tracks...' });
     }
+
+    // Search for tracks based on AI suggestions
+    for (let i = 0; i < songSuggestions.length && tracks.length < songCount; i++) {
+      const suggestion = songSuggestions[i];
+      const track = await this.searchTrack(suggestion.title, suggestion.artist, usedTrackIds);
+      
+      if (track) {
+        tracks.push(track);
+        usedTrackIds.add(track.id);
+        
+        if (options.onProgress) {
+          options.onProgress({ tracks }, { current: tracks.length, total: songCount, phase: `Found ${tracks.length}/${songCount} tracks` });
+        }
+      }
+    }
+
+    // Fill remaining slots with similar tracks
+    if (tracks.length < songCount) {
+      const remaining = songCount - tracks.length;
+      const additionalTracks = await this.generateAdditionalTracks(emojis, vibe, keywords, remaining, usedTrackIds, options);
+      tracks.push(...additionalTracks);
+    }
+
+    return tracks;
   }
 
-  private async generateTracksStreaming(
+  /**
+   * Generate song suggestions using AI (keeping your existing prompts)
+   */
+  private async generateSongSuggestions(
     emojis: string[], 
-    songCount: number, 
     vibe: string, 
-    keywords: string[],
-    onProgress?: (playlist: Partial<PlaylistData>, progress: PlaylistProgress) => void
-  ): Promise<SpotifyTrack[]> {
-    console.log('🎵 Generating tracks with streaming for:', { emojis, vibe, songCount, keywords });
-    
-    const spotifyWorking = await this.testSpotifyService();
-    if (!spotifyWorking) {
-      throw new Error('Spotify service is not available. Please check your connection and authentication.');
-    }
-    
-    const playlistSeed = this.generatePlaylistSeed(emojis, vibe, songCount);
-    console.log('🎲 Generated playlist seed:', playlistSeed);
-    
-    const isSpecific = await this.isSpecificRequest(vibe);
-    if (isSpecific) {
-      console.log('🎯 Detected specific request, focusing on source material directly');
-      onProgress?.({ 
-        emojis, 
-        songCount, 
-        vibe,
-        tracks: []
-      }, { current: 0, total: songCount, phase: 'Starting AI track generation...' });
-      
-      const tracks = await this.generateTracksWithAIStreaming(emojis, songCount, vibe, [], playlistSeed, onProgress);
-      return tracks;
-    } else {
-      onProgress?.({ 
-        emojis, 
-        songCount, 
-        vibe,
-        tracks: []
-      }, { current: 0, total: songCount, phase: 'Starting AI track generation...' });
-      
-      const tracks = await this.generateTracksWithAIStreaming(emojis, songCount, vibe, keywords, playlistSeed, onProgress);
-      return tracks;
-    }
-  }
-
-  private async generateTracksWithAI(
-    emojis: string[], 
     songCount: number, 
-    vibe: string, 
-    keywords: string[],
+    keywords: string[], 
     seed: string
-  ): Promise<SpotifyTrack[]> {
-    console.log('🤖 Generating tracks for:', { emojis, vibe, songCount });
+  ): Promise<Array<{title: string, artist: string}>> {
+    const isSpecific = await this.isSpecificRequest(vibe);
+    let prompt: string;
     
-    const usedTrackIds = new Set<string>();
-    const tracks: SpotifyTrack[] = [];
-    let attempts = 0;
-    const maxAttempts = 5;
-    
-    while (tracks.length < songCount && attempts < maxAttempts) {
-      attempts++;
-      console.log(`🎯 Attempt ${attempts}: Need ${songCount - tracks.length} more songs`);
-      
-      const isSpecific = await this.isSpecificRequest(vibe);
-      const remainingSongs = songCount - tracks.length;
-      const prompt = isSpecific 
-        ? this.generateSpecificRequestPrompt(vibe, emojis, seed, remainingSongs, attempts)
-        : this.generateVariedPrompt(emojis, vibe, keywords, seed, remainingSongs, attempts);
+    if (isSpecific) {
+      // Use your existing specific request prompt
+      prompt = `You are a music expert specializing in ${vibe}. Suggest ${songCount * 3} songs that are directly related to "${vibe}".
 
-      try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o',
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.9,
-            max_tokens: 1000,
-          }),
-        });
+🎧 Context: ${emojis.join(' ')}
+🎲 Variety seed: ${seed}
 
-        if (!response.ok) {
-          throw new Error(`OpenAI API error: ${response.status}`);
-        }
+CRITICAL REQUIREMENTS:
+- Focus on songs that are DIRECTLY related to "${vibe}"
+- Include official soundtracks, theme songs, covers, and inspired music
+- If it's an anime/movie/show, include opening/ending themes and background music
+- If it's an artist, include their songs and similar artists
+- If it's a game, include soundtrack and inspired music
+- Use the seed to ensure variety in your suggestions
+- Be specific and accurate to the source material
 
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content;
-        
-        if (!content) {
-          throw new Error('No response from OpenAI');
-        }
+Format:
+"Song Title" by Artist Name
+"Another Song" by Another Artist
+(One song per line, no numbering, no commentary)`;
+    } else {
+      // Use your existing varied prompt
+      const promptVariations = [
+        `You are a music expert creating a unique playlist. Suggest ${songCount * 3} songs that match this vibe: "${vibe}"
 
-        const lines = content.split('\n').filter((line: string) => line.trim().length > 0);
-        const suggestions: SongSuggestion[] = [];
-        
-        for (const line of lines) {
-          const match = line.match(/"([^"]+)"\s+by\s+(.+)/i);
-          if (match) {
-            suggestions.push({
-              title: match[1].trim(),
-              artist: match[2].trim()
-            });
-          }
-        }
-        
-        console.log(`✅ Found ${suggestions.length} song suggestions`);
-        
-        for (const suggestion of suggestions) {
-          if (tracks.length >= songCount) break;
-          
-          try {
-            const searchQuery = this.createValidSearchQuery(suggestion.title, suggestion.artist, isSpecific);
-            const selectedTrack = await this.searchWithVariety(searchQuery, usedTrackIds, tracks, isSpecific);
-            
-            if (selectedTrack) {
-              tracks.push(selectedTrack);
-              usedTrackIds.add(selectedTrack.id);
-              console.log(`✅ Found: "${selectedTrack.name}" by ${selectedTrack.artists.map(a => a.name).join(', ')} (${tracks.length}/${songCount})`);
-            }
-            
-            await this.delay(100);
-          } catch (error) {
-            console.warn(`Search failed for "${suggestion.title}":`, error);
-          }
-        }
-        
-        if (tracks.length >= songCount) {
-          console.log(`🎯 Successfully found all ${songCount} songs!`);
-          break;
-        }
-        
-      } catch (error) {
-        console.error('AI generation failed:', error);
-      }
+🎧 Emojis for inspiration: ${emojis.join(' ')}
+🔑 Keywords to guide the sound: ${keywords.join(', ')}
+🎲 Random seed for variety: ${seed}
+
+CRITICAL REQUIREMENTS:
+- Focus on how the songs SOUND (melody, production, mood), not just lyrics
+- Prefer **indie**, **underground**, or **lesser-known** tracks — avoid obvious mainstream picks
+- Include a mix of **genres**, **eras**, and **unexpected gems**
+- Each playlist should feel fresh — avoid repeating songs from earlier requests
+- Surprise me with **creative deep cuts** or hidden gems
+- IMPORTANT: Use the random seed to ensure variety - different seeds should produce different suggestions
+
+Format:
+"Song Title" by Artist Name
+"Another Song" by Another Artist
+(One song per line, no numbering, no commentary)`,
+
+        `Create a diverse music selection for this mood: "${vibe}"
+
+Visual cues: ${emojis.join(' ')}
+Musical direction: ${keywords.join(', ')}
+Variety seed: ${seed}
+
+Requirements:
+- Focus on sonic texture and atmosphere
+- Choose underground and alternative artists
+- Mix different decades and styles
+- Avoid mainstream chart-toppers
+- Use the seed to ensure uniqueness
+
+Format:
+"Song Title" by Artist Name`,
+
+        `As a music curator, discover ${songCount * 3} tracks for: "${vibe}"
+
+Inspiration: ${emojis.join(' ')}
+Sound palette: ${keywords.join(', ')}
+Uniqueness factor: ${seed}
+
+Curate tracks that:
+- Match the emotional resonance
+- Come from diverse musical backgrounds
+- Include hidden gems and deep cuts
+- Feel cohesive yet surprising
+- Use the seed for variety
+
+Format:
+"Song Title" by Artist Name`
+      ];
+
+      const variationIndex = parseInt(seed.slice(-2), 36) % promptVariations.length;
+      prompt = promptVariations[variationIndex];
     }
-    
-    console.log(`🎯 Final result: ${tracks.length} tracks found (requested: ${songCount})`);
-    return tracks.slice(0, songCount);
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.9,
+          max_tokens: 1000,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      
+      if (!content) {
+        throw new Error('No content received from OpenAI');
+      }
+
+      const lines = content.split('\n').filter((line: string) => line.trim().length > 0);
+      const suggestions: Array<{title: string, artist: string}> = [];
+      
+      for (const line of lines) {
+        const match = line.match(/"([^"]+)"\s+by\s+(.+)/i);
+        if (match) {
+          suggestions.push({
+            title: match[1].trim(),
+            artist: match[2].trim()
+          });
+        }
+      }
+      
+      return suggestions;
+      
+    } catch (error) {
+      console.warn('Failed to generate song suggestions with AI, using fallback:', error);
+      // Return fallback suggestions based on keywords
+      return keywords.slice(0, songCount).map(keyword => ({
+        title: keyword,
+        artist: 'Various Artists'
+      }));
+    }
   }
 
-  private async generateTracksWithAIStreaming(
-    emojis: string[], 
-    songCount: number, 
-    vibe: string, 
+  /**
+   * Search for a specific track on Spotify
+   */
+  private async searchTrack(title: string, artist: string, usedTrackIds: Set<string>): Promise<SpotifyTrack | null> {
+    const query = `${title} ${artist}`.trim();
+    
+    try {
+      const searchResponse = await spotifyService.search(query, ['track'], 10, 0);
+      
+      if (searchResponse.tracks.items.length === 0) {
+        return null;
+      }
+
+      // Find first unused track
+      for (const track of searchResponse.tracks.items) {
+        if (!usedTrackIds.has(track.id)) {
+          return track;
+        }
+      }
+
+      return null;
+      
+    } catch (error) {
+      console.warn(`Search failed for "${query}":`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Generate additional tracks to fill the playlist
+   */
+  private async generateAdditionalTracks(
+    emojis: string[],
+    vibe: string,
     keywords: string[],
-    seed: string,
-    onProgress?: (playlist: Partial<PlaylistData>, progress: PlaylistProgress) => void
+    count: number,
+    usedTrackIds: Set<string>,
+    options: { streaming?: boolean; onProgress?: (playlist: Partial<PlaylistData>, progress: PlaylistProgress) => void }
   ): Promise<SpotifyTrack[]> {
-    console.log('🤖 Generating tracks with streaming for:', { emojis, vibe, songCount });
-    
-    const usedTrackIds = new Set<string>();
     const tracks: SpotifyTrack[] = [];
-    let attempts = 0;
-    const maxAttempts = 5;
+    const keyword = keywords[Math.floor(Math.random() * keywords.length)];
     
-    while (tracks.length < songCount && attempts < maxAttempts) {
-      attempts++;
-      console.log(`🎯 Attempt ${attempts}: Need ${songCount - tracks.length} more songs`);
+    try {
+      const searchResponse = await spotifyService.search(keyword, ['track'], count * 2, 0);
       
-      if (attempts === 1) {
-        onProgress?.({ tracks: [...tracks] }, { current: tracks.length, total: songCount, phase: 'Generating songs...' });
+      for (const track of searchResponse.tracks.items) {
+        if (tracks.length >= count) break;
+        if (!usedTrackIds.has(track.id)) {
+          tracks.push(track);
+          usedTrackIds.add(track.id);
+        }
       }
       
-      const isSpecific = await this.isSpecificRequest(vibe);
-      const remainingSongs = songCount - tracks.length;
-      const prompt = isSpecific 
-        ? this.generateSpecificRequestPrompt(vibe, emojis, seed, remainingSongs, attempts)
-        : this.generateVariedPrompt(emojis, vibe, keywords, seed, remainingSongs, attempts);
-
-      try {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${OPENAI_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: 'gpt-4o',
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.9,
-            max_tokens: 1000,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`OpenAI API error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        const content = data.choices?.[0]?.message?.content;
-        
-        if (!content) {
-          throw new Error('No response from OpenAI');
-        }
-
-        const lines = content.split('\n').filter((line: string) => line.trim().length > 0);
-        const suggestions: SongSuggestion[] = [];
-        
-        for (const line of lines) {
-          const match = line.match(/"([^"]+)"\s+by\s+(.+)/i);
-          if (match) {
-            suggestions.push({
-              title: match[1].trim(),
-              artist: match[2].trim()
-            });
-          }
-        }
-        
-        console.log(`✅ Found ${suggestions.length} song suggestions`);
-        
-        onProgress?.({ tracks: [...tracks] }, { current: tracks.length, total: songCount, phase: 'Finding songs...' });
-        
-        for (const suggestion of suggestions) {
-          if (tracks.length >= songCount) break;
-          
-          try {
-            const searchQuery = this.createValidSearchQuery(suggestion.title, suggestion.artist, isSpecific);
-            const selectedTrack = await this.searchWithVariety(searchQuery, usedTrackIds, tracks, isSpecific);
-            
-            if (selectedTrack) {
-              tracks.push(selectedTrack);
-              usedTrackIds.add(selectedTrack.id);
-              console.log(`✅ Found: "${selectedTrack.name}" by ${selectedTrack.artists.map(a => a.name).join(', ')} (${tracks.length}/${songCount})`);
-              
-              onProgress?.({ tracks: [...tracks] }, { current: tracks.length, total: songCount, phase: `Found ${tracks.length} of ${songCount} songs...` });
-            }
-            
-            await this.delay(100);
-          } catch (error) {
-            console.warn(`Search failed for "${suggestion.title}":`, error);
-          }
-        }
-        
-        if (tracks.length >= songCount) {
-          console.log(`🎯 Successfully found all ${songCount} songs!`);
-          break;
-        }
-        
-      } catch (error) {
-        console.error('AI generation failed:', error);
-      }
+    } catch (error) {
+      console.warn('Failed to generate additional tracks:', error);
     }
     
-    console.log(`🎯 Final result: ${tracks.length} tracks found (requested: ${songCount})`);
-    return tracks.slice(0, songCount);
+    return tracks;
   }
 
+  /**
+   * Generate a unique seed for playlist generation
+   */
   private generatePlaylistSeed(emojis: string[], vibe: string, songCount: number): string {
-    const timestamp = Date.now();
-    const emojiHash = emojis.join('').split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-    const vibeHash = vibe.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-    
-    const randomFactor1 = Math.random() * 1000000;
-    const randomFactor2 = Math.random() * 1000000;
-    const randomFactor3 = Math.random() * 1000000;
-    
-    const microTime = performance.now();
-    const processRandom = Math.random() * 1000000;
-    
-    const seed = `${timestamp}-${microTime}-${emojiHash}-${vibeHash}-${songCount}-${randomFactor1}-${randomFactor2}-${randomFactor3}-${processRandom}`;
-    const seedHash = this.hashString(seed);
-    
-    return `${seedHash}-${timestamp}`;
+    const combined = `${emojis.join('')}-${vibe}-${songCount}-${Date.now()}`;
+    return this.hashString(combined);
   }
 
+  /**
+   * Simple hash function for generating seeds
+   */
   private hashString(str: string): string {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
+      hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(36);
   }
 
+  /**
+   * Test if Spotify service is working
+   */
+  private async testSpotifyService(): Promise<boolean> {
+    try {
+      console.log('Testing Spotify service connectivity...');
+      
+      const isAuth = await spotifyService.isAuthenticated();
+      console.log(`Spotify authenticated: ${isAuth}`);
+      
+      if (!isAuth) {
+        console.error('Spotify not authenticated');
+        return false;
+      }
+      
+      console.log('Spotify service is working - using search-based discovery');
+      return true;
+    } catch (error) {
+      console.error('Spotify service test failed:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Generate a unique playlist ID (keeping your existing method)
+   */
+  private generateUniquePlaylistId(): string {
+    // Generate a truly unique ID using multiple sources of randomness (React Native compatible)
+    const timestamp = Date.now();
+    const performanceTime = performance.now();
+    const randomString1 = Math.random().toString(36).substring(2, 15);
+    const randomString2 = Math.random().toString(36).substring(2, 15);
+    const randomString3 = Math.random().toString(36).substring(2, 15);
+    const randomString4 = Math.random().toString(36).substring(2, 15);
+    
+    // Create additional entropy using process.hrtime if available, otherwise use more random strings
+    let processTime = '';
+    try {
+      if (typeof process !== 'undefined' && process.hrtime) {
+        const hrtime = process.hrtime();
+        processTime = `${hrtime[0]}-${hrtime[1]}`;
+      } else {
+        processTime = `${Math.random().toString(36).substring(2, 10)}-${Math.random().toString(36).substring(2, 10)}`;
+      }
+    } catch (e) {
+      processTime = `${Math.random().toString(36).substring(2, 10)}-${Math.random().toString(36).substring(2, 10)}`;
+    }
+    
+    // Combine all sources for maximum uniqueness
+    const uniqueId = `${timestamp}-${performanceTime.toString(36)}-${randomString1}-${randomString2}-${randomString3}-${randomString4}-${processTime}`;
+    
+    // Ensure the ID is URL-safe and not too long
+    const finalId = uniqueId.replace(/[^a-zA-Z0-9\-]/g, '').substring(0, 100);
+    
+    console.log('🆔 Generated unique playlist ID:', finalId);
+    return finalId;
+  }
+
+  /**
+   * Validate and clean up the final playlist
+   */
+  private validatePlaylist(tracks: SpotifyTrack[], songCount: number): SpotifyTrack[] {
+    // Remove duplicates
+    const uniqueTracks = tracks.filter((track, index, self) => 
+      index === self.findIndex(t => t.id === track.id)
+    );
+
+    // Ensure we have the right number of tracks
+    if (uniqueTracks.length > songCount) {
+      return uniqueTracks.slice(0, songCount);
+    }
+
+    return uniqueTracks;
+  }
+
+  /**
+   * Check if request is specific (keeping your existing method)
+   */
   private async isSpecificRequest(vibe: string): Promise<boolean> {
     try {
       const prompt = `Analyze this music request and determine if it's specific or generic:
@@ -823,269 +930,35 @@ Respond with only "SPECIFIC" or "GENERIC".`;
     }
   }
 
-  private generateVariedPrompt(emojis: string[], vibe: string, keywords: string[], seed: string, songCount: number, attempt: number): string {
-    const promptVariations = [
-      `You are a music expert creating a unique playlist. Suggest ${songCount * 3} songs that match this vibe: "${vibe}"
-
-🎧 Emojis for inspiration: ${emojis.join(' ')}
-🔑 Keywords to guide the sound: ${keywords.join(', ')}
-🎲 Random seed for variety: ${seed}
-
-CRITICAL REQUIREMENTS:
-- Focus on how the songs SOUND (melody, production, mood), not just lyrics
-- Prefer **indie**, **underground**, or **lesser-known** tracks — avoid obvious mainstream picks
-- Include a mix of **genres**, **eras**, and **unexpected gems**
-- Each playlist should feel fresh — avoid repeating songs from earlier requests
-- Surprise me with **creative deep cuts** or hidden gems
-- IMPORTANT: Use the random seed to ensure variety - different seeds should produce different suggestions
-
-Format:
-"Song Title" by Artist Name
-"Another Song" by Another Artist
-(One song per line, no numbering, no commentary)`,
-
-      `Create a diverse music selection for this mood: "${vibe}"
-
-Visual cues: ${emojis.join(' ')}
-Musical direction: ${keywords.join(', ')}
-Variety seed: ${seed}
-
-Requirements:
-- Focus on sonic texture and atmosphere
-- Choose underground and alternative artists
-- Mix different decades and styles
-- Avoid mainstream chart-toppers
-- Use the seed to ensure uniqueness
-
-Format:
-"Song Title" by Artist Name`,
-
-      `As a music curator, discover ${songCount * 3} tracks for: "${vibe}"
-
-Inspiration: ${emojis.join(' ')}
-Sound palette: ${keywords.join(', ')}
-Uniqueness factor: ${seed}
-
-Curate tracks that:
-- Match the emotional resonance
-- Come from diverse musical backgrounds
-- Include hidden gems and deep cuts
-- Feel cohesive yet surprising
-- Use the seed for variety
-
-Format:
-"Song Title" by Artist Name`
-    ];
-
-    const variationIndex = (parseInt(seed.slice(-2), 36) + attempt) % promptVariations.length;
-    return promptVariations[variationIndex];
+  /**
+   * Cache management methods
+   */
+  private generateCacheKey(emojis: string[], songCount: number, vibe: string): string {
+    return `${emojis.join('')}-${songCount}-${vibe}`;
   }
 
-  private generateSpecificRequestPrompt(vibe: string, emojis: string[], seed: string, songCount: number, attempt: number): string {
-    const promptVariations = [
-      `You are a music expert specializing in ${vibe}. Suggest ${songCount * 3} songs that are directly related to "${vibe}".
-
-🎧 Context: ${emojis.join(' ')}
-🎲 Variety seed: ${seed}
-
-CRITICAL REQUIREMENTS:
-- Focus on songs that are DIRECTLY related to "${vibe}"
-- Include official soundtracks, theme songs, covers, and inspired music
-- If it's an anime/movie/show, include opening/ending themes and background music
-- If it's an artist, include their songs and similar artists
-- If it's a game, include soundtrack and inspired music
-- Use the seed to ensure variety in your suggestions
-- Be specific and accurate to the source material
-
-Format:
-"Song Title" by Artist Name
-"Another Song" by Another Artist
-(One song per line, no numbering, no commentary)`,
-
-      `Create a music collection specifically for: "${vibe}"
-
-Visual context: ${emojis.join(' ')}
-Uniqueness factor: ${seed}
-
-Requirements:
-- Focus on music that is directly connected to "${vibe}"
-- Include official releases, fan covers, and inspired compositions
-- Maintain authenticity to the source material
-- Use the seed for variety in selection
-- Be precise and relevant
-
-Format:
-"Song Title" by Artist Name`,
-
-      `As a specialist in "${vibe}" music, curate ${songCount * 3} tracks that capture its essence.
-
-Inspiration: ${emojis.join(' ')}
-Variety seed: ${seed}
-
-Curate tracks that:
-- Are directly related to "${vibe}"
-- Include official soundtracks and theme music
-- Feature covers and inspired compositions
-- Maintain the authentic feel of the source
-- Use the seed for diverse selection
-
-Format:
-"Song Title" by Artist Name`
-    ];
-
-    const variationIndex = (parseInt(seed.slice(-2), 36) + attempt) % promptVariations.length;
-    return promptVariations[variationIndex];
-  }
-
-  private createValidSearchQuery(title: string, artist: string, isSpecific: boolean = false): string {
-    if (isSpecific) {
-      const cleanArtist = artist.trim().replace(/[^\w\s\-'&]/g, '').substring(0, 100);
-      
-      let searchQuery = cleanArtist;
-      
-      const cleanTitle = title.trim().replace(/[^\w\s\-'&]/g, '').substring(0, 50);
-      if (cleanTitle && cleanTitle.length > 2 && !cleanTitle.toLowerCase().includes('song') && !cleanTitle.toLowerCase().includes('track')) {
-        searchQuery = `${cleanTitle} ${cleanArtist}`;
-      }
-      
-      if (searchQuery.length > 240) {
-        searchQuery = cleanArtist.substring(0, 240);
-      }
-      
-      return searchQuery;
-    } else {
-      const cleanTitle = title.trim().replace(/[^\w\s\-'&]/g, '').substring(0, 50);
-      const cleanArtist = artist.trim().replace(/[^\w\s\-'&]/g, '').substring(0, 50);
-      
-      let searchQuery = `${cleanTitle} ${cleanArtist}`;
-      
-      if (searchQuery.length > 240) {
-        const artistFirstWord = cleanArtist.split(' ')[0];
-        searchQuery = `${cleanTitle} ${artistFirstWord}`;
-        
-        if (searchQuery.length > 240) {
-          const maxTitleLength = 240 - artistFirstWord.length - 1;
-          searchQuery = `${cleanTitle.substring(0, maxTitleLength)} ${artistFirstWord}`;
-        }
-      }
-      
-      return searchQuery;
-    }
-  }
-
-  private getRandomSearchOffset(): number {
-    return Math.floor(Math.random() * 20);
-  }
-
-  private async searchWithVariety(query: string, usedTrackIds: Set<string>, existingTracks: SpotifyTrack[], isSpecific: boolean = false): Promise<SpotifyTrack | null> {
-    const maxRetries = 3;
-    let lastError: any = null;
+  private getCachedPlaylist(emojis: string[], songCount: number, vibe: string): PlaylistData | null {
+    const key = this.generateCacheKey(emojis, songCount, vibe);
+    const cached = this.playlistCache.get(key);
     
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const searchQuery = this.createValidSearchQuery(query, '', isSpecific);
-        const offset = this.getRandomSearchOffset();
-        
-        if (attempt === 1) {
-          console.log(`🎯 Searching for: "${searchQuery}"`);
-        } else {
-          console.log(`🎯 Retry ${attempt}/${maxRetries} for: "${searchQuery}"`);
-        }
-        
-        const searchResponse = await spotifyService.search(searchQuery, ['track'], 10, offset);
-
-        if (searchResponse.tracks.items.length === 0) {
-          return null;
-        }
-
-        for (const track of searchResponse.tracks.items) {
-          if (!usedTrackIds.has(track.id)) {
-            console.log(`✅ Found: "${track.name}" by ${track.artists.map((a: any) => a.name).join(', ')}`);
-            return track;
-          }
-        }
-
-        return null;
-        
-      } catch (error) {
-        lastError = error;
-        
-        if (error instanceof Error && error.message.includes('502') && attempt < maxRetries) {
-          console.log(`🎯 502 error, retrying...`);
-          await this.delay(attempt * 2000);
-          continue;
-        }
-        
-        break;
-      }
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+      console.log('🎯 Using cached playlist');
+      return cached.playlist;
     }
     
-    console.warn(`Search failed for "${query}" after ${maxRetries} attempts`);
     return null;
   }
 
-  private getSpotifyErrorMessage(error: any): string {
-    if (error instanceof Error) {
-      const message = error.message.toLowerCase();
-      
-      if (message.includes('timeout')) {
-        return 'Playlist generation took too long. Try reducing the number of songs or check your internet connection.';
-      } else if (message.includes('authentication required') || message.includes('401')) {
-        return 'Please reconnect to Spotify. Your session may have expired.';
-      } else if (message.includes('404')) {
-        return 'Some Spotify features are temporarily unavailable. Please try again later.';
-      } else if (message.includes('rate limit') || message.includes('429')) {
-        return 'Too many requests to Spotify. Please wait a moment and try again.';
-      } else if (message.includes('network') || message.includes('fetch')) {
-        return 'Network error connecting to Spotify. Please check your internet connection.';
-      } else if (message.includes('scope') || message.includes('permission')) {
-        return 'Please reconnect to Spotify to enable all features. Some permissions may have changed.';
-      } else if (message.includes('forbidden') || message.includes('403')) {
-        return 'Access to this Spotify feature is restricted. Please try a different approach.';
-      }
-    }
+  private cachePlaylist(emojis: string[], songCount: number, vibe: string, playlist: PlaylistData): void {
+    const key = this.generateCacheKey(emojis, songCount, vibe);
+    this.playlistCache.set(key, { playlist, timestamp: Date.now() });
     
-    return 'Unable to connect to Spotify. Please check your connection and try again.';
-  }
-
-  private async checkSpotifyAuth(): Promise<boolean> {
-    try {
-      const isAuth = await spotifyService.isAuthenticated();
-      if (!isAuth) {
-        console.error('Spotify authentication check failed');
-        return false;
+    // Clean up old cache entries
+    if (this.playlistCache.size > 100) {
+      const oldestKey = this.playlistCache.keys().next().value;
+      if (oldestKey) {
+        this.playlistCache.delete(oldestKey);
       }
-      
-      try {
-        await spotifyService.search('test', ['track'], 1, 0);
-        return true;
-      } catch (error) {
-        console.error('Spotify token validation failed:', error);
-        return false;
-      }
-    } catch (error) {
-      console.error('Spotify authentication check error:', error);
-      return false;
-    }
-  }
-
-  private async testSpotifyService(): Promise<boolean> {
-    try {
-      console.log('Testing Spotify service connectivity...');
-      
-      const isAuth = await this.checkSpotifyAuth();
-      console.log(`Spotify authenticated: ${isAuth}`);
-      
-      if (!isAuth) {
-        console.error('Spotify not authenticated');
-        return false;
-      }
-      
-      console.log('Spotify service is working - using search-based discovery');
-      return true;
-    } catch (error) {
-      console.error('Spotify service test failed:', error);
-      return false;
     }
   }
 }

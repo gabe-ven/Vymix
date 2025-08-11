@@ -1,5 +1,6 @@
 // Playlist Types and Interfaces
 export interface PlaylistData {
+  id: string; // Make ID required since we always generate it
   name: string;
   description: string;
   colorPalette: string[];
@@ -10,7 +11,6 @@ export interface PlaylistData {
   vibe: string;
   tracks: SpotifyTrack[];
   spotifyUrl?: string;
-  id?: string;
   isSpotifyPlaylist?: boolean;
   userId?: string;
   createdAt?: Date;

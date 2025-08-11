@@ -73,30 +73,46 @@ export class PlaylistManagementService {
   }
 }
 
-export const savePlaylistToFirestore = async (playlistData: Omit<PlaylistData, 'id' | 'userId' | 'createdAt' | 'updatedAt'>, userId: string): Promise<string> => {
+export const savePlaylistToFirestore = async (playlistData: Omit<PlaylistData, 'userId' | 'createdAt' | 'updatedAt'> & { id?: string }, userId: string): Promise<string> => {
   try {
-    console.log('🔥 Saving playlist to Firestore:', { userId, playlistName: playlistData.name });
+    console.log('🔥 Saving playlist to Firestore:', { 
+      userId, 
+      playlistName: playlistData.name,
+      hasExistingId: !!playlistData.id,
+      existingId: playlistData.id || 'none'
+    });
     
     // Check for duplicate playlists with the same name and content
     const existingPlaylists = await getUserPlaylists(userId);
     const isDuplicate = existingPlaylists.some(existing => {
-      return existing.name === playlistData.name &&
-             existing.emojis.length === playlistData.emojis.length &&
-             existing.emojis.every(emoji => existing.emojis.includes(emoji)) &&
-             existing.vibe === playlistData.vibe &&
-             existing.songCount === playlistData.songCount;
+      // Only consider it a duplicate if it has the EXACT same ID
+      if (playlistData.id && existing.id === playlistData.id) {
+        console.log('🆔 Found playlist with same ID, this is a true duplicate');
+        return true;
+      }
+      
+      // For playlists without IDs, check content similarity (but be more lenient)
+      const contentSimilar = existing.name === playlistData.name &&
+                           existing.emojis.length === playlistData.emojis.length &&
+                           existing.emojis.every(emoji => existing.emojis.includes(emoji)) &&
+                           existing.vibe === playlistData.vibe &&
+                           existing.songCount === playlistData.songCount;
+      
+      if (contentSimilar) {
+        console.log('⚠️ Found content-similar playlist, but IDs are different - not a true duplicate');
+        console.log('⚠️ Existing ID:', existing.id, 'New ID:', playlistData.id);
+      }
+      
+      return false; // Don't treat as duplicate unless exact ID match
     });
     
     if (isDuplicate) {
-      console.log('⚠️ Duplicate playlist detected, skipping save:', playlistData.name);
-      const existingPlaylist = existingPlaylists.find(existing => 
-        existing.name === playlistData.name &&
-        existing.emojis.length === playlistData.emojis.length &&
-        existing.emojis.every(emoji => existing.emojis.includes(emoji)) &&
-        existing.vibe === playlistData.vibe &&
-        existing.songCount === playlistData.songCount
-      );
-      return existingPlaylist?.id || '';
+      console.log('🆔 True duplicate detected (same ID), returning existing ID:', playlistData.id);
+      if (playlistData.id) {
+        return playlistData.id; // Return the original ID, not the Firestore ID
+      }
+      // Fallback to generating new ID if somehow we don't have one
+      console.log('⚠️ No ID found in duplicate, this should not happen');
     }
     
     const playlistToSave = {
@@ -113,12 +129,26 @@ export const savePlaylistToFirestore = async (playlistData: Omit<PlaylistData, '
       coverImageUrl: playlistToSave.coverImageUrl ? 'Firebase Storage URL' : 'None'
     });
     
-    const docRef = await firestore()
-      .collection('playlists')
-      .add(playlistToSave);
-    
-    console.log('✅ Playlist saved successfully with ID:', docRef.id);
-    return docRef.id;
+    // Check if playlistData has an existing ID (from generation service)
+    if (playlistData.id) {
+      console.log('🔥 Using existing ID from generation service:', playlistData.id);
+      // Use the existing ID by creating a document with that specific ID
+      await firestore()
+        .collection('playlists')
+        .doc(playlistData.id)
+        .set(playlistToSave);
+      
+      console.log('✅ Playlist saved successfully with existing ID:', playlistData.id);
+      return playlistData.id;
+    } else {
+      // Generate new Firestore ID as before
+      const docRef = await firestore()
+        .collection('playlists')
+        .add(playlistToSave);
+      
+      console.log('✅ Playlist saved successfully with new Firestore ID:', docRef.id);
+      return docRef.id;
+    }
   } catch (error) {
     console.error('❌ Error saving playlist to Firestore:', error);
     console.error('❌ Error details:', {

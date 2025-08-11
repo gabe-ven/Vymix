@@ -41,7 +41,10 @@ export class PlaylistService {
     vibe: string,
     onProgress?: (playlist: any, progress: any) => void
   ) {
-    return playlistGenerationService.generatePlaylistStreaming(emojis, songCount, vibe, onProgress);
+    return playlistGenerationService.generatePlaylist(emojis, songCount, vibe, {
+      streaming: true,
+      onProgress
+    });
   }
 
   async saveToSpotify(playlistData: any) {
