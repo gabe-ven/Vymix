@@ -1196,12 +1196,16 @@ MANDATORY: No text, logos, emojis, or recognizable characters in the image. Crea
         const searchQuery = this.createValidSearchQuery(query, '', isSpecific);
         const offset = this.getRandomSearchOffset();
         
-        console.log(`🎯 Search attempt ${attempt}/${maxRetries} for: "${searchQuery}" (offset: ${offset})`);
+        // Only log on first attempt or if retrying
+        if (attempt === 1) {
+          console.log(`🎯 Searching for: "${searchQuery}"`);
+        } else {
+          console.log(`🎯 Retry ${attempt}/${maxRetries} for: "${searchQuery}"`);
+        }
         
         const searchResponse = await spotifyService.search(searchQuery, ['track'], 10, offset);
 
         if (searchResponse.tracks.items.length === 0) {
-          console.log(`🎯 No tracks found for: "${searchQuery}"`);
           return null;
         }
 
@@ -1213,16 +1217,14 @@ MANDATORY: No text, logos, emojis, or recognizable characters in the image. Crea
           }
         }
 
-        console.log(`🎯 All tracks already used for: "${searchQuery}"`);
         return null;
         
       } catch (error) {
         lastError = error;
-        console.warn(`Search failed for "${query}":`, error);
         
         // If it's a 502 error and we have retries left, continue
         if (error instanceof Error && error.message.includes('502') && attempt < maxRetries) {
-          console.log(`🎯 502 error, retrying in ${attempt * 2} seconds...`);
+          console.log(`🎯 502 error, retrying...`);
           await this.delay(attempt * 2000);
           continue;
         }
@@ -1233,7 +1235,7 @@ MANDATORY: No text, logos, emojis, or recognizable characters in the image. Crea
     }
     
     // If we get here, all retries failed
-    console.warn(`Search failed for "${query}" after ${maxRetries} attempts:`, lastError);
+    console.warn(`Search failed for "${query}" after ${maxRetries} attempts`);
     return null;
   }
 
@@ -1428,6 +1430,30 @@ export const playlistService = new PlaylistService();
 export const savePlaylistToFirestore = async (playlistData: Omit<PlaylistData, 'id' | 'userId' | 'createdAt' | 'updatedAt'>, userId: string): Promise<string> => {
   try {
     console.log('🔥 Saving playlist to Firestore:', { userId, playlistName: playlistData.name });
+    
+    // Check for duplicate playlists with the same name and content
+    const existingPlaylists = await getUserPlaylists(userId);
+    const isDuplicate = existingPlaylists.some(existing => {
+      // Check if playlist has same name, emojis, vibe, and song count
+      return existing.name === playlistData.name &&
+             existing.emojis.length === playlistData.emojis.length &&
+             existing.emojis.every(emoji => existing.emojis.includes(emoji)) &&
+             existing.vibe === playlistData.vibe &&
+             existing.songCount === playlistData.songCount;
+    });
+    
+    if (isDuplicate) {
+      console.log('⚠️ Duplicate playlist detected, skipping save:', playlistData.name);
+      // Return the ID of the existing playlist instead of creating a new one
+      const existingPlaylist = existingPlaylists.find(existing => 
+        existing.name === playlistData.name &&
+        existing.emojis.length === playlistData.emojis.length &&
+        existing.emojis.every(emoji => existing.emojis.includes(emoji)) &&
+        existing.vibe === playlistData.vibe &&
+        existing.songCount === playlistData.songCount
+      );
+      return existingPlaylist?.id || '';
+    }
     
     const playlistToSave = {
       ...playlistData,

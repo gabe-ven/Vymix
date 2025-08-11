@@ -22,6 +22,7 @@ interface PlaylistCardProps {
   shouldAnimate?: boolean;
   scrollY?: SharedValue<number>;
   tracks?: any[]; // Add tracks prop for fallback album covers
+  compact?: boolean; // Add compact mode for modal usage
 }
 
 export default function PlaylistCard({ 
@@ -32,7 +33,8 @@ export default function PlaylistCard({
   coverImageUrl,
   shouldAnimate = false,
   scrollY,
-  tracks = []
+  tracks = [],
+  compact = false
 }: PlaylistCardProps) {
   // Animation values - always start from initial state
   const cardOpacity = useSharedValue(0);
@@ -223,22 +225,22 @@ export default function PlaylistCard({
 
   return (
     <Animated.View 
-      className="mt-12" 
+      className={compact ? "" : "mt-12"} 
       style={[
         cardAnimatedStyle,
         cardScrollAnimatedStyle
       ]}
     >
       <Glass 
-        className="w-full p-4"
-        borderRadius={16}
+        className={compact ? "w-full p-3" : "w-full p-4"}
+        borderRadius={compact ? 12 : 16}
         blurAmount={25}
         backgroundColor={COLORS.transparent.white[10]}
       >
         <View className="items-center">
-          {/* Large Playlist Cover */}
+          {/* Playlist Cover */}
           <Animated.View 
-            className="w-64 h-64 mb-6 rounded-xl"
+            className={compact ? "w-48 h-48 mb-4 rounded-lg" : "w-64 h-64 mb-6 rounded-xl"}
             style={[
               coverAnimatedStyle,
               coverScrollAnimatedStyle,
@@ -273,8 +275,8 @@ export default function PlaylistCard({
           
           {/* Title */}
           <Animated.Text 
-            className="text-3xl font-bold text-ui-white font-poppins-bold mb-2 text-center leading-tight" 
-            numberOfLines={2}
+            className={compact ? "text-2xl font-bold text-ui-white font-poppins-bold mb-2 text-center leading-tight" : "text-3xl font-bold text-ui-white font-poppins-bold mb-2 text-center leading-tight"} 
+            numberOfLines={compact ? 1 : 2}
             style={titleAnimatedStyle}
           >
             {name}
@@ -282,8 +284,8 @@ export default function PlaylistCard({
           
           {/* Description */}
           <Animated.Text 
-            className="text-base text-ui-gray-light font-poppins-bold text-center leading-relaxed px-4" 
-            numberOfLines={3}
+            className={compact ? "text-sm text-ui-gray-light font-poppins-bold text-center leading-relaxed px-2" : "text-base text-ui-gray-light font-poppins-bold text-center leading-relaxed px-4"} 
+            numberOfLines={compact ? 2 : 3}
             style={descriptionAnimatedStyle}
           >
             {description}

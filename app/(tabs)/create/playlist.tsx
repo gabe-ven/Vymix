@@ -76,7 +76,23 @@ const Playlist = () => {
     initializePlaylist();
   }, []);
 
-  // Enable animations when playlist data is loaded and save to Firestore
+  // Auto-save to Firestore when playlist is generated
+  useEffect(() => {
+    const autoSaveToFirestore = async () => {
+      if (playlistData && user?.uid && !isInitialLoad) {
+        try {
+          await savePlaylist(playlistData);
+          console.log('✅ Playlist auto-saved to Firestore');
+        } catch (error) {
+          console.error('❌ Failed to auto-save playlist:', error);
+        }
+      }
+    };
+
+    autoSaveToFirestore();
+  }, [playlistData, user?.uid, isInitialLoad, savePlaylist]);
+
+  // Enable animations when playlist data is loaded
   useEffect(() => {
     if (playlistData && !loading && !isInitialLoad) {
       // Small delay to ensure everything is rendered before starting animations
@@ -84,23 +100,9 @@ const Playlist = () => {
         setShouldAnimate(true);
       }, 100);
       
-      // Auto-save to Firestore when playlist is generated
-      const saveToFirestore = async () => {
-        if (playlistData) {
-          try {
-            await savePlaylist(playlistData);
-            console.log('Playlist auto-saved to Firestore');
-          } catch (error) {
-            console.error('Error auto-saving to Firestore:', error);
-          }
-        }
-      };
-      
-      saveToFirestore();
-      
       return () => clearTimeout(timer);
     }
-  }, [playlistData, loading, isInitialLoad, user]);
+  }, [playlistData, loading, isInitialLoad]);
 
   // Scroll handler
   const scrollHandler = useAnimatedScrollHandler({
@@ -214,22 +216,34 @@ const Playlist = () => {
     setToastType('success');
     setToastVisible(true);
     
-    // Save to both Spotify and Firestore
+    // Save to Spotify only
     try {
-      // Save to Spotify
       await saveToSpotify();
-      
-      // Save to Firestore
-      if (playlistData) {
-        await savePlaylist(playlistData);
-        console.log('Playlist saved to Firestore');
-      }
+      console.log('Playlist saved to Spotify');
     } catch (error) {
-      console.log('Save failed in background:', error);
-      // Don't show error toast since we already showed success
+      console.error('Error saving to Spotify:', error);
+      setToastMessage('Failed to save to Spotify');
+      setToastType('error');
+      setToastVisible(true);
     }
+    
+    // Hide toast after 3 seconds
+    setTimeout(() => {
+      setToastVisible(false);
+    }, 3000);
   };
 
+  // Handle regenerate
+  const handleRegenerate = async () => {
+    await regeneratePlaylist();
+  };
+
+  // Clean up when component unmounts
+  useEffect(() => {
+    return () => {
+      // Component cleanup
+    };
+  }, []);
 
 
   // Show loading with progress during generation
@@ -370,11 +384,12 @@ const Playlist = () => {
             />
           </View>
           {/* Action Buttons */}
-          <View className="px-4 mb-6">
-            <View className="flex-row justify-center flex-wrap gap-3">
+          <View className="px-8 mb-6">
+            <View className="flex-row justify-center gap-2">
               {playlistData?.isSpotifyPlaylist ? null : (
                 <AnimatedButton
-                  title="Save to Spotify"
+                  title="Save to"
+                  icon={require('../../../assets/images/spotify-logo.png')}
                   onPress={handleSaveToSpotify}
                   shouldAnimate={shouldAnimate}
                   delay={900}
@@ -384,7 +399,7 @@ const Playlist = () => {
 
               <AnimatedButton
                 title="Regenerate"
-                onPress={regeneratePlaylist}
+                onPress={handleRegenerate}
                 shouldAnimate={shouldAnimate}
                 delay={1050}
                 scrollY={scrollY}

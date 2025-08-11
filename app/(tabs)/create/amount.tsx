@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { Layout } from '@/app/components/Layout';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,8 +14,8 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function Amount() {
   const [songCount, setSongCount] = useState(10);
-  const router = useRouter();
   const { user } = useAuth();
+  const router = useRouter();
 
   const handleBack = () => {
     router.back();
@@ -41,6 +41,8 @@ export default function Amount() {
                 // After successful login, proceed with playlist generation
                 await AsyncStorage.setItem('songCount', songCount.toString());
                 await AsyncStorage.setItem('isGeneratingPlaylist', 'true');
+                // Clear any previous saved state to prevent duplicates
+                await AsyncStorage.removeItem('playlistSavedToFirestore');
                 router.push('/(tabs)/create/playlist');
               } catch (error) {
                 console.error('Spotify login failed:', error);
@@ -60,13 +62,23 @@ export default function Amount() {
     // Save song count and set generation flag
     await AsyncStorage.setItem('songCount', songCount.toString());
     await AsyncStorage.setItem('isGeneratingPlaylist', 'true');
+    // Clear any previous saved state to prevent duplicates
+    await AsyncStorage.removeItem('playlistSavedToFirestore');
     
     // Navigate to playlist screen where generation will happen
     router.push('/(tabs)/create/playlist');
   };
 
   const handleNext = async () => {
-    await generatePlaylist();
+    if (user?.uid) {
+      try {
+        await AsyncStorage.setItem('songCount', songCount.toString());
+        await AsyncStorage.setItem('isGeneratingPlaylist', 'true');
+        router.push('/(tabs)/create/playlist');
+      } catch (error) {
+        console.error('Error saving song count:', error);
+      }
+    }
   };
 
   return (

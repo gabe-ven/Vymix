@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { TouchableOpacity, Text } from 'react-native';
+import { TouchableOpacity, Text, Image, View, ImageSourcePropType } from 'react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -22,6 +22,7 @@ interface AnimatedButtonProps {
   delay?: number;
   shouldAnimate?: boolean;
   scrollY?: SharedValue<number>;
+  icon?: ImageSourcePropType;
 }
 
 export default function AnimatedButton({ 
@@ -31,7 +32,8 @@ export default function AnimatedButton({
   className = '',
   delay = 0,
   shouldAnimate = false,
-  scrollY
+  scrollY,
+  icon
 }: AnimatedButtonProps) {
   // Animation values - always start from initial state
   const buttonOpacity = useSharedValue(0);
@@ -109,14 +111,24 @@ export default function AnimatedButton({
         onPress={onPress}
         activeOpacity={0.8}
       >
-        <Glass 
-          className={`rounded-full shadow-lg ${className}`}
+        <Glass
+          className={className}
+          borderRadius={24}
           blurAmount={20}
           backgroundColor={COLORS.transparent.white[10]}
         >
-          <Text className="text-ui-white font-bold text-base font-poppins-bold px-6 py-3">
-            {title}
-          </Text>
+          <View className="flex-row items-center justify-center px-6 py-3">
+            <Text className="text-ui-white font-bold text-base font-poppins-bold">
+              {title}
+            </Text>
+            {icon && (
+              <Image 
+                source={icon} 
+                style={{ width: 20, height: 20, marginLeft: 8 }} 
+                resizeMode="contain"
+              />
+            )}
+          </View>
         </Glass>
       </TouchableOpacity>
     </Animated.View>

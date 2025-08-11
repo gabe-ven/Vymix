@@ -1,153 +1,78 @@
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView, Image, Linking, Alert } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, Modal, ScrollView, Linking, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
   withTiming, 
   withDelay,
+  withSpring,
   Easing
 } from 'react-native-reanimated';
-import { COLORS } from '../constants/colors';
+
 import { PlaylistData } from '../../services/playlistService';
 import SongList from './SongList';
 import AnimatedButton from './AnimatedButton';
+import PlaylistCard from './PlaylistCard';
 
 interface PlaylistModalProps {
   visible: boolean;
   playlist: PlaylistData | null;
   onClose: () => void;
   onDelete?: () => void;
+  onSave?: () => void;
 }
 
-export default function PlaylistModal({ visible, playlist, onClose, onDelete }: PlaylistModalProps) {
-  // Animation values - always start from initial state
-  const coverOpacity = useSharedValue(0);
-  const coverScale = useSharedValue(0.8);
-  const titleOpacity = useSharedValue(0);
-  const titleTranslateY = useSharedValue(20);
-  const descriptionOpacity = useSharedValue(0);
-  const descriptionTranslateY = useSharedValue(20);
-  const emojisOpacity = useSharedValue(0);
-  const emojisScale = useSharedValue(0.8);
-  const buttonsOpacity = useSharedValue(0);
-  const buttonsTranslateY = useSharedValue(20);
-  const songsOpacity = useSharedValue(0);
-  const songsTranslateY = useSharedValue(20);
+export default function PlaylistModal({ visible, playlist, onClose, onDelete, onSave }: PlaylistModalProps) {
+  const [shouldAnimateCard, setShouldAnimateCard] = useState(false);
+  
+  // Modal entrance animation only
+  const modalOpacity = useSharedValue(0);
+  const modalScale = useSharedValue(0.95);
+  const modalTranslateY = useSharedValue(20);
 
-  // Animated styles - always defined
-  const coverAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: coverOpacity.value,
-    transform: [{ scale: coverScale.value }],
+  // Modal entrance animated style
+  const modalAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: modalOpacity.value,
+    transform: [
+      { scale: modalScale.value },
+      { translateY: modalTranslateY.value }
+    ],
   }));
 
-  const titleAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: titleOpacity.value,
-    transform: [{ translateY: titleTranslateY.value }],
-  }));
 
-  const descriptionAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: descriptionOpacity.value,
-    transform: [{ translateY: descriptionTranslateY.value }],
-  }));
 
-  const emojisAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: emojisOpacity.value,
-    transform: [{ scale: emojisScale.value }],
-  }));
-
-  const buttonsAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: buttonsOpacity.value,
-    transform: [{ translateY: buttonsTranslateY.value }],
-  }));
-
-  const songsAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: songsOpacity.value,
-    transform: [{ translateY: songsTranslateY.value }],
-  }));
-
-  // Animation logic in separate useEffect
+  // Simple modal entrance animation
   useEffect(() => {
     if (visible && playlist) {
-      // Reset to initial state
-      coverOpacity.value = 0;
-      coverScale.value = 0.8;
-      titleOpacity.value = 0;
-      titleTranslateY.value = 20;
-      descriptionOpacity.value = 0;
-      descriptionTranslateY.value = 20;
-      emojisOpacity.value = 0;
-      emojisScale.value = 0.8;
-      buttonsOpacity.value = 0;
-      buttonsTranslateY.value = 20;
-      songsOpacity.value = 0;
-      songsTranslateY.value = 20;
-
-      // Animate cover image with delay
-      coverOpacity.value = withDelay(200, withTiming(1, {
-        duration: 600,
-        easing: Easing.out(Easing.cubic),
-      }));
+      // Reset modal state
+      modalOpacity.value = 0;
+      modalScale.value = 0.95;
+      modalTranslateY.value = 20;
       
-      coverScale.value = withDelay(200, withTiming(1, {
-        duration: 600,
-        easing: Easing.out(Easing.cubic),
-      }));
+      // Reset PlaylistCard animation
+      setShouldAnimateCard(false);
 
-      // Animate title with delay
-      titleOpacity.value = withDelay(400, withTiming(1, {
-        duration: 500,
+      // Modal entrance animation
+      modalOpacity.value = withTiming(1, {
+        duration: 300,
         easing: Easing.out(Easing.cubic),
-      }));
+      });
       
-      titleTranslateY.value = withDelay(400, withTiming(0, {
-        duration: 500,
+      modalScale.value = withTiming(1, {
+        duration: 300,
         easing: Easing.out(Easing.cubic),
-      }));
+      });
+      
+      modalTranslateY.value = withTiming(0, {
+        duration: 300,
+        easing: Easing.out(Easing.cubic),
+      });
 
-      // Animate description with delay
-      descriptionOpacity.value = withDelay(500, withTiming(1, {
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-      }));
-      
-      descriptionTranslateY.value = withDelay(500, withTiming(0, {
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-      }));
-
-      // Animate emojis with delay
-      emojisOpacity.value = withDelay(600, withTiming(1, {
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-      }));
-      
-      emojisScale.value = withDelay(600, withTiming(1, {
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-      }));
-
-      // Animate buttons with delay
-      buttonsOpacity.value = withDelay(700, withTiming(1, {
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-      }));
-      
-      buttonsTranslateY.value = withDelay(700, withTiming(0, {
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-      }));
-
-      // Animate songs with delay
-      songsOpacity.value = withDelay(800, withTiming(1, {
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-      }));
-      
-      songsTranslateY.value = withDelay(800, withTiming(0, {
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-      }));
+      // Trigger PlaylistCard animation after modal entrance
+      setTimeout(() => {
+        setShouldAnimateCard(true);
+      }, 100);
     }
   }, [visible, playlist]);
 
@@ -169,12 +94,7 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete }: 
     });
   };
 
-  const getGradientColors = () => {
-    if (playlist.colorPalette && playlist.colorPalette.length >= 2) {
-      return [playlist.colorPalette[0], playlist.colorPalette[1]] as const;
-    }
-    return [COLORS.primary.darkPurple, COLORS.primary.lime] as const;
-  };
+
 
   const formatTracksForDisplay = () => {
     if (!playlist.tracks) return [];
@@ -223,85 +143,56 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete }: 
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-black">
+      <Animated.View className="flex-1 bg-black" style={modalAnimatedStyle}>
         {/* Header */}
         <View className="flex-row items-center justify-between p-4 pt-12">
-          <TouchableOpacity onPress={onClose} className="p-2">
-            <Text className="text-white text-lg font-poppins-bold">✕</Text>
+          <TouchableOpacity 
+            onPress={onClose} 
+            className="p-2 rounded-full bg-black bg-opacity-30 active:bg-opacity-50"
+            activeOpacity={0.8}
+          >
+            <Text className="text-white text-xl font-poppins-bold">✕</Text>
           </TouchableOpacity>
           <Text className="text-white text-lg font-poppins-bold">Playlist Details</Text>
           <View className="w-10" />
         </View>
 
         <ScrollView className="flex-1">
-          {/* Cover Image or Gradient */}
-          <Animated.View className="relative h-64 mx-4 mb-6 rounded-2xl overflow-hidden" style={coverAnimatedStyle}>
-            {playlist.coverImageUrl ? (
-              <Image 
-                source={{ uri: playlist.coverImageUrl }}
-                className="w-full h-full"
-                resizeMode="cover"
-              />
-            ) : (
-              <LinearGradient
-                colors={getGradientColors()}
-                className="w-full h-full"
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              />
-            )}
-            
-            {/* Overlay with playlist info */}
-            <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.8)']}
-              className="absolute bottom-0 left-0 right-0 h-24"
+          {/* Playlist Card - Reusing the same component from creation flow */}
+          <View className="px-4 mb-6">
+            <PlaylistCard
+              name={playlist.name}
+              description={playlist.description}
+              songCount={playlist.songCount}
+              coverImageUrl={playlist.coverImageUrl}
+              shouldAnimate={shouldAnimateCard}
+              tracks={playlist.tracks}
+              compact={true}
             />
-            
-            {/* Playlist info */}
-            <View className="absolute bottom-0 left-0 right-0 p-4">
-              <Animated.Text 
-                className="text-white text-2xl font-poppins-bold mb-1" 
-                numberOfLines={1}
-                style={titleAnimatedStyle}
-              >
-                {playlist.name}
-              </Animated.Text>
-              <View className="flex-row items-center">
-                <Text className="text-white text-sm font-poppins mr-3 opacity-80">
-                  {playlist.songCount} {playlist.songCount === 1 ? 'song' : 'songs'}
-                </Text>
-                {playlist.createdAt && (
-                  <Text className="text-white text-sm font-poppins opacity-70">
-                    {formatDate(playlist.createdAt)}
-                  </Text>
-                )}
-              </View>
-            </View>
-          </Animated.View>
-
-          {/* Description */}
-          {playlist.description && (
-            <Animated.View className="px-4 mb-6" style={descriptionAnimatedStyle}>
-              <Text className="text-white text-base font-poppins opacity-80 leading-6">
-                {playlist.description}
-              </Text>
-            </Animated.View>
-          )}
-
-          {/* Emojis */}
-          <Animated.View className="px-4 mb-6" style={emojisAnimatedStyle}>
-            <View className="flex-row">
-              {playlist.emojis.map((emoji, index) => (
-                <Text key={index} className="text-2xl mr-2">
-                  {emoji}
-                </Text>
-              ))}
-            </View>
-          </Animated.View>
+          </View>
 
           {/* Action Buttons */}
-          <Animated.View className="px-4 mb-6" style={buttonsAnimatedStyle}>
+          <View className="px-4 mb-6 justify-center items-center">
             <View className="flex-row justify-between gap-3">
+              <View className="flex-row gap-3">
+                {onSave && (
+                  <AnimatedButton
+                    title="Save to"
+                    icon={require('../../assets/images/spotify-logo.png')}
+                    onPress={onSave}
+                    shouldAnimate={true}
+                  />
+                )}
+                
+                {onDelete && (
+                  <AnimatedButton
+                    title="Delete"
+                    onPress={onDelete}
+                    shouldAnimate={true}
+                  />
+                )}
+              </View>
+              
               {playlist.spotifyUrl && (
                 <AnimatedButton
                   title="Open in Spotify"
@@ -309,28 +200,20 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete }: 
                   shouldAnimate={true}
                 />
               )}
-              
-              {onDelete && (
-                <AnimatedButton
-                  title="Delete"
-                  onPress={onDelete}
-                  shouldAnimate={true}
-                />
-              )}
             </View>
-          </Animated.View>
+          </View>
 
           {/* Songs List */}
-          <Animated.View className="px-4 pb-8" style={songsAnimatedStyle}>
+          <View className="px-4 pb-8">
             <Text className="text-white text-lg font-poppins-bold mb-4">Songs</Text>
-            <SongList 
-              songs={formatTracksForDisplay()} 
-              showScrollView={false}
-              shouldAnimate={true}
-            />
-          </Animated.View>
+                          <SongList 
+                songs={formatTracksForDisplay()} 
+                showScrollView={false}
+                shouldAnimate={true}
+              />
+            </View>
         </ScrollView>
-      </View>
+      </Animated.View>
     </Modal>
   );
 } 

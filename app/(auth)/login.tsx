@@ -10,6 +10,7 @@ import { Glass } from '../components/Glass';
 import { COLORS } from '../constants/colors';
 import { spotifyService } from '../../services/spotify';
 import { Layout } from '../components/Layout';
+
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {

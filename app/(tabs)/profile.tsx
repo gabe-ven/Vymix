@@ -7,6 +7,7 @@ import { COLORS } from '../constants/colors';
 import Glass from '../components/Glass';
 import { spotifyService, SpotifyUser } from '../../services/spotify';
 import { useState, useEffect, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();

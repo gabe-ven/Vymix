@@ -90,6 +90,19 @@ export default function MixesScreen() {
     setSelectedPlaylist(null);
   };
 
+  const handleSaveToSpotify = async () => {
+    if (selectedPlaylist) {
+      console.log('💾 Saving playlist to Spotify:', selectedPlaylist.name);
+      // TODO: Implement actual Spotify save functionality
+      // For now, just show a placeholder
+      Alert.alert(
+        'Save to Spotify',
+        'This feature will be implemented soon!',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
   // Show error state if there's an error
   if (error) {
     console.log('❌ Showing error state:', error);
@@ -195,6 +208,7 @@ export default function MixesScreen() {
         playlist={selectedPlaylist}
         onClose={handleCloseModal}
         onDelete={selectedPlaylist?.id ? () => handleDeletePlaylist(selectedPlaylist.id!) : undefined}
+        onSave={handleSaveToSpotify}
       />
     </Layout>
   );

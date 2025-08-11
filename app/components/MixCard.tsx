@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../constants/colors';
 import { PlaylistData } from '../../services/playlistService';
+import Glass from './Glass';
 
 interface MixCardProps {
   playlist: PlaylistData;
@@ -42,62 +43,48 @@ export default function MixCard({ playlist, onPress }: MixCardProps) {
   return (
     <TouchableOpacity 
       onPress={handlePress}
-      className="mb-4 rounded-2xl overflow-hidden"
-      activeOpacity={0.8}
+      className="mb-4"
+      activeOpacity={0.9}
     >
-      <View className="relative">
-        {/* Cover Image or Gradient Background */}
-        {playlist.coverImageUrl ? (
-          <Image 
-            source={{ uri: playlist.coverImageUrl }}
-            className="w-full h-48"
-            resizeMode="cover"
-          />
-        ) : (
-          <LinearGradient
-            colors={getGradientColors()}
-            className="w-full h-48"
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          />
-        )}
-        
-        {/* Overlay with playlist info */}
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.7)']}
-          className="absolute bottom-0 left-0 right-0 h-24"
-        />
-        
-        {/* Playlist info */}
-        <View className="absolute bottom-0 left-0 right-0 p-4">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-1">
-              <Text className="text-white text-lg font-poppins-bold mb-1" numberOfLines={1}>
-                {playlist.name}
-              </Text>
-              <View className="flex-row items-center">
-                <Text className="text-white text-sm font-poppins mr-3 opacity-80">
-                  {playlist.songCount} {playlist.songCount === 1 ? 'song' : 'songs'}
-                </Text>
-                {playlist.createdAt && (
-                  <Text className="text-white text-sm font-poppins opacity-70">
-                    {formatDate(playlist.createdAt)}
-                  </Text>
-                )}
-              </View>
-            </View>
+      <Glass className="p-5" blurAmount={25} borderRadius={20}>
+        <View className="flex-row items-center">
+          {/* Playlist Cover Square */}
+          <View className="w-20 h-20 rounded-2xl overflow-hidden mr-4">
+            {playlist.coverImageUrl ? (
+              <Image 
+                source={{ uri: playlist.coverImageUrl }}
+                className="w-full h-full"
+                resizeMode="cover"
+              />
+            ) : (
+              <LinearGradient
+                colors={getGradientColors()}
+                className="w-full h-full"
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              />
+            )}
+          </View>
+          
+          {/* Playlist Info */}
+          <View className="flex-1">
+            <Text className="text-white text-xl font-poppins-bold mb-2" numberOfLines={1}>
+              {playlist.name}
+            </Text>
             
-            {/* Emojis */}
-            <View className="flex-row ml-2">
-              {playlist.emojis.slice(0, 3).map((emoji, index) => (
-                <Text key={index} className="text-xl mr-1">
-                  {emoji}
+            <View className="flex-row items-center">
+              <Text className="text-white text-sm font-poppins-semibold mr-3">
+                {playlist.songCount} {playlist.songCount === 1 ? 'song' : 'songs'}
+              </Text>
+              {playlist.createdAt && (
+                <Text className="text-white text-sm font-poppins-semibold">
+                  {formatDate(playlist.createdAt)}
                 </Text>
-              ))}
+              )}
             </View>
           </View>
         </View>
-      </View>
+      </Glass>
     </TouchableOpacity>
   );
 } 
