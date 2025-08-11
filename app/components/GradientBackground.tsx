@@ -21,24 +21,20 @@ interface GradientBackgroundProps {
 export default function GradientBackground({ colors, children, scrollY }: GradientBackgroundProps) {
   // Handle both old format and new color palette format
   const gradientColors = Array.isArray(colors) 
-    ? (colors.length >= 2 ? colors : ['#000000', '#000000'])
+    ? (colors.length >= 2 ? colors : ['#1DB954', '#191414', '#1ED760'])
     : [colors.primary, colors.secondary, colors.background];
 
-  // Use only the 3 colors from the palette for a clean gradient
-  const topGradientColors = [...gradientColors];
+  // Use all colors from the palette for a richer gradient
+  const paletteColors = Array.isArray(colors) ? colors : [colors.primary, colors.secondary, colors.background];
+  
+  // Create smooth gradient locations based on the number of colors
+  const gradientLocations = paletteColors.map((_, index) => 
+    index / (paletteColors.length - 1)
+  );
 
-  // Create locations that create smooth transitions between the 3 colors
-  // and then transition to dark for the bottom half
-  const gradientLocations = [
-    0,      // Start with first color
-    0.2,    // First color blends into second
-    0.6,    // Second color blends into third
-    0.8,    // Third color starts fading to dark
-    1       // End with dark color
-  ];
-
-  // Add dark color to the end of the gradient
-  const fullGradientColors = [...topGradientColors, '#1a1a1a'];
+  // Add a subtle dark fade at the end
+  const fullGradientColors = [...paletteColors, '#000000'];
+  const fullGradientLocations = [...gradientLocations, 1];
 
   // Create animated style for gradient opacity
   const gradientAnimatedStyle = useAnimatedStyle(() => {
@@ -65,7 +61,7 @@ export default function GradientBackground({ colors, children, scrollY }: Gradie
       <Animated.View style={[styles.gradient, gradientAnimatedStyle]}>
         <LinearGradient
           colors={fullGradientColors as any}
-          locations={gradientLocations as any}
+          locations={fullGradientLocations as any}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={styles.gradient}
