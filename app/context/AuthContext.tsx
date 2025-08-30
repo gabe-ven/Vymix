@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
+import { spotifyService } from '@/services/spotify';
 
 interface AuthContextType {
   user: FirebaseAuthTypes.User | null;
@@ -45,6 +46,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
+      try {
+        await spotifyService.logout();
+      } catch (e) {
+        // ignore Spotify cleanup errors
+      }
       await auth().signOut();
       setUser(null);
     } catch (error) {

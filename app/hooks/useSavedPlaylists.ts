@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getUserPlaylists, savePlaylistToFirestore, deletePlaylist, PlaylistData } from '../../services/playlistService';
+import { backfillPlaylistCovers } from '../../services';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Cache for playlists to avoid repeated Firestore calls
@@ -132,6 +133,17 @@ export const useSavedPlaylists = () => {
       
       const userPlaylists = await getUserPlaylists(user.uid);
       console.log('✅ Fetched playlists:', userPlaylists.length);
+      // Background: backfill covers into Storage and refresh local cache once done
+      (async () => {
+        try {
+          await backfillPlaylistCovers(user.uid);
+          const refreshed = await getUserPlaylists(user.uid);
+          const updatedCache = { playlists: refreshed, timestamp: Date.now() };
+          playlistCache.set(user.uid, updatedCache);
+          await saveCacheToStorage(user.uid, updatedCache);
+          setPlaylists(refreshed);
+        } catch {}
+      })();
       
       // Cache the results
       const cacheData = {

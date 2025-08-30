@@ -6,6 +6,7 @@ import {
   PlaylistProgress, 
   PlaylistInfo
 } from './types/playlistTypes';
+import { uploadImageFromUrlToStorage, isFirebaseStorageUrl } from './storageService';
 
 export class PlaylistGenerationService {
   private playlistCache = new Map<string, {playlist: PlaylistData, timestamp: number}>();
@@ -144,7 +145,17 @@ export class PlaylistGenerationService {
       
       // Generate cover image
       options.onProgress?.({ emojis, songCount, vibe, ...playlistInfo }, { current: 1, total: songCount, phase: 'Generating cover image...' });
-      const coverImageUrl = await this.generateCoverImage(emojis, vibe, playlistInfo.colorPalette);
+      let coverImageUrl = await this.generateCoverImage(emojis, vibe, playlistInfo.colorPalette);
+      // Persist cover to Firebase Storage for non-expiring URL
+      try {
+        if (coverImageUrl && !isFirebaseStorageUrl(coverImageUrl)) {
+          const tempId = this.generateUniquePlaylistId();
+          const storedUrl = await uploadImageFromUrlToStorage(`covers/generated/${tempId}.jpg`, coverImageUrl);
+          coverImageUrl = storedUrl;
+        }
+      } catch (e) {
+        console.warn('Failed to persist cover image to storage, keeping original URL:', e);
+      }
       
       // Generate tracks
       options.onProgress?.({ emojis, songCount, vibe, ...playlistInfo, coverImageUrl }, { current: 2, total: songCount, phase: 'Generating tracks...' });
@@ -427,6 +438,27 @@ MANDATORY: No text, logos, or emojis in the image.
     } catch (error) {
       console.error('🎨 DALL-E image generation failed:', error);
       return '';
+    }
+  }
+
+  /**
+   * Public helper to regenerate and persist a cover image for an existing playlist.
+   */
+  async regenerateAndPersistCoverImage(
+    userId: string,
+    playlistId: string,
+    emojis: string[],
+    vibe: string,
+    colorPalette: string[]
+  ): Promise<string> {
+    const url = await this.generateCoverImage(emojis, vibe, colorPalette);
+    if (!url) return '';
+    try {
+      const storedUrl = await uploadImageFromUrlToStorage(`covers/users/${userId}/${playlistId}.jpg`, url);
+      return storedUrl;
+    } catch (e) {
+      console.warn('Failed to upload regenerated cover image to storage:', e);
+      return url; // fallback to original (may be ephemeral)
     }
   }
 

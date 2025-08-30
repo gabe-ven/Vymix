@@ -1,5 +1,7 @@
 import { spotifyService } from './spotify';
 import { PlaylistData } from './types/playlistTypes';
+import { isFirebaseStorageUrl, uploadImageFromUrlToStorage } from './storageService';
+import { playlistGenerationService } from './playlistGenerationService';
 import firestore from '@react-native-firebase/firestore';
 
 export class PlaylistManagementService {
@@ -115,8 +117,20 @@ export const savePlaylistToFirestore = async (playlistData: Omit<PlaylistData, '
       console.log('⚠️ No ID found in duplicate, this should not happen');
     }
     
+    // Ensure cover image is persisted to storage if present and not already a storage URL
+    let persistedCoverUrl = playlistData.coverImageUrl;
+    try {
+      if (playlistData.coverImageUrl && !isFirebaseStorageUrl(playlistData.coverImageUrl)) {
+        const imgPath = `covers/users/${userId}/${playlistData.id || 'temp'}.jpg`;
+        persistedCoverUrl = await uploadImageFromUrlToStorage(imgPath, playlistData.coverImageUrl);
+      }
+    } catch (e) {
+      console.warn('Failed to persist cover image before saving to Firestore:', e);
+    }
+
     const playlistToSave = {
       ...playlistData,
+      coverImageUrl: persistedCoverUrl,
       userId,
       createdAt: firestore.FieldValue.serverTimestamp(),
       updatedAt: firestore.FieldValue.serverTimestamp(),
@@ -160,6 +174,36 @@ export const savePlaylistToFirestore = async (playlistData: Omit<PlaylistData, '
   }
 };
 
+/**
+ * Backfill covers for existing user playlists that have non-persistent URLs.
+ */
+export const backfillPlaylistCovers = async (userId: string): Promise<void> => {
+  try {
+    const playlists = await getUserPlaylists(userId);
+    const tasks: Array<Promise<void>> = [];
+    for (const p of playlists) {
+      if (p.coverImageUrl && !isFirebaseStorageUrl(p.coverImageUrl)) {
+        const task = (async () => {
+          try {
+            const imgPath = `covers/users/${userId}/${p.id}.jpg`;
+            const storedUrl = await uploadImageFromUrlToStorage(imgPath, p.coverImageUrl!);
+            await firestore().collection('playlists').doc(p.id).update({
+              coverImageUrl: storedUrl,
+              updatedAt: firestore.FieldValue.serverTimestamp(),
+            });
+          } catch (e) {
+            // If the original URL can't be fetched anymore, skip without regenerating
+          }
+        })();
+        tasks.push(task);
+      }
+    }
+    await Promise.allSettled(tasks);
+  } catch (e) {
+    // best-effort backfill
+  }
+};
+
 export const getUserPlaylists = async (userId: string): Promise<PlaylistData[]> => {
   try {
     console.log('🔍 Fetching playlists for user:', userId);
@@ -185,11 +229,11 @@ export const getUserPlaylists = async (userId: string): Promise<PlaylistData[]> 
       } as PlaylistData);
     });
 
-    // Sort in memory (oldest first, newest at bottom)
+    // Sort in memory (newest first)
     playlists.sort((a, b) => {
       const dateA = a.createdAt || new Date(0);
       const dateB = b.createdAt || new Date(0);
-      return dateA.getTime() - dateB.getTime();
+      return dateB.getTime() - dateA.getTime();
     });
 
     console.log('🔍 Returning', playlists.length, 'playlists');

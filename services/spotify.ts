@@ -1,7 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import * as ImageManipulator from 'expo-image-manipulator';
+import * as Crypto from 'expo-crypto';
+import * as Random from 'expo-random';
+import auth from '@react-native-firebase/auth';
 import { Buffer } from 'buffer';
 import { SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET } from '../env';
 
@@ -105,6 +109,7 @@ class SpotifyService {
   private refreshToken: string | null = null;
   private tokenExpiry: number | null = null;
   private isInitialized: boolean = false;
+  private currentUserId: string | null = null;
 
   // Set up Spotify's OAuth endpoints
   private discovery = {
@@ -147,12 +152,19 @@ class SpotifyService {
     }
   }
 
-  // Load stored tokens from AsyncStorage
+  // Helpers for per-user keying
+  private getUserScopedKey(base: string, userId?: string | null): string {
+    const uid = userId ?? this.currentUserId ?? auth().currentUser?.uid ?? 'anonymous';
+    return `${base}_${uid}`;
+  }
+
+  // Load stored tokens from SecureStore (fallback to AsyncStorage)
   private async loadTokens(): Promise<void> {
     try {
-      const accessToken = await AsyncStorage.getItem('spotify_access_token');
-      const refreshToken = await AsyncStorage.getItem('spotify_refresh_token');
-      const tokenExpiry = await AsyncStorage.getItem('spotify_token_expiry');
+      this.currentUserId = auth().currentUser?.uid ?? null;
+      const accessToken = await this.secureGetItem(this.getUserScopedKey('spotify_access_token'));
+      const refreshToken = await this.secureGetItem(this.getUserScopedKey('spotify_refresh_token'));
+      const tokenExpiry = await this.secureGetItem(this.getUserScopedKey('spotify_token_expiry'));
 
       // Load tokens if we have either access token or refresh token
       if (accessToken || refreshToken) {
@@ -171,17 +183,17 @@ class SpotifyService {
     }
   }
 
-  // Save tokens to AsyncStorage
+  // Save tokens to SecureStore (fallback to AsyncStorage)
   private async saveTokens(accessToken: string, expiresIn: number, refreshToken?: string): Promise<void> {
     try {
       const expiryTime = Date.now() + (expiresIn * 1000);
       
-      await AsyncStorage.setItem('spotify_access_token', accessToken);
-      await AsyncStorage.setItem('spotify_token_expiry', expiryTime.toString());
+      await this.secureSetItem(this.getUserScopedKey('spotify_access_token'), accessToken);
+      await this.secureSetItem(this.getUserScopedKey('spotify_token_expiry'), expiryTime.toString());
       
       // Only update refresh token if a new one is provided
       if (refreshToken) {
-        await AsyncStorage.setItem('spotify_refresh_token', refreshToken);
+        await this.secureSetItem(this.getUserScopedKey('spotify_refresh_token'), refreshToken);
         this.refreshToken = refreshToken;
       }
       
@@ -199,12 +211,12 @@ class SpotifyService {
     }
   }
 
-  // Clear tokens from AsyncStorage
+  // Clear tokens from SecureStore/AsyncStorage
   private async clearTokens(): Promise<void> {
     try {
-      await AsyncStorage.removeItem('spotify_access_token');
-      await AsyncStorage.removeItem('spotify_refresh_token');
-      await AsyncStorage.removeItem('spotify_token_expiry');
+      await this.secureDeleteItem(this.getUserScopedKey('spotify_access_token'));
+      await this.secureDeleteItem(this.getUserScopedKey('spotify_refresh_token'));
+      await this.secureDeleteItem(this.getUserScopedKey('spotify_token_expiry'));
       
       this.accessToken = null;
       this.refreshToken = null;
@@ -254,12 +266,20 @@ class SpotifyService {
       await this.initialize();
     }
 
+    this.currentUserId = userId ?? auth().currentUser?.uid ?? null;
+
+    // PKCE setup
+    const codeVerifier = await this.generateCodeVerifier();
+    const codeChallenge = await this.generateCodeChallenge(codeVerifier);
+
     const authUrl =
       `${this.discovery.authorizationEndpoint}` +
       `?client_id=${this.clientId}` +
       `&response_type=code` +
       `&redirect_uri=${encodeURIComponent(this.redirectUri)}` +
-      `&scope=${encodeURIComponent(this.scopes.join(' '))}`;
+      `&scope=${encodeURIComponent(this.scopes.join(' '))}` +
+      `&code_challenge_method=S256` +
+      `&code_challenge=${codeChallenge}`;
 
     try {
       const result = await WebBrowser.openAuthSessionAsync(authUrl, this.redirectUri);
@@ -269,7 +289,7 @@ class SpotifyService {
         const code = url.searchParams.get('code');
         
         if (code) {
-          const accessToken = await this.exchangeCodeForToken(code);
+          const accessToken = await this.exchangeCodeForTokenPKCE(code, codeVerifier);
           
           // Mark user as connected if userId provided
           if (userId) {
@@ -291,9 +311,44 @@ class SpotifyService {
   }
 
   // Exchange authorization code for access token
-  private async exchangeCodeForToken(code: string): Promise<string> {
+  private async exchangeCodeForTokenPKCE(code: string, codeVerifier: string): Promise<string> {
+    // PKCE token exchange (no client secret)
+    try {
+      const response = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'authorization_code',
+          client_id: this.clientId,
+          code: code,
+          redirect_uri: this.redirectUri,
+          code_verifier: codeVerifier,
+        }).toString(),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`PKCE token exchange failed: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const { access_token, refresh_token, expires_in } = data;
+      await this.saveTokens(access_token, expires_in, refresh_token);
+      return access_token;
+    } catch (err) {
+      // Fallback to client secret exchange only if configured
+      if (SPOTIFY_CLIENT_SECRET) {
+        return this.exchangeCodeForTokenWithSecret(code);
+      }
+      throw err;
+    }
+  }
+
+  // Legacy secret-based exchange (fallback only)
+  private async exchangeCodeForTokenWithSecret(code: string): Promise<string> {
     const authHeader = `Basic ${Buffer.from(`${this.clientId}:${SPOTIFY_CLIENT_SECRET}`).toString('base64')}`;
-    
     const response = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
       headers: {
@@ -306,16 +361,13 @@ class SpotifyService {
         redirect_uri: this.redirectUri,
       }).toString(),
     });
-
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Token exchange failed: ${response.status} ${response.statusText}`);
     }
-
     const data = await response.json();
     const { access_token, refresh_token, expires_in } = data;
     await this.saveTokens(access_token, expires_in, refresh_token);
-    
     return access_token;
   }
 
@@ -327,17 +379,16 @@ class SpotifyService {
 
     console.log('Refreshing access token...');
 
-    const authHeader = `Basic ${Buffer.from(`${this.clientId}:${SPOTIFY_CLIENT_SECRET}`).toString('base64')}`;
-    
+    // For PKCE, refresh also doesn't require client secret
     const response = await fetch('https://accounts.spotify.com/api/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': authHeader,
       },
       body: new URLSearchParams({
         grant_type: 'refresh_token',
         refresh_token: this.refreshToken,
+        client_id: this.clientId,
       }).toString(),
     });
 
@@ -844,6 +895,49 @@ class SpotifyService {
   // Get redirect URI for debugging
   public getRedirectUri(): string {
     return this.redirectUri;
+  }
+
+  // Secure storage helpers (prefer SecureStore)
+  private async secureSetItem(key: string, value: string): Promise<void> {
+    try {
+      await SecureStore.setItemAsync(key, value, { keychainService: 'vymix_spotify' });
+    } catch {
+      await AsyncStorage.setItem(key, value);
+    }
+  }
+
+  private async secureGetItem(key: string): Promise<string | null> {
+    try {
+      const val = await SecureStore.getItemAsync(key, { keychainService: 'vymix_spotify' });
+      if (val != null) return val;
+    } catch {}
+    return AsyncStorage.getItem(key);
+  }
+
+  private async secureDeleteItem(key: string): Promise<void> {
+    try {
+      await SecureStore.deleteItemAsync(key, { keychainService: 'vymix_spotify' });
+    } catch {}
+    try {
+      await AsyncStorage.removeItem(key);
+    } catch {}
+  }
+
+  // PKCE helpers
+  private async generateCodeVerifier(): Promise<string> {
+    const random = await Random.getRandomBytesAsync(64);
+    return this.base64UrlEncode(random);
+  }
+
+  private async generateCodeChallenge(codeVerifier: string): Promise<string> {
+    const digest = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, codeVerifier, { encoding: Crypto.CryptoEncoding.BASE64 });
+    // digest is standard base64; convert to base64url
+    return digest.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  }
+
+  private base64UrlEncode(bytes: Uint8Array): string {
+    const base64 = Buffer.from(bytes).toString('base64');
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
   }
 }
 
