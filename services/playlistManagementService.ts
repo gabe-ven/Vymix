@@ -3,9 +3,10 @@ import { PlaylistData } from './types/playlistTypes';
 import { isFirebaseStorageUrl, uploadImageFromUrlToStorage } from './storageService';
 import { playlistGenerationService } from './playlistGenerationService';
 import firestore from '@react-native-firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export class PlaylistManagementService {
-  async saveToSpotify(playlistData: PlaylistData): Promise<PlaylistData> {
+  async saveToSpotify(playlistData: PlaylistData, userId?: string): Promise<PlaylistData> {
     console.log('playlistManagementService.saveToSpotify called');
     console.log('Checking Spotify authentication...');
     
@@ -20,12 +21,24 @@ export class PlaylistManagementService {
     const trackUris = playlistData.tracks.map(track => track.uri);
     console.log('Track URIs prepared, count:', trackUris.length);
     
+    // Get user's privacy preference
+    let isPublic = true; // Default to public
+    if (userId) {
+      try {
+        const privacySetting = await AsyncStorage.getItem(`playlist_privacy_${userId}`);
+        isPublic = privacySetting !== 'false'; // Default to public if not set
+        console.log('Using privacy setting:', isPublic ? 'public' : 'private');
+      } catch (error) {
+        console.warn('Failed to load privacy setting, using default (public):', error);
+      }
+    }
+    
     console.log('Creating playlist with tracks...');
     const spotifyPlaylist = await spotifyService.createPlaylistWithTracks(
       playlistData.name,
       playlistData.description,
       trackUris,
-      true
+      isPublic
     );
     console.log('Playlist created successfully:', spotifyPlaylist.id);
 

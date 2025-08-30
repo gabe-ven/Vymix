@@ -132,27 +132,31 @@ export default function ProfileScreen() {
     } catch {}
   };
 
+
+
   const ActionRow = ({
     icon,
     label,
     onPress,
     showChevron = true,
+    isDestructive = false,
   }: {
     icon: React.ReactElement;
     label: string;
     onPress?: () => void;
     showChevron?: boolean;
+    isDestructive?: boolean;
   }) => (
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.8}
-      className="w-full flex-row items-center justify-between bg-white/10 rounded-2xl px-4 py-4 mb-3"
+      className="w-full flex-row items-center justify-between bg-white/10 rounded-2xl px-5 py-5 mb-3"
     >
       <View className="flex-row items-center">
         <View className="w-6 h-6 mr-3 items-center justify-center">
           {icon}
         </View>
-        <Text className="text-ui-white font-poppins text-base">{label}</Text>
+        <Text className={`font-poppins-bold text-base ${isDestructive ? 'text-red-400' : 'text-ui-white'}`}>{label}</Text>
       </View>
       {showChevron ? (
         <Ionicons name="chevron-forward" size={18} color={COLORS.ui.white} />
@@ -188,7 +192,7 @@ export default function ProfileScreen() {
         {/* Spotify connection card (replaces upgrade button) */}
         <Glass 
           className="rounded-2xl p-4 mb-8"
-          blurAmount={20}
+          blurAmount={25}
           backgroundColor={COLORS.transparent.white[10]}
         >
           <View className="flex-row items-center justify-between">
@@ -250,7 +254,7 @@ export default function ProfileScreen() {
         <ActionRow icon={<Feather name="shield" size={20} color={COLORS.ui.white} />} label="Privacy" onPress={() => handleOpenLink('https://vymix.app/privacy')} />
         <ActionRow icon={<Feather name="help-circle" size={20} color={COLORS.ui.white} />} label="Help & Support" onPress={() => handleOpenLink('https://vymix.app/feedback')} />
         <ActionRow icon={<Feather name="settings" size={20} color={COLORS.ui.white} />} label="Settings" onPress={() => router.push('/settings')} />
-        <ActionRow icon={<Feather name="log-out" size={20} color={COLORS.ui.white} />} label="Logout" onPress={handleSignOut} showChevron={false} />
+        <ActionRow icon={<Feather name="log-out" size={20} color="#ff6b6b" />} label="Logout" onPress={handleSignOut} showChevron={false} isDestructive />
 
         {/* Extras removed per request */}
       </ScrollView>

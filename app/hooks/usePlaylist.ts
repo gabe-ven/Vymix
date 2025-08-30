@@ -186,8 +186,8 @@ export const usePlaylist = () => {
   };
 
   // Save to Spotify
-  const saveToSpotify = async (): Promise<void> => {
-    console.log('saveToSpotify hook called');
+  const saveToSpotify = async (userId?: string): Promise<void> => {
+    console.log('saveToSpotify hook called with userId:', userId);
     if (!playlistData) {
       console.log('No playlist data, returning early');
       return;
@@ -198,7 +198,7 @@ export const usePlaylist = () => {
 
     try {
       console.log('Calling playlistService.saveToSpotify...');
-      const result = await playlistService.saveToSpotify(playlistData);
+      const result = await playlistService.saveToSpotify(playlistData, userId);
       console.log('playlistService.saveToSpotify completed successfully:', result);
       // Optionally update AsyncStorage if you want, but don't update state
     } catch (err) {

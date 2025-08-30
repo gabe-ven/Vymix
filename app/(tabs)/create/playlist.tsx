@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, Linking, Alert } from 'react-native';
 import Animated, { 
   useSharedValue, 
@@ -52,6 +52,18 @@ const Playlist = () => {
   
   // Scroll animation values
   const scrollY = useSharedValue(0);
+  
+  // Helper function for showing toasts
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToastMessage(message);
+    setToastType(type);
+    setToastVisible(true);
+    
+    // Hide toast after 3 seconds
+    setTimeout(() => {
+      setToastVisible(false);
+    }, 3000);
+  };
   
   // Load playlist data on mount
   useEffect(() => {

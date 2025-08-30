@@ -47,8 +47,8 @@ export class PlaylistService {
     });
   }
 
-  async saveToSpotify(playlistData: any) {
-    return playlistManagementService.saveToSpotify(playlistData);
+  async saveToSpotify(playlistData: any, userId?: string) {
+    return playlistManagementService.saveToSpotify(playlistData, userId);
   }
 }
 

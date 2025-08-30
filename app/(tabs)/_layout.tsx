@@ -7,7 +7,7 @@ import MaskedView from '@react-native-masked-view/masked-view';
 import { Glass } from '../components/Glass';
 import { COLORS } from '../constants/colors';
 
-type IconName = 'plus' | 'user' | 'playlist';
+type IconName = 'plus' | 'user' | 'playlist' | 'library' | 'musical-notes' | 'person';
 
 const GradientMask = ({ 
   children, 
@@ -45,8 +45,14 @@ const TabIcon = ({ focused, icon, title }: { focused: boolean; icon: IconName; t
     switch (icon) {
       case 'plus':
         return <Feather name="plus-circle" {...iconProps} />;
+      case 'musical-notes':
+        return <Ionicons name="musical-notes" {...iconProps} />;
       case 'playlist':
         return <Ionicons name="list" {...iconProps} />;
+      case 'library':
+        return <Ionicons name="library" {...iconProps} />;
+      case 'person':
+        return <Ionicons name="person" {...iconProps} />;
       case 'user':
         return <MaterialIcons name="person-outline" {...iconProps} />;
       default:
@@ -124,7 +130,7 @@ export default function TabLayout() {
             title: 'Create',
             headerShown: false,
             tabBarIcon: ({ focused }) => (
-              <TabIcon focused={focused} icon="plus" title="Create" />
+              <TabIcon focused={focused} icon="musical-notes" title="Create" />
             ),
           }}
         />
@@ -134,7 +140,7 @@ export default function TabLayout() {
             title: 'Your Mixes',
             headerShown: false,
             tabBarIcon: ({ focused }) => (
-              <TabIcon focused={focused} icon="playlist" title="Your Mixes" />
+              <TabIcon focused={focused} icon="library" title="Your Mixes" />
             ),
           }}
         />
@@ -144,7 +150,7 @@ export default function TabLayout() {
             title: 'Profile',
             headerShown: false,
             tabBarIcon: ({ focused }) => (
-              <TabIcon focused={focused} icon="user" title="Profile" />
+              <TabIcon focused={focused} icon="person" title="Profile" />
             ),
           }}
         />

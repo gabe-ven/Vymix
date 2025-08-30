@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { getUserPlaylists, savePlaylistToFirestore, deletePlaylist, PlaylistData } from '../../services/playlistService';
 import { backfillPlaylistCovers } from '../../services';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { playlistService } from '../../services/playlistService';
 
 // Cache for playlists to avoid repeated Firestore calls
 const playlistCache = new Map<string, { playlists: PlaylistData[]; timestamp: number }>();
@@ -274,6 +275,19 @@ export const useSavedPlaylists = () => {
         };
         playlistCache.set(user.uid, updatedCache);
         await saveCacheToStorage(user.uid, updatedCache);
+      }
+      
+      // AUTO-SAVE TO SPOTIFY - SIMPLE AND CLEAN!
+      try {
+        const autoSaveSetting = await AsyncStorage.getItem(`auto_save_spotify_${user.uid}`);
+        if (autoSaveSetting === 'true') {
+          console.log('🎵 Auto-saving to Spotify...');
+          await playlistService.saveToSpotify(newPlaylist, user.uid);
+          console.log('✅ Auto-saved to Spotify successfully!');
+        }
+      } catch (spotifyError) {
+        console.log('⚠️ Auto-save to Spotify failed (playlist still saved locally):', spotifyError);
+        // Don't throw - playlist is still saved locally
       }
       
       return playlistId;

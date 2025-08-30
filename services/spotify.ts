@@ -108,6 +108,9 @@ class SpotifyService {
   private tokenExpiry: number | null = null;
   private isInitialized: boolean = false;
   private currentUserId: string | null = null;
+  private lastApiCall: number = 0;
+  private rateLimitResetTime: number = 0;
+  private isRateLimited: boolean = false;
 
   // Set up Spotify's OAuth endpoints
   private discovery = {
@@ -455,8 +458,21 @@ class SpotifyService {
     return this.accessToken!;
   }
 
-  // Make authenticated API request
+  // Rate limiting helper
+  private async handleRateLimit(): Promise<void> {
+    if (this.isRateLimited && Date.now() < this.rateLimitResetTime) {
+      const waitTime = this.rateLimitResetTime - Date.now();
+      console.log(`🕐 Rate limited, waiting ${Math.ceil(waitTime / 1000)} seconds...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+      this.isRateLimited = false;
+    }
+  }
+
+  // Make authenticated API request with rate limiting
   public async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    // Check rate limit before making request
+    await this.handleRateLimit();
+    
     const accessToken = await this.getValidAccessToken();
 
     const controller = new AbortController();
@@ -479,6 +495,20 @@ class SpotifyService {
         if (response.status === 401) {
           await this.clearTokens();
           throw new Error('Authentication required. Please login again.');
+        }
+        
+        // Handle rate limiting (429)
+        if (response.status === 429) {
+          const retryAfter = response.headers.get('Retry-After');
+          const retryAfterMs = retryAfter ? parseInt(retryAfter) * 1000 : 60000; // Default 1 minute
+          
+          this.isRateLimited = true;
+          this.rateLimitResetTime = Date.now() + retryAfterMs;
+          
+          console.warn(`⚠️ Spotify rate limit hit. Retry after ${Math.ceil(retryAfterMs / 1000)} seconds`);
+          
+          // For rate limits, throw a more user-friendly error
+          throw new Error('Spotify rate limit reached. Please wait a moment before trying again.');
         }
         
         // Try to get detailed error information from response body
