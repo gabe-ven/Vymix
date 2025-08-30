@@ -161,7 +161,7 @@ export default function MixesScreen() {
   return (
     <Layout>
       <ScrollView 
-        className="flex-1 px-4 pt-12"
+        className="flex-1 px-4 pt-16"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
 import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -897,18 +896,20 @@ class SpotifyService {
     return this.redirectUri;
   }
 
-  // Secure storage helpers (prefer SecureStore)
+  // Secure storage helpers (prefer SecureStore, fallback to AsyncStorage)
   private async secureSetItem(key: string, value: string): Promise<void> {
     try {
-      await SecureStore.setItemAsync(key, value, { keychainService: 'vymix_spotify' });
-    } catch {
-      await AsyncStorage.setItem(key, value);
-    }
+      const mod = await import('expo-secure-store');
+      await mod.setItemAsync(key, value, { keychainService: 'vymix_spotify' } as any);
+      return;
+    } catch {}
+    await AsyncStorage.setItem(key, value);
   }
 
   private async secureGetItem(key: string): Promise<string | null> {
     try {
-      const val = await SecureStore.getItemAsync(key, { keychainService: 'vymix_spotify' });
+      const mod = await import('expo-secure-store');
+      const val = await mod.getItemAsync(key, { keychainService: 'vymix_spotify' } as any);
       if (val != null) return val;
     } catch {}
     return AsyncStorage.getItem(key);
@@ -916,7 +917,8 @@ class SpotifyService {
 
   private async secureDeleteItem(key: string): Promise<void> {
     try {
-      await SecureStore.deleteItemAsync(key, { keychainService: 'vymix_spotify' });
+      const mod = await import('expo-secure-store');
+      await mod.deleteItemAsync(key, { keychainService: 'vymix_spotify' } as any);
     } catch {}
     try {
       await AsyncStorage.removeItem(key);

@@ -1,7 +1,7 @@
-import { View, Text, TouchableOpacity, Image, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Alert, Linking, ScrollView } from 'react-native';
 import { Layout } from '@/app/components/Layout';
 import { useAuth } from '../context/AuthContext';
-import { FontAwesome, Ionicons } from '@expo/vector-icons';
+import { FontAwesome, Ionicons, Feather } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { COLORS } from '../constants/colors';
 import Glass from '../components/Glass';
@@ -22,12 +22,8 @@ export default function ProfileScreen() {
       // Check if user has valid tokens (currently authenticated)
       const isAuthenticated = await spotifyService.isAuthenticated();
       
-      // Check if user has ever connected before
-      const hasConnectedBefore = user?.uid ? await spotifyService.hasConnectedSpotify(user.uid) : false;
-      
-      // Show as connected if either currently authenticated OR has connected before
-      const connected = isAuthenticated || hasConnectedBefore;
-      setIsSpotifyConnected(connected);
+      // Treat as connected ONLY when currently authenticated
+      setIsSpotifyConnected(isAuthenticated);
       
       // If currently authenticated, fetch Spotify user data
       if (isAuthenticated) {
@@ -68,7 +64,7 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleSpotifyLogin = async () => {
+  const handleReconnectSpotify = async () => {
     try {
       setIsLoading(true);
       await spotifyService.loginToSpotify(user?.uid);
@@ -84,7 +80,7 @@ export default function ProfileScreen() {
       
       Alert.alert(
         'Connected! 🎉',
-        'You are now connected to Spotify and can create playlists!',
+        'Spotify reconnected successfully.',
         [{ text: 'OK' }]
       );
     } catch (error) {
@@ -128,111 +124,136 @@ export default function ProfileScreen() {
     }
   };
 
+  // Removed dark mode and cache handlers per request
+
+  const handleOpenLink = async (url: string) => {
+    try {
+      await Linking.openURL(url);
+    } catch {}
+  };
+
+  const ActionRow = ({
+    icon,
+    label,
+    onPress,
+    showChevron = true,
+  }: {
+    icon: React.ReactElement;
+    label: string;
+    onPress?: () => void;
+    showChevron?: boolean;
+  }) => (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      className="w-full flex-row items-center justify-between bg-white/10 rounded-2xl px-4 py-4 mb-3"
+    >
+      <View className="flex-row items-center">
+        <View className="w-6 h-6 mr-3 items-center justify-center">
+          {icon}
+        </View>
+        <Text className="text-ui-white font-poppins text-base">{label}</Text>
+      </View>
+      {showChevron ? (
+        <Ionicons name="chevron-forward" size={18} color={COLORS.ui.white} />
+      ) : (
+        <View />
+      )}
+    </TouchableOpacity>
+  );
+
   return (
     <Layout>
-      <View className="flex-1 p-4 md:p-6 pb-24">
-        {/* Profile Header */}
-        <View className="items-center mt-12 md:mt-16 mb-6 md:mb-8">
-          <View className="w-20 h-20 md:w-24 md:h-24 bg-background-darker rounded-full items-center justify-center mb-4 overflow-hidden">
+      <ScrollView className="flex-1 p-6" showsVerticalScrollIndicator={false}>
+        {/* Top spacing to match layout */}
+        <View className="w-full h-4" />
+
+        {/* Avatar + name/email */}
+        <View className="items-center mt-4 mb-6">
+          <View className="w-24 h-24 rounded-full overflow-hidden mb-3">
             {user?.photoURL ? (
-              <Image
-                source={{ uri: user.photoURL }}
-                className="w-full h-full"
-                resizeMode="cover"
-              />
+              <Image source={{ uri: user.photoURL }} className="w-full h-full" resizeMode="cover" />
             ) : (
-              <FontAwesome name="user" size={32} color={COLORS.ui.gray.dark} />
+              <View className="w-full h-full items-center justify-center bg-white/10">
+                <FontAwesome name="user" size={28} color={COLORS.ui.white} />
+              </View>
             )}
           </View>
-          <Text className="text-xl md:text-2xl font-bold text-ui-white mb-2 text-center px-4 font-poppins-bold">
-            {user?.displayName || user?.email?.split('@')[0] || 'User'}
-          </Text>
+          <Text className="text-ui-white text-xl font-poppins-bold">{user?.displayName || 'User'}</Text>
+          {!!user?.email && (
+            <Text className="text-ui-white opacity-60 font-poppins mt-1">{user.email}</Text>
+          )}
         </View>
 
-        {/* Spotify Connection Section */}
-        <View className="mb-6">
-          
-          <Glass 
-            className="rounded-xl p-4 mb-4"
-            blurAmount={20}
-            backgroundColor={COLORS.transparent.white[10]}
-          >
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center flex-1">
-                <View className="w-12 h-12 items-center justify-center mr-4">
-                  <Image
-                    source={require('../../assets/images/spotify-logo.png')}
-                    className="w-12 h-12"
-                    resizeMode="contain"
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-ui-white font-semibold text-base font-poppins-bold">
-                    Spotify
-                  </Text>
-                  {isSpotifyConnected && spotifyUser ? (
-                    <View className="flex-row items-center mt-1">
-                      {spotifyUser.images && spotifyUser.images.length > 0 ? (
-                        <Image
-                          source={{ uri: spotifyUser.images[0].url }}
-                          className="w-6 h-6 rounded-full mr-2"
-                          resizeMode="cover"
-                        />
-                      ) : (
-                        <View className="w-6 h-6 rounded-full bg-green-500 mr-2 items-center justify-center">
-                          <FontAwesome name="music" size={10} color="white" />
-                        </View>
-                      )}
-                      <Text className="text-ui-white text-sm font-poppins opacity-70">
-                        {spotifyUser.display_name}
-                      </Text>
-                    </View>
-                  ) : (
-                    <Text className="text-ui-white text-sm font-poppins opacity-70">
-                      {isSpotifyConnected ? 'Connected' : 'Not connected'}
-                    </Text>
-                  )}
-                </View>
+        {/* Spotify connection card (replaces upgrade button) */}
+        <Glass 
+          className="rounded-2xl p-4 mb-8"
+          blurAmount={20}
+          backgroundColor={COLORS.transparent.white[10]}
+        >
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center flex-1">
+              <View className="w-12 h-12 items-center justify-center mr-4">
+                <Image
+                  source={require('../../assets/images/spotify-logo.png')}
+                  className="w-12 h-12"
+                  resizeMode="contain"
+                />
               </View>
-              
+              <View className="flex-1">
+                <Text className="text-ui-white font-poppins-bold text-base">Spotify</Text>
+                {isSpotifyConnected && spotifyUser ? (
+                  <View className="flex-row items-center mt-1">
+                    {spotifyUser.images && spotifyUser.images.length > 0 ? (
+                      <Image
+                        source={{ uri: spotifyUser.images[0].url }}
+                        className="w-6 h-6 rounded-full mr-2"
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View className="w-6 h-6 rounded-full bg-green-500 mr-2 items-center justify-center">
+                        <FontAwesome name="music" size={10} color="white" />
+                      </View>
+                    )}
+                    <Text className="text-ui-white opacity-70 font-poppins text-sm" numberOfLines={1}>
+                      {spotifyUser.display_name}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text className="text-ui-white opacity-70 font-poppins text-sm">Not connected</Text>
+                )}
+              </View>
+            </View>
+            <View className="flex-row gap-3">
               {isSpotifyConnected ? (
                 <TouchableOpacity
                   onPress={handleSpotifyLogout}
                   disabled={isLoading}
-                  className="bg-red-500 rounded-full px-4 py-2 ml-4 shadow-lg"
+                  className="bg-red-500 rounded-full px-4 py-2 shadow-lg"
                 >
-                  <Text className="text-white font-semibold text-sm font-poppins">
-                    {isLoading ? 'Disconnecting...' : 'Disconnect'}
-                  </Text>
+                  <Text className="text-white font-poppins text-sm">{isLoading ? '...' : 'Disconnect'}</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
-                  onPress={handleSpotifyLogin}
+                  onPress={handleReconnectSpotify}
                   disabled={isLoading}
-                  className="bg-green-500 rounded-full px-4 py-2 ml-4 shadow-lg"
+                  className="bg-green-500 rounded-full px-4 py-2 shadow-lg"
                 >
-                  <Text className="text-white font-semibold text-sm font-poppins">
-                    {isLoading ? 'Connecting...' : 'Connect'}
-                  </Text>
+                  <Text className="text-white font-poppins text-sm">{isLoading ? '...' : 'Connect'}</Text>
                 </TouchableOpacity>
               )}
             </View>
-          </Glass>
-        </View>
-      </View>
+          </View>
+        </Glass>
 
-      {/* Sign Out Button - Positioned at bottom */}
-      <View className="absolute bottom-32 left-4 right-4">
-        <TouchableOpacity
-          onPress={handleSignOut}
-          className="bg-red-500 rounded-full py-4 px-6 shadow-lg"
-          activeOpacity={0.8}
-        >
-          <Text className="text-ui-white text-center font-semibold text-lg font-poppins">
-            Sign Out
-          </Text>
-        </TouchableOpacity>
-      </View>
+        {/* Action list */}
+        <ActionRow icon={<Feather name="shield" size={20} color={COLORS.ui.white} />} label="Privacy" onPress={() => handleOpenLink('https://vymix.app/privacy')} />
+        <ActionRow icon={<Feather name="help-circle" size={20} color={COLORS.ui.white} />} label="Help & Support" onPress={() => handleOpenLink('https://vymix.app/feedback')} />
+        <ActionRow icon={<Feather name="settings" size={20} color={COLORS.ui.white} />} label="Settings" onPress={() => router.push('/settings')} />
+        <ActionRow icon={<Feather name="log-out" size={20} color={COLORS.ui.white} />} label="Logout" onPress={handleSignOut} showChevron={false} />
+
+        {/* Extras removed per request */}
+      </ScrollView>
     </Layout>
   );
 }
