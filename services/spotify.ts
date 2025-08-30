@@ -3,7 +3,6 @@ import * as AuthSession from 'expo-auth-session';
 import * as WebBrowser from 'expo-web-browser';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as Crypto from 'expo-crypto';
-import * as Random from 'expo-random';
 import auth from '@react-native-firebase/auth';
 import { Buffer } from 'buffer';
 import { SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET } from '../env';
@@ -927,7 +926,7 @@ class SpotifyService {
 
   // PKCE helpers
   private async generateCodeVerifier(): Promise<string> {
-    const random = await Random.getRandomBytesAsync(64);
+    const random = await Crypto.getRandomBytesAsync(64);
     return this.base64UrlEncode(random);
   }
 
