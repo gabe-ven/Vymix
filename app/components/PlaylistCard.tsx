@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, Text, Image } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, Image, TextInput, TouchableOpacity, Keyboard } from 'react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -23,6 +23,9 @@ interface PlaylistCardProps {
   scrollY?: SharedValue<number>;
   tracks?: any[]; // Add tracks prop for fallback album covers
   compact?: boolean; // Add compact mode for modal usage
+  // Inline edit props (optional). If provided, enables tap-to-edit.
+  onUpdateTitle?: (newTitle: string) => Promise<void> | void;
+  onUpdateDescription?: (newDescription: string) => Promise<void> | void;
 }
 
 export default function PlaylistCard({ 
@@ -34,7 +37,9 @@ export default function PlaylistCard({
   shouldAnimate = false,
   scrollY,
   tracks = [],
-  compact = false
+  compact = false,
+  onUpdateTitle,
+  onUpdateDescription,
 }: PlaylistCardProps) {
   // Animation values - always start from initial state
   const cardOpacity = useSharedValue(0);
@@ -177,6 +182,54 @@ export default function PlaylistCard({
   // Get first 4 tracks for fallback album covers
   const firstFourTracks = tracks.slice(0, 4);
 
+  // Inline edit state
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [draftTitle, setDraftTitle] = useState(name);
+  const [draftDescription, setDraftDescription] = useState(description);
+  const titleInputRef = useRef<TextInput>(null);
+  const descInputRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    setDraftTitle(name);
+  }, [name]);
+
+  useEffect(() => {
+    setDraftDescription(description);
+  }, [description]);
+
+  useEffect(() => {
+    if (isEditingTitle) {
+      setTimeout(() => titleInputRef.current?.focus(), 0);
+    }
+  }, [isEditingTitle]);
+
+  useEffect(() => {
+    if (isEditingDescription) {
+      setTimeout(() => descInputRef.current?.focus(), 0);
+    }
+  }, [isEditingDescription]);
+
+  const commitTitle = async () => {
+    const trimmed = draftTitle.trim();
+    setIsEditingTitle(false);
+    if (trimmed && trimmed !== name && onUpdateTitle) {
+      await Promise.resolve(onUpdateTitle(trimmed));
+    } else {
+      setDraftTitle(name);
+    }
+  };
+
+  const commitDescription = async () => {
+    const trimmed = draftDescription.trim();
+    setIsEditingDescription(false);
+    if (trimmed !== description && onUpdateDescription) {
+      await Promise.resolve(onUpdateDescription(trimmed));
+    } else {
+      setDraftDescription(description);
+    }
+  };
+
   // Render fallback album covers grid
   const renderAlbumCoversGrid = () => {
     if (firstFourTracks.length === 0) return null;
@@ -274,22 +327,81 @@ export default function PlaylistCard({
           </Animated.View>
           
           {/* Title */}
-          <Animated.Text 
-            className={compact ? "text-2xl font-bold text-ui-white font-poppins-bold mb-2 text-center leading-tight" : "text-3xl font-bold text-ui-white font-poppins-bold mb-2 text-center leading-tight"} 
-            numberOfLines={compact ? 1 : 2}
-            style={titleAnimatedStyle}
-          >
-            {name}
-          </Animated.Text>
+          {isEditingTitle ? (
+            <TextInput
+              ref={titleInputRef}
+              value={draftTitle}
+              onChangeText={setDraftTitle}
+              onBlur={commitTitle}
+              onSubmitEditing={commitTitle}
+              returnKeyType="done"
+              style={{
+                color: 'white',
+                textAlign: 'center',
+                fontSize: compact ? 24 : 30,
+                fontFamily: 'Poppins-Bold',
+                marginBottom: 8,
+              }}
+              maxLength={120}
+              placeholder="Title"
+              placeholderTextColor="rgba(255,255,255,0.4)"
+              autoCorrect={false}
+              blurOnSubmit={true}
+            />
+          ) : (
+            <TouchableOpacity activeOpacity={0.8} onPress={() => onUpdateTitle ? setIsEditingTitle(true) : undefined}>
+              <Animated.Text 
+                className={compact ? "text-2xl font-bold text-ui-white font-poppins-bold mb-2 text-center leading-tight" : "text-3xl font-bold text-ui-white font-poppins-bold mb-2 text-center leading-tight"} 
+                numberOfLines={compact ? 1 : 2}
+                style={titleAnimatedStyle}
+              >
+                {name}
+              </Animated.Text>
+            </TouchableOpacity>
+          )}
           
           {/* Description */}
-          <Animated.Text 
-            className={compact ? "text-sm text-ui-gray-light font-poppins-bold text-center leading-relaxed px-2" : "text-base text-ui-gray-light font-poppins-bold text-center leading-relaxed px-4"} 
-            numberOfLines={compact ? 2 : 3}
-            style={descriptionAnimatedStyle}
-          >
-            {description}
-          </Animated.Text>
+          {isEditingDescription ? (
+            <TextInput
+              ref={descInputRef}
+              value={draftDescription}
+              onChangeText={setDraftDescription}
+              onBlur={commitDescription}
+              onSubmitEditing={commitDescription}
+              returnKeyType="done"
+              multiline
+              onKeyPress={(e) => {
+                // Commit on Enter to avoid inserting new lines
+                // @ts-ignore - key exists on nativeEvent in RN
+                if (e.nativeEvent?.key === 'Enter') {
+                  commitDescription();
+                  Keyboard.dismiss();
+                }
+              }}
+              style={{
+                color: 'rgba(255,255,255,0.8)',
+                textAlign: 'center',
+                fontSize: compact ? 14 : 16,
+                fontFamily: 'Poppins-Bold',
+                lineHeight: compact ? 20 : 22,
+                paddingHorizontal: compact ? 8 : 16,
+              }}
+              maxLength={300}
+              placeholder="Description"
+              placeholderTextColor="rgba(255,255,255,0.35)"
+              blurOnSubmit={true}
+            />
+          ) : (
+            <TouchableOpacity activeOpacity={0.8} onPress={() => onUpdateDescription ? setIsEditingDescription(true) : undefined}>
+              <Animated.Text 
+                className={compact ? "text-sm text-ui-gray-light font-poppins-bold text-center leading-relaxed px-2" : "text-base text-ui-gray-light font-poppins-bold text-center leading-relaxed px-4"} 
+                numberOfLines={compact ? 2 : 3}
+                style={descriptionAnimatedStyle}
+              >
+                {description}
+              </Animated.Text>
+            </TouchableOpacity>
+          )}
           
         </View>
       </Glass>

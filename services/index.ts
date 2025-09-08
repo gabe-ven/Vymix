@@ -7,3 +7,4 @@ export * from './storageService';
 
 // Export types
 export * from './types/playlistTypes'; 
+export { updatePlaylistMetadata } from './playlistManagementService';

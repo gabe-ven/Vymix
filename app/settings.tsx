@@ -89,6 +89,7 @@ export default function SettingsScreen() {
       ]
     );
   };
+
   
   const handleClearAllData = async () => {
     Alert.alert(
@@ -445,6 +446,7 @@ export default function SettingsScreen() {
               subtitle="Get help with using Vymix"
               onPress={() => Alert.alert('Help', 'Contact support at help@vymix.app')}
             />
+
           </Glass>
 
           {/* Danger Zone */}

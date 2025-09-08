@@ -11,9 +11,11 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { PlaylistData } from '../../services/playlistService';
+import { updatePlaylistMetadata } from '../../services';
 import SongList from './SongList';
 import AnimatedButton from './AnimatedButton';
 import PlaylistCard from './PlaylistCard';
+import Glass from './Glass';
 
 interface PlaylistModalProps {
   visible: boolean;
@@ -26,6 +28,9 @@ interface PlaylistModalProps {
 export default function PlaylistModal({ visible, playlist, onClose, onDelete, onSave }: PlaylistModalProps) {
   const [shouldAnimateCard, setShouldAnimateCard] = useState(false);
   const [shouldAnimateButtons, setShouldAnimateButtons] = useState(false);
+  const [localTitle, setLocalTitle] = useState<string | undefined>(undefined);
+  const [localDescription, setLocalDescription] = useState<string | undefined>(undefined);
+  
   
   // Modal entrance animation only
   const modalOpacity = useSharedValue(0);
@@ -76,6 +81,8 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
         setShouldAnimateCard(true);
         setShouldAnimateButtons(true);
       }, 100);
+
+      
     }
   }, [visible, playlist]);
 
@@ -139,11 +146,13 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
     }
   };
 
+  
+
   return (
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="fullScreen"
+      presentationStyle="overFullScreen"
       transparent
       onRequestClose={onClose}
     >
@@ -162,16 +171,34 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
         </View>
 
         <ScrollView className="flex-1">
-          {/* Playlist Card - Reusing the same component from creation flow */}
+          {/* Playlist Card (read-only) */}
           <View className="px-4 mb-6">
             <PlaylistCard
-              name={playlist.name}
-              description={playlist.description}
+              name={localTitle ?? playlist.name}
+              description={localDescription ?? playlist.description}
               songCount={playlist.songCount}
               coverImageUrl={playlist.coverImageUrl}
               shouldAnimate={shouldAnimateCard}
               tracks={playlist.tracks}
               compact={true}
+              onUpdateTitle={async (newTitle) => {
+                if (!playlist?.id) return;
+                setLocalTitle(newTitle);
+                try {
+                  await updatePlaylistMetadata(playlist.id, { name: newTitle });
+                } catch (e) {
+                  setLocalTitle(undefined);
+                }
+              }}
+              onUpdateDescription={async (newDescription) => {
+                if (!playlist?.id) return;
+                setLocalDescription(newDescription);
+                try {
+                  await updatePlaylistMetadata(playlist.id, { description: newDescription });
+                } catch (e) {
+                  setLocalDescription(undefined);
+                }
+              }}
             />
           </View>
 

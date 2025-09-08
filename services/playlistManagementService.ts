@@ -308,6 +308,21 @@ export const forceDeletePlaylist = async (playlistId: string): Promise<void> => 
   }
 };
 
+export const updatePlaylistMetadata = async (
+  playlistId: string,
+  updates: { name?: string; description?: string }
+): Promise<void> => {
+  try {
+    await firestore().collection('playlists').doc(playlistId).update({
+      ...updates,
+      updatedAt: firestore.FieldValue.serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('❌ Error updating playlist metadata:', error);
+    throw error;
+  }
+};
+
 export const testFirestoreConnection = async (): Promise<boolean> => {
   try {
     console.log('🧪 Testing Firestore connection...');
