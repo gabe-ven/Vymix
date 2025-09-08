@@ -39,11 +39,13 @@ export class PlaylistService {
     emojis: string[],
     songCount: number,
     vibe: string,
-    onProgress?: (playlist: any, progress: any) => void
+    onProgress?: (playlist: any, progress: any) => void,
+    bypassCache?: boolean
   ) {
     return playlistGenerationService.generatePlaylist(emojis, songCount, vibe, {
       streaming: true,
-      onProgress
+      onProgress,
+      bypassCache,
     });
   }
 

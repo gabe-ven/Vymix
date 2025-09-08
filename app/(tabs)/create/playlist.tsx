@@ -21,7 +21,8 @@ import Glass from '../../components/Glass';
 import Toast from '../../components/Toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
-import { savePlaylistToFirestore } from '../../../services/playlistService';
+import { savePlaylistToFirestore, playlistService } from '../../../services/playlistService';
+import { spotifyService } from '../../../services/spotify';
 import { useSavedPlaylists } from '../../hooks/useSavedPlaylists';
 
 interface PlaylistData {
@@ -76,7 +77,8 @@ const Playlist = () => {
       if (isGenerating === 'true') {
         // Clear the flag and generate new playlist with streaming
         await AsyncStorage.removeItem('isGeneratingPlaylist');
-        await generatePlaylistStreaming();
+        // Always force a fresh generation (no cache reuse)
+        await generatePlaylistStreaming(true);
       } else {
         // Load existing playlist data
         await loadPlaylist();
@@ -272,6 +274,16 @@ const Playlist = () => {
     );
   }
 
+  const handleInlineConnectSpotify = async () => {
+    try {
+      await spotifyService.loginToSpotify(user?.uid);
+      // After successful connect, retry generation with streaming and show progress
+      await generatePlaylistStreaming(true);
+    } catch (e) {
+      Alert.alert('Spotify', 'Failed to connect to Spotify. Please try again.');
+    }
+  };
+
   if (error) {
     return (
       <GradientBackground colors={getGradientColors()}>
@@ -283,11 +295,19 @@ const Playlist = () => {
             <Text className="text-ui-gray-light text-base font-poppins text-center mb-8">
               {error}
             </Text>
-            <AnimatedButton
-              title="Try Again"
-              onPress={regeneratePlaylist}
-              shouldAnimate={true}
-            />
+            {error.includes('connect to Spotify') ? (
+              <AnimatedButton
+                title="Connect to Spotify"
+                onPress={handleInlineConnectSpotify}
+                shouldAnimate={true}
+              />
+            ) : (
+              <AnimatedButton
+                title="Try Again"
+                onPress={regeneratePlaylist}
+                shouldAnimate={true}
+              />
+            )}
           </View>
         </Layout>
       </GradientBackground>

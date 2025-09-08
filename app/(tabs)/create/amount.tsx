@@ -107,7 +107,7 @@ export default function Amount() {
             backgroundColor={COLORS.transparent.white[10]}
           >
             <TouchableOpacity
-              onPress={handleNext}
+              onPress={generatePlaylist}
               className="rounded-full px-8 py-4 items-center justify-center"
             >
               <Text className="text-ui-white font-semibold text-xl font-poppins-bold">

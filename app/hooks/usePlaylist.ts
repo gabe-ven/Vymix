@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { playlistService, PlaylistData } from '../../services/playlistService';
+import { spotifyService } from '../../services/spotify';
 
 export const usePlaylist = () => {
   const [playlistData, setPlaylistData] = useState<PlaylistData | null>(null);
@@ -15,6 +16,13 @@ export const usePlaylist = () => {
     setGenerationProgress(null);
 
     try {
+      // Require Spotify connection before generation
+      const isSpotifyConnected = await spotifyService.isAuthenticated();
+      if (!isSpotifyConnected) {
+        setError('Please connect to Spotify to create playlists.');
+        return;
+      }
+
       // Get stored data
       const [emojisData, songCountData, vibeData] = await Promise.all([
         AsyncStorage.getItem('selectedEmojis'),
@@ -52,12 +60,19 @@ export const usePlaylist = () => {
   };
 
   // Generate playlist with streaming updates
-  const generatePlaylistStreaming = async (): Promise<void> => {
+  const generatePlaylistStreaming = async (bypassCache?: boolean): Promise<void> => {
     setLoading(true);
     setError(null);
     setGenerationProgress(null);
 
     try {
+      // Require Spotify connection before generation
+      const isSpotifyConnected = await spotifyService.isAuthenticated();
+      if (!isSpotifyConnected) {
+        setError('Please connect to Spotify to create playlists.');
+        return;
+      }
+
       // Get stored data
       const [emojisData, songCountData, vibeData] = await Promise.all([
         AsyncStorage.getItem('selectedEmojis'),
@@ -115,7 +130,8 @@ export const usePlaylist = () => {
           
           // Update progress
           setGenerationProgress(progress);
-        }
+        },
+        bypassCache
       );
       
       // Save to AsyncStorage
@@ -147,6 +163,13 @@ export const usePlaylist = () => {
     setGenerationProgress(null);
 
     try {
+      // Require Spotify connection before regeneration
+      const isSpotifyConnected = await spotifyService.isAuthenticated();
+      if (!isSpotifyConnected) {
+        setError('Please connect to Spotify to create playlists.');
+        return;
+      }
+
       const playlist = await playlistService.regeneratePlaylist(
         playlistData.emojis,
         playlistData.songCount,

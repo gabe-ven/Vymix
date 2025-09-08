@@ -11,6 +11,23 @@ import { uploadImageFromUrlToStorage, isFirebaseStorageUrl, uploadBase64ImageToS
 export class PlaylistGenerationService {
   private playlistCache = new Map<string, {playlist: PlaylistData, timestamp: number}>();
   private readonly CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+  /**
+   * Try to parse a JSON object out of an LLM text response.
+   */
+  private tryParseJsonFromText(text: string): any {
+    if (!text) throw new Error('Empty response');
+    let cleaned = text.trim();
+    // Strip code fences
+    cleaned = cleaned.replace(/```json\s*/gi, '').replace(/```/g, '');
+    // Try to find the first {...} block
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (match) {
+      cleaned = match[0];
+    }
+    // Remove leading/trailing quotes
+    cleaned = cleaned.replace(/^[`'\"]+/, '').replace(/[`'\"]+$/, '');
+    return JSON.parse(cleaned);
+  }
 
   /**
    * Main playlist generation method with optional streaming support
@@ -34,7 +51,7 @@ export class PlaylistGenerationService {
     
     // Check cache first (unless bypassed)
     const useCache = !options.bypassCache;
-    const cached = useCache ? this.getCachedPlaylist(emojis, songCount, vibe) : null;
+    const cached = useCache ? null : null;
     if (cached) {
       if (options.onProgress) {
         options.onProgress(cached, { current: songCount, total: songCount, phase: 'Using cached playlist' });
@@ -48,8 +65,7 @@ export class PlaylistGenerationService {
     
     console.log(`🎉 Playlist generated in ${totalTime}ms`);
     
-    // Cache the result
-    this.cachePlaylist(emojis, songCount, vibe, playlist);
+    // Do not cache to ensure uniqueness across sessions
     
     return playlist;
   }
@@ -286,7 +302,7 @@ For the keywords, generate 8-12 specific music-related terms that would help fin
         body: JSON.stringify({
           model: 'gpt-4o',
           messages: [{ role: 'user', content: prompt }],
-          temperature: 0.8,
+          temperature: 0.3,
           max_tokens: 500,
         }),
       });
@@ -303,28 +319,13 @@ For the keywords, generate 8-12 specific music-related terms that would help fin
       }
 
       try {
-        let cleanedContent = content.trim();
-        cleanedContent = cleanedContent.replace(/```json\s*/g, '').replace(/```\s*$/g, '');
-        cleanedContent = cleanedContent.replace(/^[`'\"]+/, '').replace(/[`'\"]+$/, '');
-        
-        const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          cleanedContent = jsonMatch[0];
-        }
-        
-        const parsed = JSON.parse(cleanedContent);
-        
-        if (!parsed || typeof parsed !== 'object') {
-          throw new Error('Invalid response format - expected object');
-        }
-        
+        const parsed = this.tryParseJsonFromText(content);
         const result: PlaylistInfo = {
           name: parsed.name || 'vibes',
           description: parsed.description || 'A carefully curated musical journey.',
           colorPalette: parsed.colorPalette || ['#6366f1', '#8b5cf6', '#a855f7'],
           keywords: isSpecific ? [] : (parsed.keywords || ['indie', 'atmospheric', 'vibes']),
         };
-        
         return result;
       } catch (error) {
         console.error('Failed to parse playlist info:', error);
@@ -614,7 +615,8 @@ MANDATORY: No text, logos, emojis, or recognizable characters in the image. Crea
     
     const usedTrackIds = new Set<string>();
     const tracks: SpotifyTrack[] = [];
-    const seed = this.generatePlaylistSeed(emojis, vibe, songCount);
+    // Add extra entropy to always vary suggestions even with same inputs
+    const seed = this.generatePlaylistSeed(emojis, `${vibe}-${Date.now()}-${Math.random()}`, songCount);
     
     // Generate song suggestions with AI
     const songSuggestions = await this.generateSongSuggestions(emojis, vibe, songCount, keywords, seed);
