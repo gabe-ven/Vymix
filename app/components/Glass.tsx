@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ViewStyle } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { COLORS } from '../constants/colors';
@@ -10,12 +10,15 @@ interface GlassProps {
   blurAmount?: number;
   borderRadius?: number;
   backgroundColor?: string;
+  initialBackgroundColor?: string;
   borderColor?: string;
   shadowColor?: string;
   shadowOpacity?: number;
   shadowRadius?: number;
   elevation?: number;
   variant?: 'default' | 'card' | 'header' | 'accent';
+  tint?: 'light' | 'dark' | 'default';
+  initialTint?: 'light' | 'dark' | 'default';
 }
 
 export const Glass: React.FC<GlassProps> = ({
@@ -25,12 +28,15 @@ export const Glass: React.FC<GlassProps> = ({
   blurAmount = 25,
   borderRadius = 24,
   backgroundColor = COLORS.transparent.white[5],
+  initialBackgroundColor,
   borderColor,
   shadowColor = COLORS.ui.black,
   shadowOpacity,
   shadowRadius,
   elevation,
   variant = 'default',
+  tint = 'light',
+  initialTint,
 }) => {
   // Define variant-specific styles
   const getVariantStyles = () => {
@@ -71,15 +77,20 @@ export const Glass: React.FC<GlassProps> = ({
   };
   
   const variantStyles = getVariantStyles();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
   return (
     <BlurView
       intensity={blurAmount}
-      tint="light"
+      tint={mounted ? tint : (initialTint || tint)}
       style={[
         styles.glass,
         {
           borderRadius,
-          backgroundColor,
+          backgroundColor: mounted ? backgroundColor : (initialBackgroundColor || backgroundColor),
           borderColor: variantStyles.borderColor,
           shadowColor,
           shadowOpacity: variantStyles.shadowOpacity,

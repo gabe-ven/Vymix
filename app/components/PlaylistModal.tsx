@@ -25,6 +25,7 @@ interface PlaylistModalProps {
 
 export default function PlaylistModal({ visible, playlist, onClose, onDelete, onSave }: PlaylistModalProps) {
   const [shouldAnimateCard, setShouldAnimateCard] = useState(false);
+  const [shouldAnimateButtons, setShouldAnimateButtons] = useState(false);
   
   // Modal entrance animation only
   const modalOpacity = useSharedValue(0);
@@ -52,6 +53,7 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
       
       // Reset PlaylistCard animation
       setShouldAnimateCard(false);
+      setShouldAnimateButtons(false);
 
       // Modal entrance animation
       modalOpacity.value = withTiming(1, {
@@ -72,6 +74,7 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
       // Trigger PlaylistCard animation after modal entrance
       setTimeout(() => {
         setShouldAnimateCard(true);
+        setShouldAnimateButtons(true);
       }, 100);
     }
   }, [visible, playlist]);
@@ -140,10 +143,11 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
+      presentationStyle="fullScreen"
+      transparent
       onRequestClose={onClose}
     >
-      <Animated.View className="flex-1 bg-black" style={modalAnimatedStyle}>
+      <Animated.View className="flex-1" style={[modalAnimatedStyle, { backgroundColor: 'rgba(0,0,0,0.75)' }]}>
         {/* Header */}
         <View className="flex-row items-center justify-between p-4 pt-12">
           <TouchableOpacity 
@@ -180,7 +184,8 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
                     title="Save to"
                     icon={require('../../assets/images/spotify-logo.png')}
                     onPress={onSave}
-                    shouldAnimate={true}
+                    shouldAnimate={shouldAnimateButtons}
+                    delay={900}
                   />
                 )}
                 
@@ -188,7 +193,8 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
                   <AnimatedButton
                     title="Delete"
                     onPress={onDelete}
-                    shouldAnimate={true}
+                    shouldAnimate={shouldAnimateButtons}
+                    delay={1050}
                   />
                 )}
               </View>
@@ -197,7 +203,8 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
                 <AnimatedButton
                   title="Open in Spotify"
                   onPress={handleOpenInSpotify}
-                  shouldAnimate={true}
+                  shouldAnimate={shouldAnimateButtons}
+                  delay={1200}
                 />
               )}
             </View>

@@ -42,6 +42,11 @@ export default function AnimatedButton({
 
   useEffect(() => {
     if (shouldAnimate) {
+      // Reset to initial state to avoid showing final state briefly
+      buttonOpacity.value = 0;
+      buttonScale.value = 0.8;
+      buttonTranslateY.value = 30;
+
       // Animate button with delay
       buttonOpacity.value = withDelay(delay, withTiming(1, {
         duration: 600,
@@ -116,6 +121,10 @@ export default function AnimatedButton({
           borderRadius={24}
           blurAmount={20}
           backgroundColor={COLORS.transparent.white[10]}
+          tint="dark"
+          borderColor={COLORS.transparent.white[10]}
+          initialTint="dark"
+          initialBackgroundColor={COLORS.transparent.black[30]}
         >
           <View className="flex-row items-center justify-center px-6 py-3">
             <Text className="text-ui-white font-bold text-base font-poppins-bold">
