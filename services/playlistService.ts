@@ -47,6 +47,19 @@ export class PlaylistService {
     });
   }
 
+  async regeneratePlaylist(
+    emojis: string[],
+    songCount: number,
+    vibe: string,
+    onProgress?: (playlist: any, progress: any) => void
+  ) {
+    return playlistGenerationService.generatePlaylist(emojis, songCount, vibe, {
+      streaming: true,
+      onProgress,
+      bypassCache: true,
+    });
+  }
+
   async saveToSpotify(playlistData: any, userId?: string) {
     return playlistManagementService.saveToSpotify(playlistData, userId);
   }

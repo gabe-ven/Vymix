@@ -22,6 +22,7 @@ export class PlaylistGenerationService {
     options?: {
       streaming?: boolean;
       onProgress?: (playlist: Partial<PlaylistData>, progress: PlaylistProgress) => void;
+      bypassCache?: boolean;
     }
   ): Promise<PlaylistData> {
     // Handle backward compatibility
@@ -31,8 +32,9 @@ export class PlaylistGenerationService {
     
     console.log('🎵 Generating playlist:', { emojis, vibe, songCount, streaming: options.streaming });
     
-    // Check cache first
-    const cached = this.getCachedPlaylist(emojis, songCount, vibe);
+    // Check cache first (unless bypassed)
+    const useCache = !options.bypassCache;
+    const cached = useCache ? this.getCachedPlaylist(emojis, songCount, vibe) : null;
     if (cached) {
       if (options.onProgress) {
         options.onProgress(cached, { current: songCount, total: songCount, phase: 'Using cached playlist' });

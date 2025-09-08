@@ -147,7 +147,7 @@ export const usePlaylist = () => {
     setGenerationProgress(null);
 
     try {
-      const playlist = await playlistService.generatePlaylistStreaming(
+      const playlist = await playlistService.regeneratePlaylist(
         playlistData.emojis,
         playlistData.songCount,
         playlistData.vibe,
