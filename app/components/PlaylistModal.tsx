@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView, Linking, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, ScrollView, Linking, Alert, Platform, ActionSheetIOS } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { 
   useSharedValue, 
@@ -30,6 +31,8 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
   const [shouldAnimateButtons, setShouldAnimateButtons] = useState(false);
   const [localTitle, setLocalTitle] = useState<string | undefined>(undefined);
   const [localDescription, setLocalDescription] = useState<string | undefined>(undefined);
+  const [isPickingImage, setIsPickingImage] = useState(false);
+  const [localCoverUrl, setLocalCoverUrl] = useState<string | undefined>(undefined);
   
   
   // Modal entrance animation only
@@ -146,6 +149,99 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
     }
   };
 
+  const handleChangeCover = async () => {
+    if (!playlist?.id) return;
+    try {
+      if (isPickingImage) return;
+      setIsPickingImage(true);
+      const pickFromLibrary = async () => {
+        if (Platform.OS === 'android') {
+          const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+          if (perm.status !== 'granted') {
+            Alert.alert('Permission needed', 'We need access to your photo library to change the cover.');
+            return null;
+          }
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+          allowsEditing: true,
+          quality: 0.9,
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          aspect: [1, 1],
+          base64: true,
+        });
+        return result;
+      };
+
+      const takePhoto = async () => {
+        const perm = await ImagePicker.requestCameraPermissionsAsync();
+        if (perm.status !== 'granted') {
+          Alert.alert('Permission needed', 'We need camera access to take a cover photo.');
+          return null;
+        }
+        const result = await ImagePicker.launchCameraAsync({
+          allowsEditing: true,
+          quality: 0.9,
+          base64: true,
+          aspect: [1, 1],
+        });
+        return result;
+      };
+
+      const chooseAndProcess = async (source: 'library' | 'camera') => {
+        const result = source === 'library' ? await pickFromLibrary() : await takePhoto();
+        if (!result || result.canceled || !result.assets?.length) return false;
+        const asset = result.assets[0];
+        const base64 = asset.base64;
+        if (!base64) {
+          Alert.alert('Error', 'Failed to read selected image.');
+          return false;
+        }
+        const { uploadBase64ImageToStorage } = await import('../../services/storageService');
+        const path = `covers/users/${playlist.userId || 'unknown'}/${playlist.id}.jpg`;
+        const downloadUrl = await uploadBase64ImageToStorage(path, base64, 'image/jpeg');
+        await updatePlaylistMetadata(playlist.id, { coverImageUrl: downloadUrl });
+        setLocalCoverUrl(downloadUrl);
+        return true;
+      };
+
+      if (Platform.OS === 'ios') {
+        await new Promise<void>((resolve) => {
+          ActionSheetIOS.showActionSheetWithOptions(
+            {
+              options: ['Cancel', 'Choose from Library', 'Take Photo'],
+              cancelButtonIndex: 0,
+            },
+            async (buttonIndex) => {
+              if (buttonIndex === 1) {
+                await chooseAndProcess('library');
+              } else if (buttonIndex === 2) {
+                await chooseAndProcess('camera');
+              }
+              resolve();
+            }
+          );
+        });
+      } else {
+        // Simple Android chooser via Alert buttons
+        await new Promise<void>((resolve) => {
+          Alert.alert(
+            'Change cover',
+            undefined,
+            [
+              { text: 'Cancel', style: 'cancel', onPress: () => resolve() },
+              { text: 'Choose from Library', onPress: async () => { await chooseAndProcess('library'); resolve(); } },
+              { text: 'Take Photo', onPress: async () => { await chooseAndProcess('camera'); resolve(); } },
+            ]
+          );
+        });
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Failed to update cover image. Please try again.');
+    } finally {
+      setIsPickingImage(false);
+    }
+  };
+
   
 
   return (
@@ -177,10 +273,11 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
               name={localTitle ?? playlist.name}
               description={localDescription ?? playlist.description}
               songCount={playlist.songCount}
-              coverImageUrl={playlist.coverImageUrl}
+              coverImageUrl={localCoverUrl ?? playlist.coverImageUrl}
               shouldAnimate={shouldAnimateCard}
               tracks={playlist.tracks}
               compact={true}
+              onPressCover={handleChangeCover}
               onUpdateTitle={async (newTitle) => {
                 if (!playlist?.id) return;
                 setLocalTitle(newTitle);

@@ -61,7 +61,8 @@
     "react-native-text-gradient": "^0.1.7",
     "react-native-toast-message": "^2.3.2",
     "react-native-web": "~0.20.0",
-    "tailwindcss-react-native": "^1.7.10"
+    "tailwindcss-react-native": "^1.7.10",
+    "expo-image-picker": "~16.1.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

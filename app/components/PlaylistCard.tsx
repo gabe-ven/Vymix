@@ -26,6 +26,7 @@ interface PlaylistCardProps {
   // Inline edit props (optional). If provided, enables tap-to-edit.
   onUpdateTitle?: (newTitle: string) => Promise<void> | void;
   onUpdateDescription?: (newDescription: string) => Promise<void> | void;
+  onPressCover?: () => void;
 }
 
 export default function PlaylistCard({ 
@@ -40,6 +41,7 @@ export default function PlaylistCard({
   compact = false,
   onUpdateTitle,
   onUpdateDescription,
+  onPressCover,
 }: PlaylistCardProps) {
   // Animation values - always start from initial state
   const cardOpacity = useSharedValue(0);
@@ -306,24 +308,27 @@ export default function PlaylistCard({
               }
             ]}
           >
-            <Glass 
-              className="w-full h-full"
-              borderRadius={12}
-              blurAmount={25}
-              backgroundColor={COLORS.transparent.white[10]}
-            >
-              <View className="flex-1 items-center justify-center">
-                {coverImageUrl ? (
-                  <Image 
-                    source={{ uri: coverImageUrl }}
-                    className="w-full h-full rounded-lg"
-                    resizeMode="cover"
-                  />
-                ) : (
-                  renderAlbumCoversGrid()
-                )}
-              </View>
-            </Glass>
+            <TouchableOpacity activeOpacity={0.9} onPress={onPressCover}>
+              <Glass 
+                className="w-full h-full"
+                borderRadius={12}
+                blurAmount={25}
+                backgroundColor={COLORS.transparent.white[10]}
+                pointerEvents="none"
+              >
+                <View className="flex-1 items-center justify-center">
+                  {coverImageUrl ? (
+                    <Image 
+                      source={{ uri: coverImageUrl }}
+                      className="w-full h-full rounded-lg"
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    renderAlbumCoversGrid()
+                  )}
+                </View>
+              </Glass>
+            </TouchableOpacity>
           </Animated.View>
           
           {/* Title */}

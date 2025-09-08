@@ -39,6 +39,14 @@
       "@react-native-firebase/auth",
       "expo-secure-store",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Vymix to access your photos to set playlist covers.",
+          "cameraPermission": "Allow Vymix to use your camera to take a cover photo.",
+          "microphonePermission": "Allow Vymix to access the microphone if recording video."
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "ios": {

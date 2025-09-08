@@ -310,7 +310,7 @@ export const forceDeletePlaylist = async (playlistId: string): Promise<void> => 
 
 export const updatePlaylistMetadata = async (
   playlistId: string,
-  updates: { name?: string; description?: string }
+  updates: { name?: string; description?: string; coverImageUrl?: string }
 ): Promise<void> => {
   try {
     await firestore().collection('playlists').doc(playlistId).update({

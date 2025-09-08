@@ -19,6 +19,7 @@ interface GlassProps {
   variant?: 'default' | 'card' | 'header' | 'accent';
   tint?: 'light' | 'dark' | 'default';
   initialTint?: 'light' | 'dark' | 'default';
+  pointerEvents?: 'auto' | 'none' | 'box-none' | 'box-only';
 }
 
 export const Glass: React.FC<GlassProps> = ({
@@ -37,6 +38,7 @@ export const Glass: React.FC<GlassProps> = ({
   variant = 'default',
   tint = 'light',
   initialTint,
+  pointerEvents = 'auto',
 }) => {
   // Define variant-specific styles
   const getVariantStyles = () => {
@@ -86,6 +88,7 @@ export const Glass: React.FC<GlassProps> = ({
     <BlurView
       intensity={blurAmount}
       tint={mounted ? tint : (initialTint || tint)}
+      pointerEvents={pointerEvents}
       style={[
         styles.glass,
         {
