@@ -6,7 +6,7 @@ import {
   PlaylistProgress, 
   PlaylistInfo
 } from './types/playlistTypes';
-import { uploadImageFromUrlToStorage, isFirebaseStorageUrl } from './storageService';
+import { uploadImageFromUrlToStorage, isFirebaseStorageUrl, uploadBase64ImageToStorage } from './storageService';
 
 export class PlaylistGenerationService {
   private playlistCache = new Map<string, {playlist: PlaylistData, timestamp: number}>();
@@ -392,6 +392,7 @@ MANDATORY: No text, logos, or emojis in the image.
 `;
       }
 
+      // First try requesting base64 so we can upload directly and avoid ephemeral URLs
       const response = await fetch('https://api.openai.com/v1/images/generations', {
         method: 'POST',
         headers: {
@@ -405,7 +406,7 @@ MANDATORY: No text, logos, or emojis in the image.
           size: '1024x1024',
           quality: 'standard',
           style: 'natural',
-          response_format: 'url',
+          response_format: 'b64_json',
         }),
       });
 
@@ -426,14 +427,65 @@ MANDATORY: No text, logos, or emojis in the image.
       }
 
       const data = await response.json();
-      const imageUrl = data.data?.[0]?.url;
-      
+      const b64 = data.data?.[0]?.b64_json;
+      if (b64) {
+        try {
+          const tempId = this.generateUniquePlaylistId();
+          const storedUrl = await uploadBase64ImageToStorage(`covers/generated/${tempId}.png`, b64, 'image/png');
+          return storedUrl;
+        } catch (e) {
+          console.warn('Failed to upload base64 image to storage, will fall back to URL flow:', e);
+        }
+      }
+
+      // Fallback: request URL format and then copy to storage
+      const urlResponse = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'dall-e-3',
+          prompt: prompt,
+          n: 1,
+          size: '1024x1024',
+          quality: 'standard',
+          style: 'natural',
+          response_format: 'url',
+        }),
+      });
+
+      if (!urlResponse.ok) {
+        let errorDetails = urlResponse.statusText;
+        try {
+          const errorBody = await urlResponse.json();
+          if (errorBody.error) {
+            errorDetails = `${errorBody.error.message || errorBody.error} (${urlResponse.status})`;
+          } else if (errorBody.message) {
+            errorDetails = `${errorBody.message} (${urlResponse.status})`;
+          }
+        } catch (parseError) {
+          errorDetails = `${urlResponse.statusText || 'Unknown error'} (${urlResponse.status})`;
+        }
+        throw new Error(`DALL-E API error (fallback URL): ${errorDetails}`);
+      }
+
+      const urlData = await urlResponse.json();
+      const imageUrl = urlData.data?.[0]?.url;
       if (!imageUrl) {
-        console.warn('🎨 No image URL received from DALL-E');
+        console.warn('🎨 No image URL received from DALL-E (fallback)');
         return '';
       }
 
-      return imageUrl;
+      try {
+        const tempId = this.generateUniquePlaylistId();
+        const storedUrl = await uploadImageFromUrlToStorage(`covers/generated/${tempId}.jpg`, imageUrl);
+        return storedUrl;
+      } catch (e) {
+        console.warn('Failed to persist URL image to storage, returning original (ephemeral) URL:', e);
+        return imageUrl;
+      }
       
     } catch (error) {
       console.error('🎨 DALL-E image generation failed:', error);
