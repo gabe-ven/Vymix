@@ -15,7 +15,7 @@ import PlaylistModal from '@/app/components/PlaylistModal';
 import { useSavedPlaylists } from '@/app/hooks/useSavedPlaylists';
 import { LoadingAnimation } from '@/app/components/LoadingAnimation';
 import AnimatedButton from '@/app/components/AnimatedButton';
-import { testFirestoreConnection } from '@/services/playlistService';
+import { testFirestoreConnection, playlistService } from '@/services/playlistService';
 import { PlaylistData } from '@/services/playlistService';
 import { forceDeletePlaylist } from '@/services/playlistService';
 import { useFocusEffect } from '@react-navigation/native';
@@ -23,9 +23,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '@/app/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import Glass from '@/app/components/Glass';
+import { useAuth } from '@/app/context/AuthContext';
 
 export default function MixesScreen() {
   const { playlists, loading, error, loadPlaylists, removePlaylist } = useSavedPlaylists();
+  const { user } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPlaylist, setSelectedPlaylist] = useState<PlaylistData | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -133,13 +135,40 @@ export default function MixesScreen() {
   };
 
   const handleSaveToSpotify = async () => {
-    if (selectedPlaylist) {
-      console.log('💾 Saving playlist to Spotify:', selectedPlaylist.name);
-      // TODO: Implement actual Spotify save functionality
-      // For now, just show a placeholder
+    if (!selectedPlaylist) return;
+    
+    if (!user?.uid) {
       Alert.alert(
-        'Save to Spotify',
-        'This feature will be implemented soon!',
+        'Sign In Required',
+        'Please sign in to save playlists to Spotify',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    console.log('💾 Saving playlist to Spotify:', selectedPlaylist.name);
+    
+    try {
+      const updatedPlaylist = await playlistService.saveToSpotify(selectedPlaylist, user.uid);
+      
+      // Update the selected playlist with the Spotify URL
+      setSelectedPlaylist(updatedPlaylist);
+      
+      // Refresh the playlists list to show the updated data
+      await loadPlaylists(true);
+      
+      Alert.alert(
+        'Success! 🎉',
+        'Playlist saved to Spotify successfully!',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Error saving to Spotify:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save to Spotify';
+      
+      Alert.alert(
+        'Error',
+        errorMessage,
         [{ text: 'OK' }]
       );
     }
@@ -282,7 +311,7 @@ export default function MixesScreen() {
         playlist={selectedPlaylist}
         onClose={handleCloseModal}
         onDelete={selectedPlaylist?.id ? () => handleDeletePlaylist(selectedPlaylist.id!) : undefined}
-        onSave={handleSaveToSpotify}
+        onSave={selectedPlaylist?.spotifyUrl ? undefined : handleSaveToSpotify}
       />
     </Layout>
   );

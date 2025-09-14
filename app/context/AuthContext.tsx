@@ -46,11 +46,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      try {
-        await spotifyService.logout();
-      } catch (e) {
-        // ignore Spotify cleanup errors
-      }
+      // Don't clear Spotify when user logs out of Google
+      // Spotify connection should persist across Google account sessions
       await auth().signOut();
       setUser(null);
     } catch (error) {

@@ -208,25 +208,7 @@ export const useSavedPlaylists = () => {
           return updated;
         }
         
-        // Also check for content similarity to prevent duplicates with different IDs
-        const contentSimilarIndex = prev.findIndex(p => 
-          p.name === newPlaylist.name &&
-          p.emojis.length === newPlaylist.emojis.length &&
-          p.emojis.every(emoji => newPlaylist.emojis.includes(emoji)) &&
-          p.vibe === newPlaylist.vibe &&
-          p.songCount === newPlaylist.songCount
-        );
-        
-        if (contentSimilarIndex !== -1) {
-          console.log('⚠️ Content-similar playlist found, updating instead of adding:', {
-            existingId: prev[contentSimilarIndex].id,
-            newId: playlistId
-          });
-          // Update existing playlist with new data
-          const updated = [...prev];
-          updated[contentSimilarIndex] = newPlaylist;
-          return updated;
-        }
+        // Every playlist is unique - just add it
         
         // Add new playlist
         console.log('✅ Adding new playlist to state:', playlistId);

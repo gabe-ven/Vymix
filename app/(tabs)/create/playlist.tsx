@@ -75,8 +75,11 @@ const Playlist = () => {
       const isGenerating = await AsyncStorage.getItem('isGeneratingPlaylist');
       
       if (isGenerating === 'true') {
-        // Clear the flag and generate new playlist with streaming
+        // Clear the flag and any previous playlist data to prevent duplicates
         await AsyncStorage.removeItem('isGeneratingPlaylist');
+        await AsyncStorage.removeItem('playlistData');
+        await AsyncStorage.removeItem('playlistSavedToFirestore');
+        
         // Always force a fresh generation (no cache reuse)
         await generatePlaylistStreaming(true);
       } else {
@@ -93,6 +96,7 @@ const Playlist = () => {
   // Auto-save to Firestore when playlist is generated
   useEffect(() => {
     const autoSaveToFirestore = async () => {
+      // Save any complete playlist data
       if (playlistData && user?.uid && !isInitialLoad) {
         try {
           await savePlaylist(playlistData);
@@ -277,6 +281,11 @@ const Playlist = () => {
   const handleInlineConnectSpotify = async () => {
     try {
       await spotifyService.loginToSpotify(user?.uid);
+      
+      // Clear any previous failed attempts to prevent duplicates
+      await AsyncStorage.removeItem('playlistData');
+      await AsyncStorage.removeItem('playlistSavedToFirestore');
+      
       // After successful connect, retry generation with streaming and show progress
       await generatePlaylistStreaming(true);
     } catch (e) {

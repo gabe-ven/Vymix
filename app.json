@@ -17,7 +17,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.Vymix",
       "googleServicesFile": "./GoogleService-Info.plist",
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "appleTeamId": "P438329H38"
     },
     "android": {
       "adaptiveIcon": {

@@ -380,38 +380,65 @@ class SpotifyService {
 
     console.log('Refreshing access token...');
 
-    // For PKCE, refresh also doesn't require client secret
-    const response = await fetch('https://accounts.spotify.com/api/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        refresh_token: this.refreshToken,
-        client_id: this.clientId,
-      }).toString(),
-    });
+    try {
+      // For PKCE, refresh also doesn't require client secret
+      const response = await fetch('https://accounts.spotify.com/api/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: this.refreshToken,
+          client_id: this.clientId,
+        }).toString(),
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Token refresh failed:', errorText);
-      // If refresh fails, clear tokens and require re-authentication
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Token refresh failed:', errorText);
+        
+        // Parse error response if possible
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: 'unknown', error_description: errorText };
+        }
+        
+        // Handle specific server errors more gracefully
+        if (errorData.error === 'server_error') {
+          console.log('Server error during refresh, retrying once...');
+          // Don't clear tokens immediately on server error, give it one more try
+          throw new Error('Spotify server error. Please try again.');
+        }
+        
+        // For other errors (invalid_grant, etc.), clear tokens
+        await this.clearTokens();
+        throw new Error('Token refresh failed. Please login again.');
+      }
+
+      const data = await response.json();
+      const { access_token, expires_in, refresh_token } = data;
+      
+      // Spotify may or may not return a new refresh_token
+      // If it does, use the new one; otherwise keep the existing one
+      const newRefreshToken = refresh_token || this.refreshToken;
+      
+      await this.saveTokens(access_token, expires_in, newRefreshToken);
+      
+      console.log('Successfully refreshed access token');
+      return access_token;
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('server error')) {
+        // Re-throw server errors without clearing tokens
+        throw error;
+      }
+      
+      // For network errors or other issues, clear tokens
       await this.clearTokens();
       throw new Error('Token refresh failed. Please login again.');
     }
-
-    const data = await response.json();
-    const { access_token, expires_in, refresh_token } = data;
-    
-    // Spotify may or may not return a new refresh_token
-    // If it does, use the new one; otherwise keep the existing one
-    const newRefreshToken = refresh_token || this.refreshToken;
-    
-    await this.saveTokens(access_token, expires_in, newRefreshToken);
-    
-    console.log('Successfully refreshed access token');
-    return access_token;
   }
 
   // Get valid access token (check if expired and refresh if needed)
@@ -450,6 +477,13 @@ class SpotifyService {
         return await Promise.race([refreshPromise, timeoutPromise]) as string;
       } catch (error) {
         console.error('Failed to refresh token:', error);
+        
+        // Don't clear tokens for server errors, just throw
+        if (error instanceof Error && error.message.includes('server error')) {
+          throw error;
+        }
+        
+        // Clear tokens for other types of errors
         await this.clearTokens();
         throw new Error('Access token expired and refresh failed. Please login again.');
       }
@@ -915,9 +949,12 @@ class SpotifyService {
     return false;
   }
 
-  // Logout (clear tokens)
+  // Logout (clear tokens only, keep connection history)
   public async logout(): Promise<void> {
     await this.clearTokens();
+    
+    // Don't clear connection status - user has connected before
+    // They just need to refresh tokens, not go through onboarding again
   }
 
   // Get redirect URI for debugging

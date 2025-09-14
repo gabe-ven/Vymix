@@ -97,38 +97,8 @@ export const savePlaylistToFirestore = async (playlistData: Omit<PlaylistData, '
       existingId: playlistData.id || 'none'
     });
     
-    // Check for duplicate playlists with the same name and content
-    const existingPlaylists = await getUserPlaylists(userId);
-    const isDuplicate = existingPlaylists.some(existing => {
-      // Only consider it a duplicate if it has the EXACT same ID
-      if (playlistData.id && existing.id === playlistData.id) {
-        console.log('🆔 Found playlist with same ID, this is a true duplicate');
-        return true;
-      }
-      
-      // For playlists without IDs, check content similarity (but be more lenient)
-      const contentSimilar = existing.name === playlistData.name &&
-                           existing.emojis.length === playlistData.emojis.length &&
-                           existing.emojis.every(emoji => existing.emojis.includes(emoji)) &&
-                           existing.vibe === playlistData.vibe &&
-                           existing.songCount === playlistData.songCount;
-      
-      if (contentSimilar) {
-        console.log('⚠️ Found content-similar playlist, but IDs are different - not a true duplicate');
-        console.log('⚠️ Existing ID:', existing.id, 'New ID:', playlistData.id);
-      }
-      
-      return false; // Don't treat as duplicate unless exact ID match
-    });
-    
-    if (isDuplicate) {
-      console.log('🆔 True duplicate detected (same ID), returning existing ID:', playlistData.id);
-      if (playlistData.id) {
-        return playlistData.id; // Return the original ID, not the Firestore ID
-      }
-      // Fallback to generating new ID if somehow we don't have one
-      console.log('⚠️ No ID found in duplicate, this should not happen');
-    }
+    // Every playlist is unique - no duplicate checking needed
+    console.log('💫 Creating unique playlist - no duplicate checking');
     
     // Ensure cover image is persisted to storage if present and not already a storage URL
     let persistedCoverUrl = playlistData.coverImageUrl;
@@ -156,19 +126,19 @@ export const savePlaylistToFirestore = async (playlistData: Omit<PlaylistData, '
       coverImageUrl: playlistToSave.coverImageUrl ? 'Firebase Storage URL' : 'None'
     });
     
-    // Check if playlistData has an existing ID (from generation service)
+    // Save the playlist with its unique ID
     if (playlistData.id) {
-      console.log('🔥 Using existing ID from generation service:', playlistData.id);
+      console.log('🔥 Saving playlist with generation service ID:', playlistData.id);
       // Use the existing ID by creating a document with that specific ID
       await firestore()
         .collection('playlists')
         .doc(playlistData.id)
         .set(playlistToSave);
       
-      console.log('✅ Playlist saved successfully with existing ID:', playlistData.id);
+      console.log('✅ Playlist saved successfully with ID:', playlistData.id);
       return playlistData.id;
     } else {
-      // Generate new Firestore ID as before
+      // Generate new Firestore ID
       const docRef = await firestore()
         .collection('playlists')
         .add(playlistToSave);

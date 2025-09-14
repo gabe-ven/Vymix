@@ -19,27 +19,50 @@ export default function ProfileScreen() {
   // Check Spotify connection status and fetch user data
   const checkSpotifyStatus = async () => {
     try {
+      // Ensure Spotify service is initialized for current user
+      await spotifyService.initialize();
+      
       // Check if user has valid tokens (currently authenticated)
       const isAuthenticated = await spotifyService.isAuthenticated();
       
-      // Treat as connected ONLY when currently authenticated
-      setIsSpotifyConnected(isAuthenticated);
+      // Also check if user has connected before (even if tokens are expired)
+      const hasConnectedBefore = user?.uid ? await spotifyService.hasConnectedSpotify(user.uid) : false;
       
-      // If currently authenticated, fetch Spotify user data
+      console.log('Spotify status check:', { isAuthenticated, hasConnectedBefore, userId: user?.uid });
+      
       if (isAuthenticated) {
-        try {
-          const currentUser = await spotifyService.getCurrentUser();
-          setSpotifyUser(currentUser);
-        } catch (error) {
-          console.error('Error fetching Spotify user data:', error);
-          setSpotifyUser(null);
+        // User has valid tokens
+        setIsSpotifyConnected(true);
+        
+        // Fetch user data if we don't already have it
+        if (!spotifyUser) {
+          try {
+            const currentUser = await spotifyService.getCurrentUser();
+            setSpotifyUser(currentUser);
+          } catch (error) {
+            console.error('Error fetching Spotify user data:', error);
+            setSpotifyUser(null);
+          }
         }
+      } else if (hasConnectedBefore) {
+        // User connected before but tokens might be expired
+        setIsSpotifyConnected(true);
+        setSpotifyUser(null);
       } else {
+        // Never connected before
+        setIsSpotifyConnected(false);
         setSpotifyUser(null);
       }
     } catch (error) {
       console.error('Error checking Spotify status:', error);
-      setIsSpotifyConnected(false);
+      // On error, check if user has connected before to maintain correct status
+      try {
+        const hasConnectedBefore = user?.uid ? await spotifyService.hasConnectedSpotify(user.uid) : false;
+        setIsSpotifyConnected(hasConnectedBefore);
+      } catch {
+        setIsSpotifyConnected(false);
+      }
+      
       setSpotifyUser(null);
     }
   };
@@ -48,11 +71,14 @@ export default function ProfileScreen() {
     checkSpotifyStatus();
   }, [user]);
 
-  // Refresh Spotify status when profile tab is focused
+  // Refresh Spotify status when profile tab is focused (less aggressive)
   useFocusEffect(
     useCallback(() => {
-      checkSpotifyStatus();
-    }, [user])
+      // Only check if we don't already have connection status
+      if (!isSpotifyConnected && !spotifyUser) {
+        checkSpotifyStatus();
+      }
+    }, [isSpotifyConnected, spotifyUser])
   );
 
   const handleSignOut = async () => {
@@ -206,23 +232,27 @@ export default function ProfileScreen() {
               </View>
               <View className="flex-1">
                 <Text className="text-ui-white font-poppins-bold text-base">Spotify</Text>
-                {isSpotifyConnected && spotifyUser ? (
-                  <View className="flex-row items-center mt-1">
-                    {spotifyUser.images && spotifyUser.images.length > 0 ? (
-                      <Image
-                        source={{ uri: spotifyUser.images[0].url }}
-                        className="w-6 h-6 rounded-full mr-2"
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View className="w-6 h-6 rounded-full bg-green-500 mr-2 items-center justify-center">
-                        <FontAwesome name="music" size={10} color="white" />
-                      </View>
-                    )}
-                    <Text className="text-ui-white opacity-70 font-poppins text-sm" numberOfLines={1}>
-                      {spotifyUser.display_name}
-                    </Text>
-                  </View>
+                {isSpotifyConnected ? (
+                  spotifyUser ? (
+                    <View className="flex-row items-center mt-1">
+                      {spotifyUser.images && spotifyUser.images.length > 0 ? (
+                        <Image
+                          source={{ uri: spotifyUser.images[0].url }}
+                          className="w-6 h-6 rounded-full mr-2"
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View className="w-6 h-6 rounded-full bg-green-500 mr-2 items-center justify-center">
+                          <FontAwesome name="music" size={10} color="white" />
+                        </View>
+                      )}
+                      <Text className="text-ui-white opacity-70 font-poppins text-sm" numberOfLines={1}>
+                        {spotifyUser.display_name}
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text className="text-ui-white opacity-70 font-poppins text-sm">Connected</Text>
+                  )
                 ) : (
                   <Text className="text-ui-white opacity-70 font-poppins text-sm">Not connected</Text>
                 )}
