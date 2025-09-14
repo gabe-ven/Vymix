@@ -24,15 +24,13 @@ export const useResponsive = () => {
   }, []);
 
   const isSmallScreen = screenDimensions.width < 375;
-  const isMediumScreen = screenDimensions.width >= 375 && screenDimensions.width < 768;
+  const isMediumScreen =
+    screenDimensions.width >= 375 && screenDimensions.width < 768;
   const isLargeScreen = screenDimensions.width >= 768;
-  const isTablet = screenDimensions.width >= 768 && screenDimensions.height >= 1024;
+  const isTablet =
+    screenDimensions.width >= 768 && screenDimensions.height >= 1024;
 
-  const getResponsiveValue = <T>(
-    small: T,
-    medium: T,
-    large: T
-  ): T => {
+  const getResponsiveValue = <T>(small: T, medium: T, large: T): T => {
     if (isSmallScreen) return small;
     if (isMediumScreen) return medium;
     return large;
@@ -46,4 +44,4 @@ export const useResponsive = () => {
     isTablet,
     getResponsiveValue,
   };
-}; 
+};

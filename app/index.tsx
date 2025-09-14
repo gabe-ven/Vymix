@@ -21,4 +21,4 @@ export default function Index() {
 
   // If user is authenticated, go to main app
   return <Redirect href="/(tabs)/create" />;
-} 
+}

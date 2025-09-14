@@ -17,6 +17,4 @@ export const MOOD_EMOJIS = {
   silly: ['🤪', '😜', '🤣', '😹', '😛', '🤓'],
   eerie: ['👻', '🩸', '☠️', '🧛‍♂️', '🪦', '🕷️', '🧟‍♀️'],
 };
-export const ALL_MOOD_EMOJIS = [
-  ...new Set(Object.values(MOOD_EMOJIS).flat())
-];
+export const ALL_MOOD_EMOJIS = [...new Set(Object.values(MOOD_EMOJIS).flat())];

@@ -17,21 +17,17 @@ export { playlistValidationService } from './playlistValidationService';
 export { playlistExportService } from './playlistExportService';
 
 // Re-export the management functions for backward compatibility
-export { 
-  savePlaylistToFirestore, 
-  getUserPlaylists, 
-  deletePlaylist, 
-  forceDeletePlaylist, 
-  testFirestoreConnection 
+export {
+  savePlaylistToFirestore,
+  getUserPlaylists,
+  deletePlaylist,
+  forceDeletePlaylist,
+  testFirestoreConnection,
 } from './playlistManagementService';
 
 // Legacy class for backward compatibility - delegates to new services
 export class PlaylistService {
-  async generatePlaylist(
-    emojis: string[],
-    songCount: number,
-    vibe: string
-  ) {
+  async generatePlaylist(emojis: string[], songCount: number, vibe: string) {
     return playlistGenerationService.generatePlaylist(emojis, songCount, vibe);
   }
 
@@ -71,4 +67,4 @@ export class PlaylistService {
 export const playlistService = new PlaylistService();
 
 // Re-export types for backward compatibility
-export * from './types/playlistTypes'; 
+export * from './types/playlistTypes';

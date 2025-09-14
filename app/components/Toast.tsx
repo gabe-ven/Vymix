@@ -14,12 +14,12 @@ interface ToastProps {
 
 const { width } = Dimensions.get('window');
 
-export default function Toast({ 
-  visible, 
-  message, 
-  type = 'success', 
-  onHide, 
-  duration = 3000 
+export default function Toast({
+  visible,
+  message,
+  type = 'success',
+  onHide,
+  duration = 3000,
 }: ToastProps) {
   const translateY = useRef(new Animated.Value(-100)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -115,10 +115,10 @@ export default function Toast({
           backgroundColor={COLORS.transparent.white[10]}
         >
           <View className="flex-row items-center">
-            <Ionicons 
-              name={getIcon() as any} 
-              size={24} 
-              color={getIconColor()} 
+            <Ionicons
+              name={getIcon() as any}
+              size={24}
+              color={getIconColor()}
             />
             <Text className="text-ui-white font-poppins-bold text-base ml-3 flex-1">
               {message}
@@ -128,4 +128,4 @@ export default function Toast({
       </View>
     </Animated.View>
   );
-} 
+}

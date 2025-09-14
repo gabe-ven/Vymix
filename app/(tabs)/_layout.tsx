@@ -7,15 +7,21 @@ import MaskedView from '@react-native-masked-view/masked-view';
 import { Glass } from '../components/Glass';
 import { COLORS } from '../constants/colors';
 
-type IconName = 'plus' | 'user' | 'playlist' | 'library' | 'musical-notes' | 'person';
+type IconName =
+  | 'plus'
+  | 'user'
+  | 'playlist'
+  | 'library'
+  | 'musical-notes'
+  | 'person';
 
-const GradientMask = ({ 
-  children, 
-  width, 
-  height 
-}: { 
-  children: ReactElement; 
-  width?: number; 
+const GradientMask = ({
+  children,
+  width,
+  height,
+}: {
+  children: ReactElement;
+  width?: number;
   height?: number;
 }) => (
   <View style={{ width, height }}>
@@ -35,13 +41,21 @@ const GradientMask = ({
   </View>
 );
 
-const TabIcon = ({ focused, icon, title }: { focused: boolean; icon: IconName; title: string }) => {
+const TabIcon = ({
+  focused,
+  icon,
+  title,
+}: {
+  focused: boolean;
+  icon: IconName;
+  title: string;
+}) => {
   const getIcon = () => {
-    const iconProps = { 
-      size: focused ? 28 : 24, 
-      color: focused ? COLORS.states.focused : COLORS.states.inactive 
+    const iconProps = {
+      size: focused ? 28 : 24,
+      color: focused ? COLORS.states.focused : COLORS.states.inactive,
     };
-    
+
     switch (icon) {
       case 'plus':
         return <Feather name="plus-circle" {...iconProps} />;
@@ -62,21 +76,39 @@ const TabIcon = ({ focused, icon, title }: { focused: boolean; icon: IconName; t
 
   const iconElement = getIcon();
   const textElement = (
-    <Text className={`text-sm md:text-base font-semibold text-black h-6 text-center leading-6 font-poppins-bold ${focused ? 'text-base md:text-lg' : ''}`}>
+    <Text
+      className={`text-sm md:text-base font-semibold text-black h-6 text-center leading-6 font-poppins-bold ${focused ? 'text-base md:text-lg' : ''}`}
+    >
       {title}
     </Text>
   );
 
   return (
-    <View className={`flex flex-col w-full min-w-[100px] md:min-w-[130px] min-h-16 mt-8 justify-center items-center rounded-full overflow-hidden ${focused ? 'scale-110' : ''}`}>
+    <View
+      className={`flex flex-col w-full min-w-[100px] md:min-w-[130px] min-h-16 mt-8 justify-center items-center rounded-full overflow-hidden ${focused ? 'scale-110' : ''}`}
+    >
       <View className="w-6 h-6 justify-center items-center">
-        <View style={{ width: focused ? 28 : 24, height: focused ? 28 : 24, justifyContent: 'center', alignItems: 'center' }}>
+        <View
+          style={{
+            width: focused ? 28 : 24,
+            height: focused ? 28 : 24,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
           {iconElement}
         </View>
       </View>
-      <View className={`h-6 justify-center items-center ${focused ? 'mt-2' : 'mt-1'}`}>
+      <View
+        className={`h-6 justify-center items-center ${focused ? 'mt-2' : 'mt-1'}`}
+      >
         <View className="h-6 justify-center items-center">
-          <Text className="text-sm md:text-base font-semibold h-6 text-center leading-6 font-poppins" style={{ color: focused ? COLORS.states.focused : COLORS.states.inactive }}>
+          <Text
+            className="text-sm md:text-base font-semibold h-6 text-center leading-6 font-poppins"
+            style={{
+              color: focused ? COLORS.states.focused : COLORS.states.inactive,
+            }}
+          >
             {title}
           </Text>
         </View>
@@ -115,10 +147,7 @@ export default function TabLayout() {
             overflow: 'hidden',
           },
           tabBarBackground: () => (
-            <Glass
-              style={{ flex: 1, borderRadius: 50 }}
-              blurAmount={10}
-            >
+            <Glass style={{ flex: 1, borderRadius: 50 }} blurAmount={10}>
               <View style={{ flex: 1 }} />
             </Glass>
           ),

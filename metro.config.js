@@ -1,9 +1,11 @@
-const { getDefaultConfig } = require("expo/metro-config");
-const { withNativeWind } = require("nativewind/metro");
+const { withNativeWind } = require('nativewind/metro');
+const {
+  getSentryExpoConfig
+} = require("@sentry/react-native/metro");
 
-const config = getDefaultConfig(__dirname);
+const config = getSentryExpoConfig(__dirname);
 
-config.resolver.assetExts.push("cjs");
+config.resolver.assetExts.push('cjs');
 config.resolver.unstable_enablePackageExports = false;
 
-module.exports = withNativeWind(config, { input: "./app/globals.css" });
+module.exports = withNativeWind(config, { input: './app/globals.css' });

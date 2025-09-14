@@ -7,9 +7,9 @@ interface ProgressBarProps {
   totalSteps?: number;
 }
 
-export const ProgressBar: React.FC<ProgressBarProps> = ({ 
-  currentStep, 
-  totalSteps = 4 
+export const ProgressBar: React.FC<ProgressBarProps> = ({
+  currentStep,
+  totalSteps = 4,
 }) => {
   const fillAnimations = useRef<Animated.Value[]>(
     Array.from({ length: totalSteps }, () => new Animated.Value(0))
@@ -19,7 +19,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
     fillAnimations.forEach((animation, index) => {
       const shouldFill = index < currentStep;
       const targetValue = shouldFill ? 1 : 0;
-      
+
       Animated.timing(animation, {
         toValue: targetValue,
         duration: 300,
@@ -54,4 +54,4 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
       })}
     </View>
   );
-}; 
+};

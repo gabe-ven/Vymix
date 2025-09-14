@@ -2,7 +2,8 @@ import { playlistValidationService } from './playlistValidationService';
 import { PlaylistData, SpotifyTrack } from './types/playlistTypes';
 
 // Interface for export data (without internal IDs)
-export interface ExportPlaylistData extends Omit<PlaylistData, 'id' | 'userId'> {
+export interface ExportPlaylistData
+  extends Omit<PlaylistData, 'id' | 'userId'> {
   id?: string; // Optional for export
   userId?: string; // Optional for export
 }
@@ -29,21 +30,26 @@ export class PlaylistExportService {
   exportToJSON(playlist: PlaylistData): string {
     try {
       // Validate playlist before export
-      const validation = playlistValidationService.validatePlaylistData(playlist);
+      const validation =
+        playlistValidationService.validatePlaylistData(playlist);
       if (!validation.isValid) {
-        throw new Error(`Playlist validation failed: ${validation.errors.join(', ')}`);
+        throw new Error(
+          `Playlist validation failed: ${validation.errors.join(', ')}`
+        );
       }
 
       const exportData: ExportFormat = {
         version: this.EXPORT_VERSION,
         exportDate: new Date().toISOString(),
-        playlist: this.sanitizeForExport(playlist)
+        playlist: this.sanitizeForExport(playlist),
       };
 
       return JSON.stringify(exportData, null, 2);
     } catch (error) {
       console.error('Export to JSON failed:', error);
-      throw new Error(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -53,13 +59,16 @@ export class PlaylistExportService {
   exportToCSV(playlist: PlaylistData): string {
     try {
       // Validate playlist before export
-      const validation = playlistValidationService.validatePlaylistData(playlist);
+      const validation =
+        playlistValidationService.validatePlaylistData(playlist);
       if (!validation.isValid) {
-        throw new Error(`Playlist validation failed: ${validation.errors.join(', ')}`);
+        throw new Error(
+          `Playlist validation failed: ${validation.errors.join(', ')}`
+        );
       }
 
       const sanitizedPlaylist = this.sanitizeForExport(playlist);
-      
+
       // Create CSV header
       const headers = [
         'Track Name',
@@ -67,28 +76,30 @@ export class PlaylistExportService {
         'Album',
         'Duration (ms)',
         'Spotify URI',
-        'Spotify URL'
+        'Spotify URL',
       ];
 
       // Create CSV rows
-      const rows = sanitizedPlaylist.tracks.map(track => [
+      const rows = sanitizedPlaylist.tracks.map((track) => [
         this.escapeCSV(track.name),
-        this.escapeCSV(track.artists.map(artist => artist.name).join(', ')),
+        this.escapeCSV(track.artists.map((artist) => artist.name).join(', ')),
         this.escapeCSV(track.album.name),
         track.duration_ms.toString(),
         track.uri,
-        track.external_urls.spotify
+        track.external_urls.spotify,
       ]);
 
       // Combine header and rows
       const csvContent = [headers, ...rows]
-        .map(row => row.join(','))
+        .map((row) => row.join(','))
         .join('\n');
 
       return csvContent;
     } catch (error) {
       console.error('Export to CSV failed:', error);
-      throw new Error(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -98,13 +109,16 @@ export class PlaylistExportService {
   exportToText(playlist: PlaylistData): string {
     try {
       // Validate playlist before export
-      const validation = playlistValidationService.validatePlaylistData(playlist);
+      const validation =
+        playlistValidationService.validatePlaylistData(playlist);
       if (!validation.isValid) {
-        throw new Error(`Playlist validation failed: ${validation.errors.join(', ')}`);
+        throw new Error(
+          `Playlist validation failed: ${validation.errors.join(', ')}`
+        );
       }
 
       const sanitizedPlaylist = this.sanitizeForExport(playlist);
-      
+
       let textContent = '';
       textContent += `Playlist: ${sanitizedPlaylist.name}\n`;
       textContent += `Description: ${sanitizedPlaylist.description}\n`;
@@ -112,13 +126,13 @@ export class PlaylistExportService {
       textContent += `Emojis: ${sanitizedPlaylist.emojis.join(' ')}\n`;
       textContent += `Songs: ${sanitizedPlaylist.songCount}\n`;
       textContent += `Created: ${sanitizedPlaylist.createdAt?.toLocaleDateString() || 'Unknown'}\n\n`;
-      
+
       textContent += 'Tracks:\n';
       textContent += '='.repeat(50) + '\n\n';
-      
+
       sanitizedPlaylist.tracks.forEach((track, index) => {
         textContent += `${index + 1}. ${track.name}\n`;
-        textContent += `   Artist: ${track.artists.map(artist => artist.name).join(', ')}\n`;
+        textContent += `   Artist: ${track.artists.map((artist) => artist.name).join(', ')}\n`;
         textContent += `   Album: ${track.album.name}\n`;
         textContent += `   Duration: ${this.formatDuration(track.duration_ms)}\n`;
         textContent += `   Spotify: ${track.external_urls.spotify}\n\n`;
@@ -127,7 +141,9 @@ export class PlaylistExportService {
       return textContent;
     } catch (error) {
       console.error('Export to text failed:', error);
-      throw new Error(`Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Export failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -137,11 +153,11 @@ export class PlaylistExportService {
   importFromJSON(jsonString: string): ImportResult {
     try {
       const parsed = JSON.parse(jsonString);
-      
+
       if (!parsed || typeof parsed !== 'object') {
         return {
           success: false,
-          errors: ['Invalid JSON format']
+          errors: ['Invalid JSON format'],
         };
       }
 
@@ -157,13 +173,14 @@ export class PlaylistExportService {
 
       return {
         success: false,
-        errors: ['Unsupported format: missing playlist data']
+        errors: ['Unsupported format: missing playlist data'],
       };
-
     } catch (error) {
       return {
         success: false,
-        errors: [`JSON parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`]
+        errors: [
+          `JSON parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        ],
       };
     }
   }
@@ -177,21 +194,28 @@ export class PlaylistExportService {
       if (lines.length < 2) {
         return {
           success: false,
-          errors: ['CSV must have at least a header and one data row']
+          errors: ['CSV must have at least a header and one data row'],
         };
       }
 
-      const headers = lines[0].split(',').map(h => h.trim());
-      const requiredHeaders = ['Track Name', 'Artist(s)', 'Album', 'Duration (ms)', 'Spotify URI'];
-      
-      const missingHeaders = requiredHeaders.filter(header => 
-        !headers.some(h => h.toLowerCase().includes(header.toLowerCase()))
+      const headers = lines[0].split(',').map((h) => h.trim());
+      const requiredHeaders = [
+        'Track Name',
+        'Artist(s)',
+        'Album',
+        'Duration (ms)',
+        'Spotify URI',
+      ];
+
+      const missingHeaders = requiredHeaders.filter(
+        (header) =>
+          !headers.some((h) => h.toLowerCase().includes(header.toLowerCase()))
       );
 
       if (missingHeaders.length > 0) {
         return {
           success: false,
-          errors: [`Missing required headers: ${missingHeaders.join(', ')}`]
+          errors: [`Missing required headers: ${missingHeaders.join(', ')}`],
         };
       }
 
@@ -212,32 +236,36 @@ export class PlaylistExportService {
           const track: SpotifyTrack = {
             id: `imported-${Date.now()}-${i}`,
             name: values[0] || 'Unknown Track',
-            artists: [{ 
-              id: `imported-artist-${i}`, 
-              name: values[1] || 'Unknown Artist',
-              external_urls: { spotify: '' }
-            }],
+            artists: [
+              {
+                id: `imported-artist-${i}`,
+                name: values[1] || 'Unknown Artist',
+                external_urls: { spotify: '' },
+              },
+            ],
             album: {
               id: `imported-album-${i}`,
               name: values[2] || 'Unknown Album',
               images: [],
-              external_urls: { spotify: '' }
+              external_urls: { spotify: '' },
             },
             duration_ms: parseInt(values[3]) || 0,
             uri: values[4] || '',
-            external_urls: { spotify: values[5] || '' }
+            external_urls: { spotify: values[5] || '' },
           };
 
           tracks.push(track);
         } catch (error) {
-          warnings.push(`Skipping row ${i + 1}: ${error instanceof Error ? error.message : 'Invalid data'}`);
+          warnings.push(
+            `Skipping row ${i + 1}: ${error instanceof Error ? error.message : 'Invalid data'}`
+          );
         }
       }
 
       if (tracks.length === 0) {
         return {
           success: false,
-          errors: ['No valid tracks found in CSV']
+          errors: ['No valid tracks found in CSV'],
         };
       }
 
@@ -252,19 +280,20 @@ export class PlaylistExportService {
         vibe: 'imported',
         tracks,
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       return {
         success: true,
         playlist,
-        warnings: warnings.length > 0 ? warnings : undefined
+        warnings: warnings.length > 0 ? warnings : undefined,
       };
-
     } catch (error) {
       return {
         success: false,
-        errors: [`CSV import failed: ${error instanceof Error ? error.message : 'Unknown error'}`]
+        errors: [
+          `CSV import failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        ],
       };
     }
   }
@@ -279,23 +308,28 @@ export class PlaylistExportService {
   /**
    * Gets export format information
    */
-  getFormatInfo(format: string): { name: string; description: string; extension: string } | null {
-    const formats: Record<string, { name: string; description: string; extension: string }> = {
+  getFormatInfo(
+    format: string
+  ): { name: string; description: string; extension: string } | null {
+    const formats: Record<
+      string,
+      { name: string; description: string; extension: string }
+    > = {
       json: {
         name: 'JSON',
         description: 'Complete playlist data in JSON format',
-        extension: '.json'
+        extension: '.json',
       },
       csv: {
         name: 'CSV',
         description: 'Track list in comma-separated values format',
-        extension: '.csv'
+        extension: '.csv',
       },
       txt: {
         name: 'Text',
         description: 'Human-readable playlist summary',
-        extension: '.txt'
-      }
+        extension: '.txt',
+      },
     };
 
     return formats[format.toLowerCase()] || null;
@@ -311,20 +345,20 @@ export class PlaylistExportService {
       userId: undefined, // Remove user ID for export
       createdAt: playlist.createdAt || new Date(),
       updatedAt: playlist.updatedAt || new Date(),
-      tracks: playlist.tracks.map(track => ({
+      tracks: playlist.tracks.map((track) => ({
         ...track,
         id: track.id || `track-${Date.now()}`,
-        artists: track.artists.map(artist => ({
+        artists: track.artists.map((artist) => ({
           ...artist,
           id: artist.id || `artist-${Date.now()}`,
-          images: artist.images || []
+          images: artist.images || [],
         })),
         album: {
           ...track.album,
           id: track.album.id || `album-${Date.now()}`,
-          images: track.album.images || []
-        }
-      }))
+          images: track.album.images || [],
+        },
+      })),
     };
   }
 
@@ -334,43 +368,52 @@ export class PlaylistExportService {
   private validateAndImport(playlistData: any): ImportResult {
     try {
       // Basic validation
-      if (!playlistData.name || !playlistData.tracks || !Array.isArray(playlistData.tracks)) {
+      if (
+        !playlistData.name ||
+        !playlistData.tracks ||
+        !Array.isArray(playlistData.tracks)
+      ) {
         return {
           success: false,
-          errors: ['Invalid playlist data: missing name or tracks']
+          errors: ['Invalid playlist data: missing name or tracks'],
         };
       }
 
       // Validate the playlist structure
-      const validation = playlistValidationService.validatePlaylistData(playlistData as PlaylistData);
+      const validation = playlistValidationService.validatePlaylistData(
+        playlistData as PlaylistData
+      );
       if (!validation.isValid) {
         return {
           success: false,
-          errors: validation.errors
+          errors: validation.errors,
         };
       }
 
       // Sanitize the data
-      const sanitizedPlaylist = playlistValidationService.sanitizePlaylistData(playlistData as PlaylistData);
-      
+      const sanitizedPlaylist = playlistValidationService.sanitizePlaylistData(
+        playlistData as PlaylistData
+      );
+
       // Add import metadata
       const importedPlaylist: PlaylistData = {
         ...sanitizedPlaylist,
         id: `imported-${Date.now()}`, // Generate unique ID for imported playlist
         userId: undefined, // No user ID for imported playlists
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       };
 
       return {
         success: true,
-        playlist: importedPlaylist
+        playlist: importedPlaylist,
       };
-
     } catch (error) {
       return {
         success: false,
-        errors: [`Import validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`]
+        errors: [
+          `Import validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        ],
       };
     }
   }
@@ -392,10 +435,10 @@ export class PlaylistExportService {
     const result: string[] = [];
     let current = '';
     let inQuotes = false;
-    
+
     for (let i = 0; i < line.length; i++) {
       const char = line[i];
-      
+
       if (char === '"') {
         if (inQuotes && line[i + 1] === '"') {
           current += '"';
@@ -410,7 +453,7 @@ export class PlaylistExportService {
         current += char;
       }
     }
-    
+
     result.push(current.trim());
     return result;
   }
@@ -425,4 +468,4 @@ export class PlaylistExportService {
   }
 }
 
-export const playlistExportService = new PlaylistExportService(); 
+export const playlistExportService = new PlaylistExportService();

@@ -17,7 +17,7 @@ export default function CreateScreen() {
         console.error('Error clearing vibe:', error);
       }
     };
-    
+
     clearVibeText();
   }, []);
 
@@ -45,8 +45,8 @@ export default function CreateScreen() {
   return (
     <Layout>
       <View className="w-full h-full p-4 flex items-center justify-center">
-        <VibeInput 
-          value={inputValue} 
+        <VibeInput
+          value={inputValue}
           onChangeText={handleInputChange}
           onNext={handleNext}
         />

@@ -1,4 +1,4 @@
-import Constants from "expo-constants";
+import Constants from 'expo-constants';
 
 const extra = Constants.expoConfig?.extra || {};
 
@@ -12,7 +12,11 @@ export const FIREBASE_CONFIG = {
   measurementId: extra.FIREBASE_MEASUREMENT_ID,
 };
 
-export const GOOGLE_CLIENT_IDS: { ios?: string; android?: string; web?: string } = {
+export const GOOGLE_CLIENT_IDS: {
+  ios?: string;
+  android?: string;
+  web?: string;
+} = {
   ios: extra.GOOGLE_IOS_CLIENT_ID,
   android: extra.GOOGLE_ANDROID_CLIENT_ID,
   web: extra.GOOGLE_WEB_CLIENT_ID,

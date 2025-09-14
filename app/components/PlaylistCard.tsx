@@ -1,14 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Image, TextInput, TouchableOpacity, Keyboard } from 'react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withTiming, 
+import {
+  View,
+  Text,
+  Image,
+  TextInput,
+  TouchableOpacity,
+  Keyboard,
+} from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
   withDelay,
   Easing,
   interpolate,
   Extrapolate,
-  SharedValue
+  SharedValue,
 } from 'react-native-reanimated';
 import { COLORS } from '../constants/colors';
 import Glass from './Glass';
@@ -29,9 +36,9 @@ interface PlaylistCardProps {
   onPressCover?: () => void;
 }
 
-export default function PlaylistCard({ 
-  name, 
-  description, 
+export default function PlaylistCard({
+  name,
+  description,
   songCount,
   isSelected = false,
   coverImageUrl,
@@ -60,65 +67,83 @@ export default function PlaylistCard({
         duration: 800,
         easing: Easing.out(Easing.cubic),
       });
-      
+
       cardTranslateY.value = withTiming(0, {
         duration: 800,
         easing: Easing.out(Easing.cubic),
       });
 
       // Animate cover image with delay
-      coverOpacity.value = withDelay(200, withTiming(1, {
-        duration: 600,
-        easing: Easing.out(Easing.cubic),
-      }));
-      
-      coverScale.value = withDelay(200, withTiming(1, {
-        duration: 600,
-        easing: Easing.out(Easing.cubic),
-      }));
+      coverOpacity.value = withDelay(
+        200,
+        withTiming(1, {
+          duration: 600,
+          easing: Easing.out(Easing.cubic),
+        })
+      );
+
+      coverScale.value = withDelay(
+        200,
+        withTiming(1, {
+          duration: 600,
+          easing: Easing.out(Easing.cubic),
+        })
+      );
 
       // Animate title with delay
-      titleOpacity.value = withDelay(400, withTiming(1, {
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-      }));
-      
-      titleTranslateY.value = withDelay(400, withTiming(0, {
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-      }));
+      titleOpacity.value = withDelay(
+        400,
+        withTiming(1, {
+          duration: 500,
+          easing: Easing.out(Easing.cubic),
+        })
+      );
+
+      titleTranslateY.value = withDelay(
+        400,
+        withTiming(0, {
+          duration: 500,
+          easing: Easing.out(Easing.cubic),
+        })
+      );
 
       // Animate description with delay
-      descriptionOpacity.value = withDelay(600, withTiming(1, {
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-      }));
-      
-      descriptionTranslateY.value = withDelay(600, withTiming(0, {
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-      }));
+      descriptionOpacity.value = withDelay(
+        600,
+        withTiming(1, {
+          duration: 500,
+          easing: Easing.out(Easing.cubic),
+        })
+      );
+
+      descriptionTranslateY.value = withDelay(
+        600,
+        withTiming(0, {
+          duration: 500,
+          easing: Easing.out(Easing.cubic),
+        })
+      );
     }
   }, [shouldAnimate]);
 
   // Scroll-based animated styles
   const cardScrollAnimatedStyle = useAnimatedStyle(() => {
     if (!scrollY) return {};
-    
+
     const translateY = interpolate(
       scrollY.value,
       [0, 300],
       [0, -50],
       Extrapolate.CLAMP
     );
-    
+
     const scale = interpolate(
       scrollY.value,
       [0, 300],
       [1, 0.95],
       Extrapolate.CLAMP
     );
-    
+
     const opacity = interpolate(
       scrollY.value,
       [0, 200, 400],
@@ -127,24 +152,21 @@ export default function PlaylistCard({
     );
 
     return {
-      transform: [
-        { translateY },
-        { scale }
-      ],
+      transform: [{ translateY }, { scale }],
       opacity,
     };
   });
 
   const coverScrollAnimatedStyle = useAnimatedStyle(() => {
     if (!scrollY) return {};
-    
+
     const scale = interpolate(
       scrollY.value,
       [0, 200],
       [1, 0.9],
       Extrapolate.CLAMP
     );
-    
+
     const translateY = interpolate(
       scrollY.value,
       [0, 200],
@@ -153,10 +175,7 @@ export default function PlaylistCard({
     );
 
     return {
-      transform: [
-        { scale },
-        { translateY }
-      ],
+      transform: [{ scale }, { translateY }],
     };
   });
 
@@ -242,14 +261,14 @@ export default function PlaylistCard({
           {/* Top row */}
           <View className="flex-1 flex-col">
             <View className="flex-1">
-              <Image 
+              <Image
                 source={{ uri: firstFourTracks[0]?.album?.images?.[0]?.url }}
                 className="w-full h-full"
                 resizeMode="cover"
               />
             </View>
             <View className="flex-1">
-              <Image 
+              <Image
                 source={{ uri: firstFourTracks[1]?.album?.images?.[0]?.url }}
                 className="w-full h-full"
                 resizeMode="cover"
@@ -259,14 +278,14 @@ export default function PlaylistCard({
           {/* Bottom row */}
           <View className="flex-1 flex-col">
             <View className="flex-1">
-              <Image 
+              <Image
                 source={{ uri: firstFourTracks[2]?.album?.images?.[0]?.url }}
                 className="w-full h-full"
                 resizeMode="cover"
               />
             </View>
             <View className="flex-1">
-              <Image 
+              <Image
                 source={{ uri: firstFourTracks[3]?.album?.images?.[0]?.url }}
                 className="w-full h-full"
                 resizeMode="cover"
@@ -279,23 +298,24 @@ export default function PlaylistCard({
   };
 
   return (
-    <Animated.View 
-      className={compact ? "" : "mt-12"} 
-      style={[
-        cardAnimatedStyle,
-        cardScrollAnimatedStyle
-      ]}
+    <Animated.View
+      className={compact ? '' : 'mt-12'}
+      style={[cardAnimatedStyle, cardScrollAnimatedStyle]}
     >
-      <Glass 
-        className={compact ? "w-full p-3" : "w-full p-4"}
+      <Glass
+        className={compact ? 'w-full p-3' : 'w-full p-4'}
         borderRadius={compact ? 12 : 16}
         blurAmount={25}
         backgroundColor={COLORS.transparent.white[10]}
       >
         <View className="items-center">
           {/* Playlist Cover */}
-          <Animated.View 
-            className={compact ? "w-48 h-48 mb-4 rounded-lg" : "w-64 h-64 mb-6 rounded-xl"}
+          <Animated.View
+            className={
+              compact
+                ? 'w-48 h-48 mb-4 rounded-lg'
+                : 'w-64 h-64 mb-6 rounded-xl'
+            }
             style={[
               coverAnimatedStyle,
               coverScrollAnimatedStyle,
@@ -305,11 +325,11 @@ export default function PlaylistCard({
                 shadowOpacity: 0.4,
                 shadowRadius: 20,
                 elevation: 15,
-              }
+              },
             ]}
           >
             <TouchableOpacity activeOpacity={0.9} onPress={onPressCover}>
-              <Glass 
+              <Glass
                 className="w-full h-full"
                 borderRadius={12}
                 blurAmount={25}
@@ -318,7 +338,7 @@ export default function PlaylistCard({
               >
                 <View className="flex-1 items-center justify-center">
                   {coverImageUrl ? (
-                    <Image 
+                    <Image
                       source={{ uri: coverImageUrl }}
                       className="w-full h-full rounded-lg"
                       resizeMode="cover"
@@ -330,7 +350,7 @@ export default function PlaylistCard({
               </Glass>
             </TouchableOpacity>
           </Animated.View>
-          
+
           {/* Title */}
           {isEditingTitle ? (
             <TextInput
@@ -354,9 +374,18 @@ export default function PlaylistCard({
               blurOnSubmit={true}
             />
           ) : (
-            <TouchableOpacity activeOpacity={0.8} onPress={() => onUpdateTitle ? setIsEditingTitle(true) : undefined}>
-              <Animated.Text 
-                className={compact ? "text-2xl font-bold text-ui-white font-poppins-bold mb-2 text-center leading-tight" : "text-3xl font-bold text-ui-white font-poppins-bold mb-2 text-center leading-tight"} 
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() =>
+                onUpdateTitle ? setIsEditingTitle(true) : undefined
+              }
+            >
+              <Animated.Text
+                className={
+                  compact
+                    ? 'text-2xl font-bold text-ui-white font-poppins-bold mb-2 text-center leading-tight'
+                    : 'text-3xl font-bold text-ui-white font-poppins-bold mb-2 text-center leading-tight'
+                }
                 numberOfLines={compact ? 1 : 2}
                 style={titleAnimatedStyle}
               >
@@ -364,7 +393,7 @@ export default function PlaylistCard({
               </Animated.Text>
             </TouchableOpacity>
           )}
-          
+
           {/* Description */}
           {isEditingDescription ? (
             <TextInput
@@ -397,9 +426,18 @@ export default function PlaylistCard({
               blurOnSubmit={true}
             />
           ) : (
-            <TouchableOpacity activeOpacity={0.8} onPress={() => onUpdateDescription ? setIsEditingDescription(true) : undefined}>
-              <Animated.Text 
-                className={compact ? "text-sm text-ui-gray-light font-poppins-bold text-center leading-relaxed px-2" : "text-base text-ui-gray-light font-poppins-bold text-center leading-relaxed px-4"} 
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() =>
+                onUpdateDescription ? setIsEditingDescription(true) : undefined
+              }
+            >
+              <Animated.Text
+                className={
+                  compact
+                    ? 'text-sm text-ui-gray-light font-poppins-bold text-center leading-relaxed px-2'
+                    : 'text-base text-ui-gray-light font-poppins-bold text-center leading-relaxed px-4'
+                }
                 numberOfLines={compact ? 2 : 3}
                 style={descriptionAnimatedStyle}
               >
@@ -407,9 +445,8 @@ export default function PlaylistCard({
               </Animated.Text>
             </TouchableOpacity>
           )}
-          
         </View>
       </Glass>
     </Animated.View>
   );
-} 
+}

@@ -77,7 +77,7 @@ export const Glass: React.FC<GlassProps> = ({
         };
     }
   };
-  
+
   const variantStyles = getVariantStyles();
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -87,13 +87,15 @@ export const Glass: React.FC<GlassProps> = ({
   return (
     <BlurView
       intensity={blurAmount}
-      tint={mounted ? tint : (initialTint || tint)}
+      tint={mounted ? tint : initialTint || tint}
       pointerEvents={pointerEvents}
       style={[
         styles.glass,
         {
           borderRadius,
-          backgroundColor: mounted ? backgroundColor : (initialBackgroundColor || backgroundColor),
+          backgroundColor: mounted
+            ? backgroundColor
+            : initialBackgroundColor || backgroundColor,
           borderColor: variantStyles.borderColor,
           shadowColor,
           shadowOpacity: variantStyles.shadowOpacity,
@@ -117,4 +119,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Glass; 
+export default Glass;

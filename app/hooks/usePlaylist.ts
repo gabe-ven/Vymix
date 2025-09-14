@@ -7,7 +7,11 @@ export const usePlaylist = () => {
   const [playlistData, setPlaylistData] = useState<PlaylistData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [generationProgress, setGenerationProgress] = useState<{ current: number; total: number; phase: string } | null>(null);
+  const [generationProgress, setGenerationProgress] = useState<{
+    current: number;
+    total: number;
+    phase: string;
+  } | null>(null);
 
   // Generate playlist with one simple function call
   const generatePlaylist = async (): Promise<void> => {
@@ -35,18 +39,23 @@ export const usePlaylist = () => {
       const vibe = vibeData || 'Feeling good';
 
       console.log('Starting playlist generation with timeout protection');
-      
+
       // Generate playlist with one call
-      const playlist = await playlistService.generatePlaylist(emojis, songCount, vibe);
-      
+      const playlist = await playlistService.generatePlaylist(
+        emojis,
+        songCount,
+        vibe
+      );
+
       // Save to AsyncStorage
       await AsyncStorage.setItem('playlistData', JSON.stringify(playlist));
-      
+
       setPlaylistData(playlist);
     } catch (err) {
       console.error('Playlist generation error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to generate playlist';
-      
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to generate playlist';
+
       // Handle specific timeout errors
       if (errorMessage.includes('timeout')) {
         setError('Playlist generation took too long. Please try again.');
@@ -60,7 +69,9 @@ export const usePlaylist = () => {
   };
 
   // Generate playlist with streaming updates
-  const generatePlaylistStreaming = async (bypassCache?: boolean): Promise<void> => {
+  const generatePlaylistStreaming = async (
+    bypassCache?: boolean
+  ): Promise<void> => {
     setLoading(true);
     setError(null);
     setGenerationProgress(null);
@@ -85,22 +96,26 @@ export const usePlaylist = () => {
       const vibe = vibeData || 'Feeling good';
 
       console.log('Starting streaming playlist generation');
-      
+
       // Generate playlist with streaming updates
       const playlist = await playlistService.generatePlaylistStreaming(
-        emojis, 
-        songCount, 
+        emojis,
+        songCount,
         vibe,
         (partialPlaylist, progress) => {
           // Update playlist data with partial information
-          setPlaylistData(prev => {
+          setPlaylistData((prev) => {
             if (!prev) {
               // If no previous data, create initial structure with required fields
               return {
                 id: `temp-${Date.now()}`, // Temporary ID for loading state
                 name: partialPlaylist.name || 'Loading...',
                 description: partialPlaylist.description || 'Loading...',
-                colorPalette: partialPlaylist.colorPalette || ['#6366f1', '#8b5cf6', '#a855f7'],
+                colorPalette: partialPlaylist.colorPalette || [
+                  '#6366f1',
+                  '#8b5cf6',
+                  '#a855f7',
+                ],
                 keywords: partialPlaylist.keywords || [],
                 coverImageUrl: partialPlaylist.coverImageUrl,
                 emojis: partialPlaylist.emojis || [],
@@ -110,7 +125,7 @@ export const usePlaylist = () => {
                 isSpotifyPlaylist: false,
               };
             }
-            
+
             // Merge with existing data, ensuring required fields are preserved
             return {
               ...prev,
@@ -127,21 +142,22 @@ export const usePlaylist = () => {
               vibe: partialPlaylist.vibe || prev.vibe,
             };
           });
-          
+
           // Update progress
           setGenerationProgress(progress);
         },
         bypassCache
       );
-      
+
       // Save to AsyncStorage
       await AsyncStorage.setItem('playlistData', JSON.stringify(playlist));
-      
+
       setPlaylistData(playlist);
     } catch (err) {
       console.error('Playlist generation error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to generate playlist';
-      
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to generate playlist';
+
       // Handle specific timeout errors
       if (errorMessage.includes('timeout')) {
         setError('Playlist generation took too long. Please try again.');
@@ -157,7 +173,7 @@ export const usePlaylist = () => {
   // Regenerate playlist with same parameters
   const regeneratePlaylist = async (): Promise<void> => {
     if (!playlistData) return;
-    
+
     setLoading(true);
     setError(null);
     setGenerationProgress(null);
@@ -176,9 +192,9 @@ export const usePlaylist = () => {
         playlistData.vibe,
         (partialPlaylist, progress) => {
           // Update playlist data with partial information
-          setPlaylistData(prev => {
+          setPlaylistData((prev) => {
             if (!prev) return null;
-            
+
             return {
               ...prev,
               ...partialPlaylist,
@@ -192,15 +208,16 @@ export const usePlaylist = () => {
               vibe: partialPlaylist.vibe || prev.vibe,
             };
           });
-          
+
           setGenerationProgress(progress);
         }
       );
-      
+
       await AsyncStorage.setItem('playlistData', JSON.stringify(playlist));
       setPlaylistData(playlist);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to regenerate playlist';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to regenerate playlist';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -222,11 +239,15 @@ export const usePlaylist = () => {
     try {
       console.log('Calling playlistService.saveToSpotify...');
       const result = await playlistService.saveToSpotify(playlistData, userId);
-      console.log('playlistService.saveToSpotify completed successfully:', result);
+      console.log(
+        'playlistService.saveToSpotify completed successfully:',
+        result
+      );
       // Optionally update AsyncStorage if you want, but don't update state
     } catch (err) {
       console.log('Error in saveToSpotify hook:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to save to Spotify';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to save to Spotify';
       console.log('Setting error message:', errorMessage);
       setError(errorMessage);
       throw err; // Re-throw so the calling function can catch it
@@ -263,4 +284,4 @@ export const usePlaylist = () => {
     loadPlaylist,
     clearPlaylist,
   };
-}; 
+};

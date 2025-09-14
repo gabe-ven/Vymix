@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, Linking, Alert } from 'react-native';
-import Animated, { 
-  useSharedValue, 
+import Animated, {
+  useSharedValue,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   interpolate,
-  Extrapolate
+  Extrapolate,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Layout } from '@/app/components/Layout';
@@ -21,7 +21,10 @@ import Glass from '../../components/Glass';
 import Toast from '../../components/Toast';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
-import { savePlaylistToFirestore, playlistService } from '../../../services/playlistService';
+import {
+  savePlaylistToFirestore,
+  playlistService,
+} from '../../../services/playlistService';
 import { spotifyService } from '../../../services/spotify';
 import { useSavedPlaylists } from '../../hooks/useSavedPlaylists';
 
@@ -43,53 +46,62 @@ interface PlaylistData {
 const Playlist = () => {
   const router = useRouter();
   const { user } = useAuth();
-  const { playlistData, loading, error, generationProgress, regeneratePlaylist, saveToSpotify, loadPlaylist, generatePlaylistStreaming } = usePlaylist();
+  const {
+    playlistData,
+    loading,
+    error,
+    generationProgress,
+    regeneratePlaylist,
+    saveToSpotify,
+    loadPlaylist,
+    generatePlaylistStreaming,
+  } = usePlaylist();
   const { savePlaylist } = useSavedPlaylists();
   const [shouldAnimate, setShouldAnimate] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
-  
+
   // Scroll animation values
   const scrollY = useSharedValue(0);
-  
+
   // Helper function for showing toasts
   const showToast = (message: string, type: 'success' | 'error') => {
     setToastMessage(message);
     setToastType(type);
     setToastVisible(true);
-    
+
     // Hide toast after 3 seconds
     setTimeout(() => {
       setToastVisible(false);
     }, 3000);
   };
-  
+
   // Load playlist data on mount
   useEffect(() => {
     const initializePlaylist = async () => {
       setIsInitialLoad(true);
-      
+
       // Check if we need to generate a new playlist
       const isGenerating = await AsyncStorage.getItem('isGeneratingPlaylist');
-      
+
       if (isGenerating === 'true') {
         // Clear the flag and any previous playlist data to prevent duplicates
         await AsyncStorage.removeItem('isGeneratingPlaylist');
         await AsyncStorage.removeItem('playlistData');
         await AsyncStorage.removeItem('playlistSavedToFirestore');
-        
+
         // Always force a fresh generation (no cache reuse)
         await generatePlaylistStreaming(true);
       } else {
         // Load existing playlist data
         await loadPlaylist();
       }
-      
+
       setIsInitialLoad(false);
     };
-    
+
     initializePlaylist();
   }, []);
 
@@ -100,9 +112,9 @@ const Playlist = () => {
       if (playlistData && user?.uid && !isInitialLoad) {
         try {
           await savePlaylist(playlistData);
-          console.log('✅ Playlist auto-saved to Firestore');
+          console.log('Playlist auto-saved to Firestore');
         } catch (error) {
-          console.error('❌ Failed to auto-save playlist:', error);
+          console.error('Failed to auto-save playlist:', error);
         }
       }
     };
@@ -117,7 +129,7 @@ const Playlist = () => {
       const timer = setTimeout(() => {
         setShouldAnimate(true);
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
   }, [playlistData, loading, isInitialLoad]);
@@ -176,14 +188,18 @@ const Playlist = () => {
   // Convert tracks to the format expected by SongList component
   const formatTracksForDisplay = () => {
     if (!playlistData?.tracks) return [];
-    
+
     return playlistData.tracks.map((track) => {
       // Get album image URL (prefer the smallest image for better performance)
-      const albumImageUrl = track.album?.images?.[track.album.images.length - 1]?.url || undefined;
-      
+      const albumImageUrl =
+        track.album?.images?.[track.album.images.length - 1]?.url || undefined;
+
       return {
         title: track.name,
-        artist: track.artists?.map((artist: { name: string }) => artist.name).join(', ') || 'Unknown Artist',
+        artist:
+          track.artists
+            ?.map((artist: { name: string }) => artist.name)
+            .join(', ') || 'Unknown Artist',
         album: track.album?.name || 'Unknown Album',
         duration: track.duration_ms || 0,
         spotifyUrl: track.external_urls?.spotify || '',
@@ -210,18 +226,16 @@ const Playlist = () => {
           );
         }
       } catch (error) {
-        Alert.alert(
-          'Error',
-          'Failed to open Spotify. Please try again.',
-          [{ text: 'OK' }]
-        );
+        Alert.alert('Error', 'Failed to open Spotify. Please try again.', [
+          { text: 'OK' },
+        ]);
       }
     }
   };
 
   const handleSaveToSpotify = async () => {
     console.log('handleSaveToSpotify called');
-    
+
     if (!user?.uid) {
       setToastMessage('Please sign in to save playlists');
       setToastType('error');
@@ -230,10 +244,10 @@ const Playlist = () => {
     }
 
     // Show success toast immediately
-    setToastMessage('🎉 Playlist saved to Spotify!');
+    setToastMessage('Playlist saved to Spotify!');
     setToastType('success');
     setToastVisible(true);
-    
+
     // Save to Spotify only
     try {
       await saveToSpotify();
@@ -244,7 +258,7 @@ const Playlist = () => {
       setToastType('error');
       setToastVisible(true);
     }
-    
+
     // Hide toast after 3 seconds
     setTimeout(() => {
       setToastVisible(false);
@@ -263,13 +277,12 @@ const Playlist = () => {
     };
   }, []);
 
-
   // Show loading with progress during generation
   if (loading || isInitialLoad) {
     return (
       <View style={{ flex: 1, backgroundColor: '#000000' }}>
-        <LoadingAnimation 
-          message={generationProgress?.phase || "Creating your playlist..."} 
+        <LoadingAnimation
+          message={generationProgress?.phase || 'Creating your playlist...'}
           size="large"
           mood={playlistData?.vibe?.toLowerCase() || 'chill'}
           progress={generationProgress || undefined}
@@ -281,11 +294,11 @@ const Playlist = () => {
   const handleInlineConnectSpotify = async () => {
     try {
       await spotifyService.loginToSpotify(user?.uid);
-      
+
       // Clear any previous failed attempts to prevent duplicates
       await AsyncStorage.removeItem('playlistData');
       await AsyncStorage.removeItem('playlistSavedToFirestore');
-      
+
       // After successful connect, retry generation with streaming and show progress
       await generatePlaylistStreaming(true);
     } catch (e) {
@@ -352,9 +365,9 @@ const Playlist = () => {
         onHide={() => setToastVisible(false)}
         duration={3000}
       />
-      
+
       {/* Sticky Header with Playlist Name */}
-      <Animated.View 
+      <Animated.View
         style={[
           {
             position: 'absolute',
@@ -366,10 +379,10 @@ const Playlist = () => {
             paddingBottom: 20,
             paddingHorizontal: 20,
           },
-          stickyHeaderStyle
+          stickyHeaderStyle,
         ]}
       >
-        <Glass 
+        <Glass
           className="p-4"
           borderRadius={24}
           blurAmount={20}
@@ -383,7 +396,7 @@ const Playlist = () => {
 
       <View className="flex-1">
         {/* AI-Generated Gradient Overlay */}
-        <Animated.View 
+        <Animated.View
           style={[
             {
               position: 'absolute',
@@ -393,7 +406,7 @@ const Playlist = () => {
               height: 600,
               zIndex: 1,
             },
-            gradientOverlayStyle
+            gradientOverlayStyle,
           ]}
         >
           <LinearGradient
@@ -405,7 +418,7 @@ const Playlist = () => {
           />
         </Animated.View>
 
-        <Animated.ScrollView 
+        <Animated.ScrollView
           className="flex-1"
           showsVerticalScrollIndicator={false}
           onScroll={scrollHandler}
@@ -458,8 +471,8 @@ const Playlist = () => {
 
           {/* Songs List */}
           <View className="px-4">
-            <SongList 
-              songs={formatTracksForDisplay()} 
+            <SongList
+              songs={formatTracksForDisplay()}
               showScrollView={false}
               shouldAnimate={shouldAnimate}
               scrollY={scrollY}
@@ -471,4 +484,4 @@ const Playlist = () => {
   );
 };
 
-export default Playlist; 
+export default Playlist;

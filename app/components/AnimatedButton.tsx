@@ -1,15 +1,21 @@
 import React, { useEffect } from 'react';
-import { TouchableOpacity, Text, Image, View, ImageSourcePropType } from 'react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withTiming, 
+import {
+  TouchableOpacity,
+  Text,
+  Image,
+  View,
+  ImageSourcePropType,
+} from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
   withDelay,
   withSpring,
   Easing,
   interpolate,
   Extrapolate,
-  SharedValue
+  SharedValue,
 } from 'react-native-reanimated';
 import { COLORS } from '../constants/colors';
 import Glass from './Glass';
@@ -25,15 +31,15 @@ interface AnimatedButtonProps {
   icon?: ImageSourcePropType;
 }
 
-export default function AnimatedButton({ 
-  title, 
-  onPress, 
+export default function AnimatedButton({
+  title,
+  onPress,
   variant = 'primary',
   className = '',
   delay = 0,
   shouldAnimate = false,
   scrollY,
-  icon
+  icon,
 }: AnimatedButtonProps) {
   // Animation values - always start from initial state
   const buttonOpacity = useSharedValue(0);
@@ -48,41 +54,50 @@ export default function AnimatedButton({
       buttonTranslateY.value = 30;
 
       // Animate button with delay
-      buttonOpacity.value = withDelay(delay, withTiming(1, {
-        duration: 600,
-        easing: Easing.out(Easing.cubic),
-      }));
-      
-      buttonScale.value = withDelay(delay, withSpring(1, {
-        damping: 15,
-        stiffness: 150,
-      }));
-      
-      buttonTranslateY.value = withDelay(delay, withTiming(0, {
-        duration: 600,
-        easing: Easing.out(Easing.cubic),
-      }));
+      buttonOpacity.value = withDelay(
+        delay,
+        withTiming(1, {
+          duration: 600,
+          easing: Easing.out(Easing.cubic),
+        })
+      );
+
+      buttonScale.value = withDelay(
+        delay,
+        withSpring(1, {
+          damping: 15,
+          stiffness: 150,
+        })
+      );
+
+      buttonTranslateY.value = withDelay(
+        delay,
+        withTiming(0, {
+          duration: 600,
+          easing: Easing.out(Easing.cubic),
+        })
+      );
     }
   }, [shouldAnimate, delay]);
 
   // Scroll-based animated styles
   const buttonScrollAnimatedStyle = useAnimatedStyle(() => {
     if (!scrollY) return {};
-    
+
     const translateY = interpolate(
       scrollY.value,
       [0, 200],
       [0, -30],
       Extrapolate.CLAMP
     );
-    
+
     const scale = interpolate(
       scrollY.value,
       [0, 200],
       [1, 0.9],
       Extrapolate.CLAMP
     );
-    
+
     const opacity = interpolate(
       scrollY.value,
       [0, 150, 300],
@@ -91,10 +106,7 @@ export default function AnimatedButton({
     );
 
     return {
-      transform: [
-        { translateY },
-        { scale }
-      ],
+      transform: [{ translateY }, { scale }],
       opacity,
     };
   });
@@ -103,19 +115,13 @@ export default function AnimatedButton({
     opacity: buttonOpacity.value,
     transform: [
       { scale: buttonScale.value },
-      { translateY: buttonTranslateY.value }
+      { translateY: buttonTranslateY.value },
     ],
   }));
 
   return (
-    <Animated.View style={[
-      buttonAnimatedStyle,
-      buttonScrollAnimatedStyle
-    ]}>
-      <TouchableOpacity
-        onPress={onPress}
-        activeOpacity={0.8}
-      >
+    <Animated.View style={[buttonAnimatedStyle, buttonScrollAnimatedStyle]}>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
         <Glass
           className={className}
           borderRadius={24}
@@ -131,9 +137,9 @@ export default function AnimatedButton({
               {title}
             </Text>
             {icon && (
-              <Image 
-                source={icon} 
-                style={{ width: 20, height: 20, marginLeft: 8 }} 
+              <Image
+                source={icon}
+                style={{ width: 20, height: 20, marginLeft: 8 }}
                 resizeMode="contain"
               />
             )}
@@ -142,4 +148,4 @@ export default function AnimatedButton({
       </TouchableOpacity>
     </Animated.View>
   );
-} 
+}

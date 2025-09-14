@@ -1,14 +1,14 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, ScrollView, Image, FlatList } from 'react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withTiming, 
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
   withDelay,
   Easing,
   interpolate,
   Extrapolate,
-  SharedValue
+  SharedValue,
 } from 'react-native-reanimated';
 import { COLORS } from '../constants/colors';
 import Glass from './Glass';
@@ -33,18 +33,18 @@ interface SongListProps {
 }
 
 // Separate component for each song to avoid hook call issues
-const SongItem = ({ 
-  song, 
-  index, 
-  shouldAnimate, 
-  animation, 
+const SongItem = ({
+  song,
+  index,
+  shouldAnimate,
+  animation,
   scrollAnimation,
-  scrollY
-}: { 
-  song: Song; 
-  index: number; 
-  shouldAnimate: boolean; 
-  animation?: any; 
+  scrollY,
+}: {
+  song: Song;
+  index: number;
+  shouldAnimate: boolean;
+  animation?: any;
   scrollAnimation?: any;
   scrollY?: SharedValue<number>;
 }) => {
@@ -56,42 +56,51 @@ const SongItem = ({
   useEffect(() => {
     if (shouldAnimate) {
       // Stagger the animations based on index
-      const delay = 800 + (index * 100); // Start after playlist card animation
-      
-      itemOpacity.value = withDelay(delay, withTiming(1, {
-        duration: 600,
-        easing: Easing.out(Easing.cubic),
-      }));
-      
-      itemTranslateX.value = withDelay(delay, withTiming(0, {
-        duration: 600,
-        easing: Easing.out(Easing.cubic),
-      }));
-      
-      itemScale.value = withDelay(delay, withTiming(1, {
-        duration: 600,
-        easing: Easing.out(Easing.cubic),
-      }));
+      const delay = 800 + index * 100; // Start after playlist card animation
+
+      itemOpacity.value = withDelay(
+        delay,
+        withTiming(1, {
+          duration: 600,
+          easing: Easing.out(Easing.cubic),
+        })
+      );
+
+      itemTranslateX.value = withDelay(
+        delay,
+        withTiming(0, {
+          duration: 600,
+          easing: Easing.out(Easing.cubic),
+        })
+      );
+
+      itemScale.value = withDelay(
+        delay,
+        withTiming(1, {
+          duration: 600,
+          easing: Easing.out(Easing.cubic),
+        })
+      );
     }
   }, [shouldAnimate, index]);
 
   // Scroll-based animated styles for each individual song item
   const itemScrollAnimatedStyle = useAnimatedStyle(() => {
     if (!scrollY) return {};
-    
+
     // Calculate the absolute position of this song on the phone screen
     // Each song is approximately 100px tall, and we need to account for the playlist card and buttons above
     const playlistCardHeight = 400; // Approximate height of playlist card
     const buttonsHeight = 100; // Approximate height of action buttons
     const songListOffset = playlistCardHeight + buttonsHeight;
-    
+
     // Each song's position relative to the top of the phone screen
-    const songScreenPosition = songListOffset + (index * 100);
-    
+    const songScreenPosition = songListOffset + index * 100;
+
     // Start sliding back when the song is 200px from the top of the screen
     const slideStartPosition = songScreenPosition - 200;
     const slideEndPosition = songScreenPosition - 50;
-    
+
     // Song starts sliding back when it's 200px from the top of the phone screen
     const slideProgress = interpolate(
       scrollY.value,
@@ -99,7 +108,7 @@ const SongItem = ({
       [0, 1],
       Extrapolate.CLAMP
     );
-    
+
     // Slide back (translateY) and get smaller, no left movement
     const translateY = interpolate(
       slideProgress,
@@ -107,14 +116,14 @@ const SongItem = ({
       [0, -15],
       Extrapolate.CLAMP
     );
-    
+
     const scale = interpolate(
       slideProgress,
       [0, 1],
       [1, 0.9],
       Extrapolate.CLAMP
     );
-    
+
     const opacity = interpolate(
       slideProgress,
       [0, 1],
@@ -123,10 +132,7 @@ const SongItem = ({
     );
 
     return {
-      transform: [
-        { translateY },
-        { scale }
-      ],
+      transform: [{ translateY }, { scale }],
       opacity,
     };
   });
@@ -135,16 +141,13 @@ const SongItem = ({
     opacity: itemOpacity.value,
     transform: [
       { translateX: itemTranslateX.value },
-      { scale: itemScale.value }
+      { scale: itemScale.value },
     ],
   }));
 
   return (
-    <Animated.View style={[
-      itemAnimatedStyle,
-      itemScrollAnimatedStyle
-    ]}>
-      <Glass 
+    <Animated.View style={[itemAnimatedStyle, itemScrollAnimatedStyle]}>
+      <Glass
         className="mb-6 p-4"
         borderRadius={12}
         blurAmount={15}
@@ -152,7 +155,7 @@ const SongItem = ({
       >
         <View className="flex-row items-center">
           {/* Album Cover */}
-          <View 
+          <View
             className="w-14 h-14 rounded-lg mr-4 overflow-hidden"
             style={{ backgroundColor: COLORS.transparent.white[10] }}
           >
@@ -168,13 +171,19 @@ const SongItem = ({
               </View>
             )}
           </View>
-          
+
           {/* Song Info */}
           <View className="flex-1">
-            <Text className="text-lg text-ui-white font-poppins-bold" numberOfLines={1}>
+            <Text
+              className="text-lg text-ui-white font-poppins-bold"
+              numberOfLines={1}
+            >
               {song.title}
             </Text>
-            <Text className="text-sm text-ui-gray-light font-poppins-bold mt-1" numberOfLines={1}>
+            <Text
+              className="text-sm text-ui-gray-light font-poppins-bold mt-1"
+              numberOfLines={1}
+            >
               {song.artist}
             </Text>
           </View>
@@ -184,14 +193,14 @@ const SongItem = ({
   );
 };
 
-export default function SongList({ 
-  songs, 
+export default function SongList({
+  songs,
   title,
   maxHeight,
   showScrollView = true,
   shouldAnimate = false,
   scrollY: externalScrollY,
-  onScroll
+  onScroll,
 }: SongListProps) {
   // Animation values for title - always start from initial state
   const titleOpacity = useSharedValue(0);
@@ -200,29 +209,35 @@ export default function SongList({
   useEffect(() => {
     if (shouldAnimate && title) {
       // Animate title with delay
-      titleOpacity.value = withDelay(700, withTiming(1, {
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-      }));
-      
-      titleTranslateY.value = withDelay(700, withTiming(0, {
-        duration: 500,
-        easing: Easing.out(Easing.cubic),
-      }));
+      titleOpacity.value = withDelay(
+        700,
+        withTiming(1, {
+          duration: 500,
+          easing: Easing.out(Easing.cubic),
+        })
+      );
+
+      titleTranslateY.value = withDelay(
+        700,
+        withTiming(0, {
+          duration: 500,
+          easing: Easing.out(Easing.cubic),
+        })
+      );
     }
   }, [shouldAnimate, title]);
 
   // Scroll-based title animation
   const titleScrollAnimatedStyle = useAnimatedStyle(() => {
     if (!externalScrollY) return {};
-    
+
     const translateY = interpolate(
       externalScrollY.value,
       [0, 200],
       [0, -20],
       Extrapolate.CLAMP
     );
-    
+
     const opacity = interpolate(
       externalScrollY.value,
       [0, 150, 300],
@@ -258,17 +273,14 @@ export default function SongList({
     return (
       <View className="w-full">
         {title && (
-          <Animated.Text 
+          <Animated.Text
             className="text-xl font-bold text-ui-white font-poppins-bold mb-4 text-center"
-            style={[
-              titleAnimatedStyle,
-              titleScrollAnimatedStyle
-            ]}
+            style={[titleAnimatedStyle, titleScrollAnimatedStyle]}
           >
             {title}
           </Animated.Text>
         )}
-        <ScrollView 
+        <ScrollView
           className={`max-h-${maxHeight}`}
           showsVerticalScrollIndicator={false}
           nestedScrollEnabled={true}
@@ -293,12 +305,9 @@ export default function SongList({
   return (
     <View className="w-full">
       {title && (
-        <Animated.Text 
+        <Animated.Text
           className="text-xl font-bold text-ui-white font-poppins-bold mb-4 text-center"
-          style={[
-            titleAnimatedStyle,
-            titleScrollAnimatedStyle
-          ]}
+          style={[titleAnimatedStyle, titleScrollAnimatedStyle]}
         >
           {title}
         </Animated.Text>
@@ -316,4 +325,4 @@ export default function SongList({
       ))}
     </View>
   );
-} 
+}

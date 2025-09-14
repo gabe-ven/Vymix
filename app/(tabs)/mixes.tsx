@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, RefreshControl, Alert } from 'react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
   withTiming,
   withDelay,
   Easing,
   interpolate,
-  Extrapolate
+  Extrapolate,
 } from 'react-native-reanimated';
 import { Layout } from '@/app/components/Layout';
 import MixCard from '@/app/components/MixCard';
@@ -15,7 +15,10 @@ import PlaylistModal from '@/app/components/PlaylistModal';
 import { useSavedPlaylists } from '@/app/hooks/useSavedPlaylists';
 import { LoadingAnimation } from '@/app/components/LoadingAnimation';
 import AnimatedButton from '@/app/components/AnimatedButton';
-import { testFirestoreConnection, playlistService } from '@/services/playlistService';
+import {
+  testFirestoreConnection,
+  playlistService,
+} from '@/services/playlistService';
 import { PlaylistData } from '@/services/playlistService';
 import { forceDeletePlaylist } from '@/services/playlistService';
 import { useFocusEffect } from '@react-navigation/native';
@@ -26,28 +29,37 @@ import Glass from '@/app/components/Glass';
 import { useAuth } from '@/app/context/AuthContext';
 
 export default function MixesScreen() {
-  const { playlists, loading, error, loadPlaylists, removePlaylist } = useSavedPlaylists();
+  const { playlists, loading, error, loadPlaylists, removePlaylist } =
+    useSavedPlaylists();
   const { user } = useAuth();
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedPlaylist, setSelectedPlaylist] = useState<PlaylistData | null>(null);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<PlaylistData | null>(
+    null
+  );
   const [modalVisible, setModalVisible] = useState(false);
-  
+
   // Animation values
   const headerOpacity = useSharedValue(0);
   const headerTranslateY = useSharedValue(-20);
   const scrollY = useSharedValue(0);
-  
+
   useEffect(() => {
     // Animate header on mount
-    headerOpacity.value = withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) });
-    headerTranslateY.value = withTiming(0, { duration: 800, easing: Easing.out(Easing.cubic) });
+    headerOpacity.value = withTiming(1, {
+      duration: 800,
+      easing: Easing.out(Easing.cubic),
+    });
+    headerTranslateY.value = withTiming(0, {
+      duration: 800,
+      easing: Easing.out(Easing.cubic),
+    });
   }, []);
-  
+
   const headerAnimatedStyle = useAnimatedStyle(() => ({
     opacity: headerOpacity.value,
     transform: [{ translateY: headerTranslateY.value }],
   }));
-  
+
   const scrollAnimatedStyle = useAnimatedStyle(() => {
     const opacity = interpolate(
       scrollY.value,
@@ -55,7 +67,7 @@ export default function MixesScreen() {
       [1, 0.8],
       Extrapolate.CLAMP
     );
-    
+
     return {
       opacity,
     };
@@ -63,10 +75,10 @@ export default function MixesScreen() {
 
   // Debug logging
   useEffect(() => {
-    console.log('🎵 MixesScreen render:', { 
-      playlistsCount: playlists.length, 
-      loading, 
-      error: error ? 'yes' : 'no' 
+    console.log('🎵 MixesScreen render:', {
+      playlistsCount: playlists.length,
+      loading,
+      error: error ? 'yes' : 'no',
     });
   }, [playlists.length, loading, error]);
 
@@ -87,12 +99,12 @@ export default function MixesScreen() {
 
   const handleForceDelete = async () => {
     try {
-      console.log('🗑️ Force deleting stuck playlist...');
+      console.log('Force deleting stuck playlist...');
       await forceDeletePlaylist('0iEhUOutlZbMQvp5sq4t');
       await loadPlaylists(true); // Force refresh after deletion
-      console.log('✅ Force delete completed');
+      console.log('Force delete completed');
     } catch (error) {
-      console.error('❌ Force delete failed:', error);
+      console.error('Force delete failed:', error);
     }
   };
 
@@ -136,7 +148,7 @@ export default function MixesScreen() {
 
   const handleSaveToSpotify = async () => {
     if (!selectedPlaylist) return;
-    
+
     if (!user?.uid) {
       Alert.alert(
         'Sign In Required',
@@ -146,37 +158,35 @@ export default function MixesScreen() {
       return;
     }
 
-    console.log('💾 Saving playlist to Spotify:', selectedPlaylist.name);
-    
+    console.log('Saving playlist to Spotify:', selectedPlaylist.name);
+
     try {
-      const updatedPlaylist = await playlistService.saveToSpotify(selectedPlaylist, user.uid);
-      
+      const updatedPlaylist = await playlistService.saveToSpotify(
+        selectedPlaylist,
+        user.uid
+      );
+
       // Update the selected playlist with the Spotify URL
       setSelectedPlaylist(updatedPlaylist);
-      
+
       // Refresh the playlists list to show the updated data
       await loadPlaylists(true);
-      
-      Alert.alert(
-        'Success! 🎉',
-        'Playlist saved to Spotify successfully!',
-        [{ text: 'OK' }]
-      );
+
+      Alert.alert('Success!', 'Playlist saved to Spotify successfully!', [
+        { text: 'OK' },
+      ]);
     } catch (error) {
       console.error('Error saving to Spotify:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save to Spotify';
-      
-      Alert.alert(
-        'Error',
-        errorMessage,
-        [{ text: 'OK' }]
-      );
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to save to Spotify';
+
+      Alert.alert('Error', errorMessage, [{ text: 'OK' }]);
     }
   };
 
   // Show error state if there's an error
   if (error) {
-    console.log('❌ Showing error state:', error);
+    console.log('Showing error state:', error);
     return (
       <Layout>
         <View className="flex-1 px-4 pt-12">
@@ -218,8 +228,8 @@ export default function MixesScreen() {
     console.log('⏳ Showing loading animation - no cached playlists');
     return (
       <View style={{ flex: 1, backgroundColor: '#000000' }}>
-        <LoadingAnimation 
-          message="Loading your mixes..." 
+        <LoadingAnimation
+          message="Loading your mixes..."
           size="large"
           mood="chill"
         />
@@ -232,7 +242,7 @@ export default function MixesScreen() {
   return (
     <Layout>
       {/* Simple Header */}
-      <Animated.View 
+      <Animated.View
         className="px-6 pt-16 pb-4"
         style={[headerAnimatedStyle, scrollAnimatedStyle]}
       >
@@ -240,8 +250,8 @@ export default function MixesScreen() {
           Your Mixes
         </Text>
       </Animated.View>
-      
-      <ScrollView 
+
+      <ScrollView
         className="flex-1 px-6"
         showsVerticalScrollIndicator={false}
         onScroll={(event) => {
@@ -259,7 +269,10 @@ export default function MixesScreen() {
         }
       >
         {playlists.length === 0 ? (
-          <View style={{ minHeight: 500 }} className="items-center justify-center px-6">
+          <View
+            style={{ minHeight: 500 }}
+            className="items-center justify-center px-6"
+          >
             <View className="items-center">
               <Text className="text-2xl font-poppins-bold text-white text-center mb-3">
                 No mixes yet
@@ -281,7 +294,12 @@ export default function MixesScreen() {
                   backgroundColor="rgba(182, 245, 0, 0.1)"
                 >
                   <View className="flex-row items-center justify-center">
-                    <Ionicons name="refresh" size={16} color={COLORS.primary.lime} style={{ marginRight: 8 }} />
+                    <Ionicons
+                      name="refresh"
+                      size={16}
+                      color={COLORS.primary.lime}
+                      style={{ marginRight: 8 }}
+                    />
                     <Text className="text-lime-400 text-sm font-poppins-bold">
                       Refreshing playlists...
                     </Text>
@@ -289,7 +307,7 @@ export default function MixesScreen() {
                 </Glass>
               </View>
             )}
-            
+
             {/* Enhanced playlist grid */}
             <View className="pb-8">
               {playlists.map((playlist, index) => (
@@ -310,9 +328,13 @@ export default function MixesScreen() {
         visible={modalVisible}
         playlist={selectedPlaylist}
         onClose={handleCloseModal}
-        onDelete={selectedPlaylist?.id ? () => handleDeletePlaylist(selectedPlaylist.id!) : undefined}
+        onDelete={
+          selectedPlaylist?.id
+            ? () => handleDeletePlaylist(selectedPlaylist.id!)
+            : undefined
+        }
         onSave={selectedPlaylist?.spotifyUrl ? undefined : handleSaveToSpotify}
       />
     </Layout>
   );
-} 
+}

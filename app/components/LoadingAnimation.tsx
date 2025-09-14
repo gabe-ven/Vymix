@@ -14,28 +14,31 @@ interface LoadingAnimationProps {
   };
 }
 
-export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({ 
+export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
   message = 'Loading...',
   size = 'medium',
   mood = 'chill',
-  progress
+  progress,
 }) => {
   // Animation values
   const rotateAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
   const textFadeAnim = useRef(new Animated.Value(0)).current;
-  
+
   // Wave bar animations
-  const waveBars = useRef(Array.from({ length: 8 }, () => new Animated.Value(0.2))).current;
+  const waveBars = useRef(
+    Array.from({ length: 8 }, () => new Animated.Value(0.2))
+  ).current;
 
   // Text state
   const [displayText, setDisplayText] = useState('');
   const [progressText, setProgressText] = useState('');
 
   // Check if we're finding songs
-  const isFindingSongs = progress?.phase?.toLowerCase().includes('found') || 
-                        progress?.phase?.toLowerCase().includes('finding songs') ||
-                        progress?.phase?.toLowerCase().includes('finding');
+  const isFindingSongs =
+    progress?.phase?.toLowerCase().includes('found') ||
+    progress?.phase?.toLowerCase().includes('finding songs') ||
+    progress?.phase?.toLowerCase().includes('finding');
 
   // Main rotation and text animations
   useEffect(() => {
@@ -63,7 +66,7 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
       const progressPercentage = (progress.current / progress.total) * 100;
       const progressText = `${progress.current}/${progress.total}`;
       setProgressText(progressText);
-      
+
       Animated.timing(progressAnim, {
         toValue: progressPercentage,
         duration: 600,
@@ -107,38 +110,38 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
     });
 
     // Start all wave animations
-    waveAnimations.forEach(animation => animation.start());
+    waveAnimations.forEach((animation) => animation.start());
 
     return () => {
-      waveAnimations.forEach(animation => animation.stop());
+      waveAnimations.forEach((animation) => animation.stop());
     };
   }, []);
 
   const getSizeStyles = () => {
     switch (size) {
       case 'small':
-        return { 
-          containerWidth: 120, 
-          containerHeight: 60, 
-          barWidth: 8, 
+        return {
+          containerWidth: 120,
+          containerHeight: 60,
+          barWidth: 8,
           barSpacing: 4,
-          maxBarHeight: 40
+          maxBarHeight: 40,
         };
       case 'large':
-        return { 
-          containerWidth: 200, 
-          containerHeight: 100, 
-          barWidth: 12, 
+        return {
+          containerWidth: 200,
+          containerHeight: 100,
+          barWidth: 12,
           barSpacing: 6,
-          maxBarHeight: 70
+          maxBarHeight: 70,
         };
       default:
-        return { 
-          containerWidth: 160, 
-          containerHeight: 80, 
-          barWidth: 10, 
+        return {
+          containerWidth: 160,
+          containerHeight: 80,
+          barWidth: 10,
           barSpacing: 5,
-          maxBarHeight: 55
+          maxBarHeight: 55,
         };
     }
   };
@@ -161,7 +164,7 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
       <View className="items-center justify-center flex-1 px-6">
         {/* Wave bars animation */}
         <View className="items-center justify-center mb-8">
-          <View 
+          <View
             style={{
               width: sizeStyles.containerWidth,
               height: sizeStyles.containerHeight,
@@ -189,8 +192,8 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
                       scaleY: bar.interpolate({
                         inputRange: [0, 1],
                         outputRange: [0.2, 1],
-                      })
-                    }
+                      }),
+                    },
                   ],
                 }}
               />
@@ -214,9 +217,9 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
         {isFindingSongs && progress && (
           <View className="w-full mb-4">
             {/* Progress bar */}
-            <View 
+            <View
               className="h-3 bg-gray-800 rounded-full overflow-hidden"
-              style={{ 
+              style={{
                 backgroundColor: COLORS.background.dark,
                 shadowColor: '#000',
                 shadowOffset: { width: 0, height: 2 },
@@ -241,11 +244,9 @@ export const LoadingAnimation: React.FC<LoadingAnimationProps> = ({
                 }}
               />
             </View>
-          
           </View>
         )}
       </View>
     </Layout>
   );
 };
-     

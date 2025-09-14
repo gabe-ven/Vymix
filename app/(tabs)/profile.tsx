@@ -1,4 +1,12 @@
-import { View, Text, TouchableOpacity, Image, Alert, Linking, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  Alert,
+  Linking,
+  ScrollView,
+} from 'react-native';
 import { Layout } from '@/app/components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { FontAwesome, Ionicons, Feather } from '@expo/vector-icons';
@@ -21,19 +29,25 @@ export default function ProfileScreen() {
     try {
       // Ensure Spotify service is initialized for current user
       await spotifyService.initialize();
-      
+
       // Check if user has valid tokens (currently authenticated)
       const isAuthenticated = await spotifyService.isAuthenticated();
-      
+
       // Also check if user has connected before (even if tokens are expired)
-      const hasConnectedBefore = user?.uid ? await spotifyService.hasConnectedSpotify(user.uid) : false;
-      
-      console.log('Spotify status check:', { isAuthenticated, hasConnectedBefore, userId: user?.uid });
-      
+      const hasConnectedBefore = user?.uid
+        ? await spotifyService.hasConnectedSpotify(user.uid)
+        : false;
+
+      console.log('Spotify status check:', {
+        isAuthenticated,
+        hasConnectedBefore,
+        userId: user?.uid,
+      });
+
       if (isAuthenticated) {
         // User has valid tokens
         setIsSpotifyConnected(true);
-        
+
         // Fetch user data if we don't already have it
         if (!spotifyUser) {
           try {
@@ -57,12 +71,14 @@ export default function ProfileScreen() {
       console.error('Error checking Spotify status:', error);
       // On error, check if user has connected before to maintain correct status
       try {
-        const hasConnectedBefore = user?.uid ? await spotifyService.hasConnectedSpotify(user.uid) : false;
+        const hasConnectedBefore = user?.uid
+          ? await spotifyService.hasConnectedSpotify(user.uid)
+          : false;
         setIsSpotifyConnected(hasConnectedBefore);
       } catch {
         setIsSpotifyConnected(false);
       }
-      
+
       setSpotifyUser(null);
     }
   };
@@ -95,7 +111,7 @@ export default function ProfileScreen() {
       setIsLoading(true);
       await spotifyService.loginToSpotify(user?.uid);
       setIsSpotifyConnected(true);
-      
+
       // Fetch Spotify user data after successful login
       try {
         const currentUser = await spotifyService.getCurrentUser();
@@ -103,12 +119,10 @@ export default function ProfileScreen() {
       } catch (error) {
         console.error('Error fetching Spotify user data after login:', error);
       }
-      
-      Alert.alert(
-        'Connected! 🎉',
-        'Spotify reconnected successfully.',
-        [{ text: 'OK' }]
-      );
+
+      Alert.alert('Connected!', 'Spotify reconnected successfully.', [
+        { text: 'OK' },
+      ]);
     } catch (error) {
       console.error('Spotify login failed:', error);
       Alert.alert(
@@ -125,26 +139,22 @@ export default function ProfileScreen() {
     try {
       setIsLoading(true);
       await spotifyService.logout();
-      
+
       // Also clear the connection status flag
       if (user?.uid) {
         await spotifyService.clearConnectionStatus(user.uid);
       }
-      
+
       setIsSpotifyConnected(false);
       setSpotifyUser(null);
-      Alert.alert(
-        'Disconnected',
-        'You have been disconnected from Spotify.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Disconnected', 'You have been disconnected from Spotify.', [
+        { text: 'OK' },
+      ]);
     } catch (error) {
       console.error('Spotify logout failed:', error);
-      Alert.alert(
-        'Error',
-        'Failed to disconnect from Spotify.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Error', 'Failed to disconnect from Spotify.', [
+        { text: 'OK' },
+      ]);
     } finally {
       setIsLoading(false);
     }
@@ -157,8 +167,6 @@ export default function ProfileScreen() {
       await Linking.openURL(url);
     } catch {}
   };
-
-
 
   const ActionRow = ({
     icon,
@@ -179,10 +187,12 @@ export default function ProfileScreen() {
       className="w-full flex-row items-center justify-between bg-white/10 rounded-2xl px-5 py-5 mb-3"
     >
       <View className="flex-row items-center">
-        <View className="w-6 h-6 mr-3 items-center justify-center">
-          {icon}
-        </View>
-        <Text className={`font-poppins-bold text-base ${isDestructive ? 'text-red-400' : 'text-ui-white'}`}>{label}</Text>
+        <View className="w-6 h-6 mr-3 items-center justify-center">{icon}</View>
+        <Text
+          className={`font-poppins-bold text-base ${isDestructive ? 'text-red-400' : 'text-ui-white'}`}
+        >
+          {label}
+        </Text>
       </View>
       {showChevron ? (
         <Ionicons name="chevron-forward" size={18} color={COLORS.ui.white} />
@@ -202,21 +212,29 @@ export default function ProfileScreen() {
         <View className="items-center mt-4 mb-6">
           <View className="w-24 h-24 rounded-full overflow-hidden mb-3">
             {user?.photoURL ? (
-              <Image source={{ uri: user.photoURL }} className="w-full h-full" resizeMode="cover" />
+              <Image
+                source={{ uri: user.photoURL }}
+                className="w-full h-full"
+                resizeMode="cover"
+              />
             ) : (
               <View className="w-full h-full items-center justify-center bg-white/10">
                 <FontAwesome name="user" size={28} color={COLORS.ui.white} />
               </View>
             )}
           </View>
-          <Text className="text-ui-white text-xl font-poppins-bold">{user?.displayName || 'User'}</Text>
+          <Text className="text-ui-white text-xl font-poppins-bold">
+            {user?.displayName || 'User'}
+          </Text>
           {!!user?.email && (
-            <Text className="text-ui-white opacity-60 font-poppins mt-1">{user.email}</Text>
+            <Text className="text-ui-white opacity-60 font-poppins mt-1">
+              {user.email}
+            </Text>
           )}
         </View>
 
         {/* Spotify connection card (replaces upgrade button) */}
-        <Glass 
+        <Glass
           className="rounded-2xl p-4 mb-8"
           blurAmount={25}
           backgroundColor={COLORS.transparent.white[10]}
@@ -231,7 +249,9 @@ export default function ProfileScreen() {
                 />
               </View>
               <View className="flex-1">
-                <Text className="text-ui-white font-poppins-bold text-base">Spotify</Text>
+                <Text className="text-ui-white font-poppins-bold text-base">
+                  Spotify
+                </Text>
                 {isSpotifyConnected ? (
                   spotifyUser ? (
                     <View className="flex-row items-center mt-1">
@@ -246,15 +266,22 @@ export default function ProfileScreen() {
                           <FontAwesome name="music" size={10} color="white" />
                         </View>
                       )}
-                      <Text className="text-ui-white opacity-70 font-poppins text-sm" numberOfLines={1}>
+                      <Text
+                        className="text-ui-white opacity-70 font-poppins text-sm"
+                        numberOfLines={1}
+                      >
                         {spotifyUser.display_name}
                       </Text>
                     </View>
                   ) : (
-                    <Text className="text-ui-white opacity-70 font-poppins text-sm">Connected</Text>
+                    <Text className="text-ui-white opacity-70 font-poppins text-sm">
+                      Connected
+                    </Text>
                   )
                 ) : (
-                  <Text className="text-ui-white opacity-70 font-poppins text-sm">Not connected</Text>
+                  <Text className="text-ui-white opacity-70 font-poppins text-sm">
+                    Not connected
+                  </Text>
                 )}
               </View>
             </View>
@@ -265,7 +292,9 @@ export default function ProfileScreen() {
                   disabled={isLoading}
                   className="bg-red-500 rounded-full px-4 py-2 shadow-lg"
                 >
-                  <Text className="text-white font-poppins text-sm">{isLoading ? '...' : 'Disconnect'}</Text>
+                  <Text className="text-white font-poppins text-sm">
+                    {isLoading ? '...' : 'Disconnect'}
+                  </Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
@@ -273,7 +302,9 @@ export default function ProfileScreen() {
                   disabled={isLoading}
                   className="bg-green-500 rounded-full px-4 py-2 shadow-lg"
                 >
-                  <Text className="text-white font-poppins text-sm">{isLoading ? '...' : 'Connect'}</Text>
+                  <Text className="text-white font-poppins text-sm">
+                    {isLoading ? '...' : 'Connect'}
+                  </Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -281,14 +312,33 @@ export default function ProfileScreen() {
         </Glass>
 
         {/* Action list */}
-        <ActionRow icon={<Feather name="shield" size={20} color={COLORS.ui.white} />} label="Privacy" onPress={() => handleOpenLink('https://vymix.app/privacy')} />
-        <ActionRow icon={<Feather name="help-circle" size={20} color={COLORS.ui.white} />} label="Help & Support" onPress={() => handleOpenLink('https://vymix.app/feedback')} />
-        <ActionRow icon={<Feather name="settings" size={20} color={COLORS.ui.white} />} label="Settings" onPress={() => router.push('/settings')} />
-        <ActionRow icon={<Feather name="log-out" size={20} color="#ff6b6b" />} label="Logout" onPress={handleSignOut} showChevron={false} isDestructive />
+        <ActionRow
+          icon={<Feather name="shield" size={20} color={COLORS.ui.white} />}
+          label="Privacy"
+          onPress={() => handleOpenLink('https://vymix.app/privacy')}
+        />
+        <ActionRow
+          icon={
+            <Feather name="help-circle" size={20} color={COLORS.ui.white} />
+          }
+          label="Help & Support"
+          onPress={() => handleOpenLink('https://vymix.app/feedback')}
+        />
+        <ActionRow
+          icon={<Feather name="settings" size={20} color={COLORS.ui.white} />}
+          label="Settings"
+          onPress={() => router.push('/settings')}
+        />
+        <ActionRow
+          icon={<Feather name="log-out" size={20} color="#ff6b6b" />}
+          label="Logout"
+          onPress={handleSignOut}
+          showChevron={false}
+          isDestructive
+        />
 
         {/* Extras removed per request */}
       </ScrollView>
     </Layout>
   );
 }
- 

@@ -1,14 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView, Linking, Alert, Platform, ActionSheetIOS } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+  Linking,
+  Alert,
+  Platform,
+  ActionSheetIOS,
+} from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withTiming, 
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
   withDelay,
   withSpring,
-  Easing
+  Easing,
 } from 'react-native-reanimated';
 
 import { PlaylistData } from '../../services/playlistService';
@@ -26,15 +36,24 @@ interface PlaylistModalProps {
   onSave?: () => void;
 }
 
-export default function PlaylistModal({ visible, playlist, onClose, onDelete, onSave }: PlaylistModalProps) {
+export default function PlaylistModal({
+  visible,
+  playlist,
+  onClose,
+  onDelete,
+  onSave,
+}: PlaylistModalProps) {
   const [shouldAnimateCard, setShouldAnimateCard] = useState(false);
   const [shouldAnimateButtons, setShouldAnimateButtons] = useState(false);
   const [localTitle, setLocalTitle] = useState<string | undefined>(undefined);
-  const [localDescription, setLocalDescription] = useState<string | undefined>(undefined);
+  const [localDescription, setLocalDescription] = useState<string | undefined>(
+    undefined
+  );
   const [isPickingImage, setIsPickingImage] = useState(false);
-  const [localCoverUrl, setLocalCoverUrl] = useState<string | undefined>(undefined);
-  
-  
+  const [localCoverUrl, setLocalCoverUrl] = useState<string | undefined>(
+    undefined
+  );
+
   // Modal entrance animation only
   const modalOpacity = useSharedValue(0);
   const modalScale = useSharedValue(0.95);
@@ -45,11 +64,9 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
     opacity: modalOpacity.value,
     transform: [
       { scale: modalScale.value },
-      { translateY: modalTranslateY.value }
+      { translateY: modalTranslateY.value },
     ],
   }));
-
-
 
   // Simple modal entrance animation
   useEffect(() => {
@@ -58,7 +75,7 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
       modalOpacity.value = 0;
       modalScale.value = 0.95;
       modalTranslateY.value = 20;
-      
+
       // Reset PlaylistCard animation
       setShouldAnimateCard(false);
       setShouldAnimateButtons(false);
@@ -68,12 +85,12 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
         duration: 300,
         easing: Easing.out(Easing.cubic),
       });
-      
+
       modalScale.value = withTiming(1, {
         duration: 300,
         easing: Easing.out(Easing.cubic),
       });
-      
+
       modalTranslateY.value = withTiming(0, {
         duration: 300,
         easing: Easing.out(Easing.cubic),
@@ -84,8 +101,6 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
         setShouldAnimateCard(true);
         setShouldAnimateButtons(true);
       }, 100);
-
-      
     }
   }, [visible, playlist]);
 
@@ -95,29 +110,31 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 1) return 'Today';
     if (diffDays === 2) return 'Yesterday';
     if (diffDays <= 7) return `${diffDays - 1} days ago`;
-    
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
+
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
       day: 'numeric',
-      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
     });
   };
 
-
-
   const formatTracksForDisplay = () => {
     if (!playlist.tracks) return [];
-    
+
     return playlist.tracks.map((track) => {
-      const albumImageUrl = track.album?.images?.[track.album.images.length - 1]?.url || undefined;
-      
+      const albumImageUrl =
+        track.album?.images?.[track.album.images.length - 1]?.url || undefined;
+
       return {
         title: track.name,
-        artist: track.artists?.map((artist: { name: string }) => artist.name).join(', ') || 'Unknown Artist',
+        artist:
+          track.artists
+            ?.map((artist: { name: string }) => artist.name)
+            .join(', ') || 'Unknown Artist',
         album: track.album?.name || 'Unknown Album',
         duration: track.duration_ms || 0,
         spotifyUrl: track.external_urls?.spotify || '',
@@ -140,11 +157,9 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
           );
         }
       } catch (error) {
-        Alert.alert(
-          'Error',
-          'Failed to open Spotify. Please try again.',
-          [{ text: 'OK' }]
-        );
+        Alert.alert('Error', 'Failed to open Spotify. Please try again.', [
+          { text: 'OK' },
+        ]);
       }
     }
   };
@@ -158,7 +173,10 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
         if (Platform.OS === 'android') {
           const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
           if (perm.status !== 'granted') {
-            Alert.alert('Permission needed', 'We need access to your photo library to change the cover.');
+            Alert.alert(
+              'Permission needed',
+              'We need access to your photo library to change the cover.'
+            );
             return null;
           }
         }
@@ -175,7 +193,10 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
       const takePhoto = async () => {
         const perm = await ImagePicker.requestCameraPermissionsAsync();
         if (perm.status !== 'granted') {
-          Alert.alert('Permission needed', 'We need camera access to take a cover photo.');
+          Alert.alert(
+            'Permission needed',
+            'We need camera access to take a cover photo.'
+          );
           return null;
         }
         const result = await ImagePicker.launchCameraAsync({
@@ -188,7 +209,8 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
       };
 
       const chooseAndProcess = async (source: 'library' | 'camera') => {
-        const result = source === 'library' ? await pickFromLibrary() : await takePhoto();
+        const result =
+          source === 'library' ? await pickFromLibrary() : await takePhoto();
         if (!result || result.canceled || !result.assets?.length) return false;
         const asset = result.assets[0];
         const base64 = asset.base64;
@@ -196,10 +218,18 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
           Alert.alert('Error', 'Failed to read selected image.');
           return false;
         }
-        const { uploadBase64ImageToStorage } = await import('../../services/storageService');
+        const { uploadBase64ImageToStorage } = await import(
+          '../../services/storageService'
+        );
         const path = `covers/users/${playlist.userId || 'unknown'}/${playlist.id}.jpg`;
-        const downloadUrl = await uploadBase64ImageToStorage(path, base64, 'image/jpeg');
-        await updatePlaylistMetadata(playlist.id, { coverImageUrl: downloadUrl });
+        const downloadUrl = await uploadBase64ImageToStorage(
+          path,
+          base64,
+          'image/jpeg'
+        );
+        await updatePlaylistMetadata(playlist.id, {
+          coverImageUrl: downloadUrl,
+        });
         setLocalCoverUrl(downloadUrl);
         return true;
       };
@@ -224,15 +254,23 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
       } else {
         // Simple Android chooser via Alert buttons
         await new Promise<void>((resolve) => {
-          Alert.alert(
-            'Change cover',
-            undefined,
-            [
-              { text: 'Cancel', style: 'cancel', onPress: () => resolve() },
-              { text: 'Choose from Library', onPress: async () => { await chooseAndProcess('library'); resolve(); } },
-              { text: 'Take Photo', onPress: async () => { await chooseAndProcess('camera'); resolve(); } },
-            ]
-          );
+          Alert.alert('Change cover', undefined, [
+            { text: 'Cancel', style: 'cancel', onPress: () => resolve() },
+            {
+              text: 'Choose from Library',
+              onPress: async () => {
+                await chooseAndProcess('library');
+                resolve();
+              },
+            },
+            {
+              text: 'Take Photo',
+              onPress: async () => {
+                await chooseAndProcess('camera');
+                resolve();
+              },
+            },
+          ]);
         });
       }
     } catch (e) {
@@ -242,8 +280,6 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
     }
   };
 
-  
-
   return (
     <Modal
       visible={visible}
@@ -252,17 +288,22 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
       transparent
       onRequestClose={onClose}
     >
-      <Animated.View className="flex-1" style={[modalAnimatedStyle, { backgroundColor: 'rgba(0,0,0,0.75)' }]}>
+      <Animated.View
+        className="flex-1"
+        style={[modalAnimatedStyle, { backgroundColor: 'rgba(0,0,0,0.75)' }]}
+      >
         {/* Header */}
         <View className="flex-row items-center justify-between p-4 pt-12">
-          <TouchableOpacity 
-            onPress={onClose} 
+          <TouchableOpacity
+            onPress={onClose}
             className="p-2 rounded-full bg-black bg-opacity-30 active:bg-opacity-50"
             activeOpacity={0.8}
           >
             <Text className="text-white text-xl font-poppins-bold">✕</Text>
           </TouchableOpacity>
-          <Text className="text-white text-lg font-poppins-bold">Playlist Details</Text>
+          <Text className="text-white text-lg font-poppins-bold">
+            Playlist Details
+          </Text>
           <View className="w-10" />
         </View>
 
@@ -291,7 +332,9 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
                 if (!playlist?.id) return;
                 setLocalDescription(newDescription);
                 try {
-                  await updatePlaylistMetadata(playlist.id, { description: newDescription });
+                  await updatePlaylistMetadata(playlist.id, {
+                    description: newDescription,
+                  });
                 } catch (e) {
                   setLocalDescription(undefined);
                 }
@@ -312,7 +355,7 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
                     delay={900}
                   />
                 )}
-                
+
                 {onDelete && (
                   <AnimatedButton
                     title="Delete"
@@ -322,7 +365,7 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
                   />
                 )}
               </View>
-              
+
               {playlist.spotifyUrl && (
                 <AnimatedButton
                   title="Open in Spotify"
@@ -336,15 +379,17 @@ export default function PlaylistModal({ visible, playlist, onClose, onDelete, on
 
           {/* Songs List */}
           <View className="px-4 pb-8">
-            <Text className="text-white text-lg font-poppins-bold mb-4">Songs</Text>
-                          <SongList 
-                songs={formatTracksForDisplay()} 
-                showScrollView={false}
-                shouldAnimate={true}
-              />
-            </View>
+            <Text className="text-white text-lg font-poppins-bold mb-4">
+              Songs
+            </Text>
+            <SongList
+              songs={formatTracksForDisplay()}
+              showScrollView={false}
+              shouldAnimate={true}
+            />
+          </View>
         </ScrollView>
       </Animated.View>
     </Modal>
   );
-} 
+}

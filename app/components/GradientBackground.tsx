@@ -1,35 +1,45 @@
 import React from 'react';
 import { View, StyleSheet, ColorValue } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { 
-  useAnimatedStyle, 
-  interpolate, 
+import Animated, {
+  useAnimatedStyle,
+  interpolate,
   Extrapolate,
-  SharedValue
+  SharedValue,
 } from 'react-native-reanimated';
 
 interface GradientBackgroundProps {
-  colors: {
-    primary: string;
-    secondary: string;
-    background: string;
-  } | string[];
+  colors:
+    | {
+        primary: string;
+        secondary: string;
+        background: string;
+      }
+    | string[];
   children: React.ReactNode;
   scrollY?: SharedValue<number>;
 }
 
-export default function GradientBackground({ colors, children, scrollY }: GradientBackgroundProps) {
+export default function GradientBackground({
+  colors,
+  children,
+  scrollY,
+}: GradientBackgroundProps) {
   // Handle both old format and new color palette format
-  const gradientColors = Array.isArray(colors) 
-    ? (colors.length >= 2 ? colors : ['#1DB954', '#191414', '#1ED760'])
+  const gradientColors = Array.isArray(colors)
+    ? colors.length >= 2
+      ? colors
+      : ['#1DB954', '#191414', '#1ED760']
     : [colors.primary, colors.secondary, colors.background];
 
   // Use all colors from the palette for a richer gradient
-  const paletteColors = Array.isArray(colors) ? colors : [colors.primary, colors.secondary, colors.background];
-  
+  const paletteColors = Array.isArray(colors)
+    ? colors
+    : [colors.primary, colors.secondary, colors.background];
+
   // Create smooth gradient locations based on the number of colors
-  const gradientLocations = paletteColors.map((_, index) => 
-    index / (paletteColors.length - 1)
+  const gradientLocations = paletteColors.map(
+    (_, index) => index / (paletteColors.length - 1)
   );
 
   // Add a subtle dark fade at the end
@@ -38,13 +48,8 @@ export default function GradientBackground({ colors, children, scrollY }: Gradie
 
   // Create animated style for gradient opacity
   const gradientAnimatedStyle = useAnimatedStyle(() => {
-    const opacity = scrollY 
-      ? interpolate(
-          scrollY.value,
-          [0, 300],
-          [0.5, 0.15],
-          Extrapolate.CLAMP
-        )
+    const opacity = scrollY
+      ? interpolate(scrollY.value, [0, 300], [0.5, 0.15], Extrapolate.CLAMP)
       : 0.5;
 
     return {
@@ -56,7 +61,7 @@ export default function GradientBackground({ colors, children, scrollY }: Gradie
     <View style={styles.container}>
       {/* Static black background */}
       <View style={[styles.gradient, { backgroundColor: '#000000' }]} />
-      
+
       {/* Animated gradient overlay */}
       <Animated.View style={[styles.gradient, gradientAnimatedStyle]}>
         <LinearGradient
@@ -67,10 +72,8 @@ export default function GradientBackground({ colors, children, scrollY }: Gradie
           style={styles.gradient}
         />
       </Animated.View>
-      
-      <View style={styles.content}>
-        {children}
-      </View>
+
+      <View style={styles.content}>{children}</View>
     </View>
   );
 }
@@ -89,4 +92,4 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-}); 
+});

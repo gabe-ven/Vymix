@@ -24,7 +24,9 @@ export default function Amount() {
   const generatePlaylist = async () => {
     // Check if Spotify is connected
     const isAuthenticated = await spotifyService.isAuthenticated();
-    const hasConnectedBefore = user?.uid ? await spotifyService.hasConnectedSpotify(user.uid) : false;
+    const hasConnectedBefore = user?.uid
+      ? await spotifyService.hasConnectedSpotify(user.uid)
+      : false;
     const isSpotifyConnected = isAuthenticated || hasConnectedBefore;
 
     if (!isSpotifyConnected) {
@@ -33,8 +35,8 @@ export default function Amount() {
         'You need to connect your Spotify account to create playlists with real tracks.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Connect Spotify', 
+          {
+            text: 'Connect Spotify',
             onPress: async () => {
               try {
                 await spotifyService.loginToSpotify(user?.uid);
@@ -52,8 +54,8 @@ export default function Amount() {
                   [{ text: 'OK' }]
                 );
               }
-            }
-          }
+            },
+          },
         ]
       );
       return;
@@ -64,7 +66,7 @@ export default function Amount() {
     await AsyncStorage.setItem('isGeneratingPlaylist', 'true');
     // Clear any previous saved state to prevent duplicates
     await AsyncStorage.removeItem('playlistSavedToFirestore');
-    
+
     // Navigate to playlist screen where generation will happen
     router.push('/(tabs)/create/playlist');
   };
@@ -89,19 +91,16 @@ export default function Amount() {
       >
         <Ionicons name="chevron-back" size={28} color={COLORS.ui.white} />
       </TouchableOpacity>
-      
+
       <View className="w-full h-full pt-20 px-4 flex items-center justify-center">
         <Text className="text-4xl md:text-5xl font-bold text-ui-white mb-8 text-center px-4 font-poppins-bold">
           How many songs?
         </Text>
-        
-        <SongCountSlider 
-          onValueChange={setSongCount}
-          initialValue={10}
-        />
-        
+
+        <SongCountSlider onValueChange={setSongCount} initialValue={10} />
+
         <View className="mt-12">
-          <Glass 
+          <Glass
             className="rounded-full shadow-lg"
             blurAmount={20}
             backgroundColor={COLORS.transparent.white[10]}

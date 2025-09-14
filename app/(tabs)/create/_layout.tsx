@@ -35,7 +35,7 @@ export default function CreateLayout() {
         <Stack.Screen name="amount" />
         <Stack.Screen name="playlist" />
       </Stack>
-      
+
       {/* Hide progress bar on playlist page (step 4) */}
       {currentStep < 4 && (
         <View className="absolute bottom-24 left-0 right-0 z-50">
@@ -44,4 +44,4 @@ export default function CreateLayout() {
       )}
     </View>
   );
-} 
+}

@@ -9,22 +9,22 @@ interface EmojiSelectionProps {
   maxSelection?: number;
 }
 
-const EmojiSelection: React.FC<EmojiSelectionProps> = ({ 
-  onNext, 
-  maxSelection = 3 
+const EmojiSelection: React.FC<EmojiSelectionProps> = ({
+  onNext,
+  maxSelection = 3,
 }) => {
   const [selectedEmojis, setSelectedEmojis] = useState<string[]>([]);
 
   const toggleEmoji = (emoji: string) => {
     try {
-      setSelectedEmojis(prev => {
+      setSelectedEmojis((prev) => {
         if (prev.includes(emoji)) {
-          return prev.filter(e => e !== emoji);
+          return prev.filter((e) => e !== emoji);
         } else {
           if (prev.length < maxSelection) {
             return [...prev, emoji];
           }
-          return prev; 
+          return prev;
         }
       });
     } catch (error) {
@@ -53,9 +53,9 @@ const EmojiSelection: React.FC<EmojiSelectionProps> = ({
       <Text className="text-ui-white text-2xl font-poppins-bold mb-4 text-center">
         Select up to {maxSelection} emojis
       </Text>
-      
+
       {/* Scrollable Emoji grid */}
-      <ScrollView 
+      <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
@@ -66,8 +66,8 @@ const EmojiSelection: React.FC<EmojiSelectionProps> = ({
               key={index}
               onPress={() => toggleEmoji(emoji)}
               className={`w-16 h-16 m-2 rounded-lg items-center justify-center shadow-lg ${
-                selectedEmojis.includes(emoji) 
-                  ? 'bg-white/20 border-2 border-white' 
+                selectedEmojis.includes(emoji)
+                  ? 'bg-white/20 border-2 border-white'
                   : 'bg-white/10'
               }`}
             >
@@ -90,7 +90,9 @@ const EmojiSelection: React.FC<EmojiSelectionProps> = ({
             onPress={handleSkip}
             className="rounded-full px-6 py-3 shadow-lg"
           >
-            <Text className="text-ui-gray-light text-xl font-poppins">Skip</Text>
+            <Text className="text-ui-gray-light text-xl font-poppins">
+              Skip
+            </Text>
           </TouchableOpacity>
         )}
       </View>

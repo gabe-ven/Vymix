@@ -45,7 +45,7 @@ const examples = [
   'Lazy and Comfy',
   'Festive and Celebratory',
   'Cozy and Warm',
-  'Dynamic and Vibrant'
+  'Dynamic and Vibrant',
 ];
 
 export const VibeInput: React.FC<VibeInputProps> = ({
@@ -80,7 +80,7 @@ export const VibeInput: React.FC<VibeInputProps> = ({
         // Update text and reset position
         translateY.setValue(20);
         opacity.setValue(0);
-        
+
         // Use requestAnimationFrame to defer state update
         requestAnimationFrame(() => {
           setIndex((prev) => (prev + 1) % examples.length);
@@ -140,7 +140,10 @@ export const VibeInput: React.FC<VibeInputProps> = ({
         <View className="flex-row items-center justify-center">
           <GradientMask width={Math.min(screenWidth - 32, 350)} height={30}>
             <View style={{ justifyContent: 'center', alignItems: 'center' }}>
-              <Text className="text-lg md:text-xl font-bold text-black text-center font-poppins-bold" style={{ fontSize: 19 }}>
+              <Text
+                className="text-lg md:text-xl font-bold text-black text-center font-poppins-bold"
+                style={{ fontSize: 19 }}
+              >
                 {examples[index]}
               </Text>
             </View>

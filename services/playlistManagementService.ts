@@ -1,58 +1,75 @@
 import { spotifyService } from './spotify';
 import { PlaylistData } from './types/playlistTypes';
-import { isFirebaseStorageUrl, uploadImageFromUrlToStorage } from './storageService';
-import { playlistGenerationService } from './playlistGenerationService';
+import {
+  isFirebaseStorageUrl,
+  uploadImageFromUrlToStorage,
+} from './storageService';
 import firestore from '@react-native-firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logger } from './logger';
 
 export class PlaylistManagementService {
-  async saveToSpotify(playlistData: PlaylistData, userId?: string): Promise<PlaylistData> {
-    console.log('playlistManagementService.saveToSpotify called');
-    console.log('Checking Spotify authentication...');
-    
+  async saveToSpotify(
+    playlistData: PlaylistData,
+    userId?: string
+  ): Promise<PlaylistData> {
+    logger.info('Starting Spotify playlist save', {
+      service: 'PlaylistManagement',
+      operation: 'saveToSpotify',
+      playlistName: playlistData.name,
+      trackCount: playlistData.tracks.length,
+      userId,
+    });
+
     if (!(await this.checkSpotifyAuth())) {
-      console.log('Spotify not authenticated, throwing error');
+      logger.warn('Spotify authentication required');
       throw new Error('Please connect to Spotify first');
     }
-    
-    console.log('Spotify authenticated, proceeding with save');
-    console.log('Playlist data:', { name: playlistData.name, trackCount: playlistData.tracks.length });
 
-    const trackUris = playlistData.tracks.map(track => track.uri);
-    console.log('Track URIs prepared, count:', trackUris.length);
-    
+    const trackUris = playlistData.tracks.map((track) => track.uri);
+
     // Get user's privacy preference
     let isPublic = true; // Default to public
     if (userId) {
       try {
-        const privacySetting = await AsyncStorage.getItem(`playlist_privacy_${userId}`);
+        const privacySetting = await AsyncStorage.getItem(
+          `playlist_privacy_${userId}`
+        );
         isPublic = privacySetting !== 'false'; // Default to public if not set
-        console.log('Using privacy setting:', isPublic ? 'public' : 'private');
+        logger.debug('Privacy setting loaded', { isPublic });
       } catch (error) {
-        console.warn('Failed to load privacy setting, using default (public):', error);
+        logger.warn('Failed to load privacy setting, using default (public)', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
     }
-    
-    console.log('Creating playlist with tracks...');
+
     const spotifyPlaylist = await spotifyService.createPlaylistWithTracks(
       playlistData.name,
       playlistData.description,
       trackUris,
       isPublic
     );
-    console.log('Playlist created successfully:', spotifyPlaylist.id);
+    
+    logger.info('Spotify playlist created successfully', {
+      playlistId: spotifyPlaylist.id,
+      isPublic,
+    });
 
     // Upload cover image if available
     if (playlistData.coverImageUrl) {
-      console.log('Uploading cover image to Spotify playlist...');
       try {
-        await spotifyService.uploadPlaylistCoverImage(spotifyPlaylist.id, playlistData.coverImageUrl);
-        console.log('Cover image uploaded successfully');
+        await spotifyService.uploadPlaylistCoverImage(
+          spotifyPlaylist.id,
+          playlistData.coverImageUrl
+        );
+        logger.debug('Cover image uploaded successfully');
       } catch (error) {
-        console.warn('Failed to upload cover image, but playlist was created successfully:', error);
+        logger.warn('Failed to upload cover image, but playlist was created successfully', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          playlistId: spotifyPlaylist.id,
+        });
       }
-    } else {
-      console.log('No cover image available to upload');
     }
 
     const result = {
@@ -61,8 +78,11 @@ export class PlaylistManagementService {
       spotifyUrl: spotifyPlaylist.external_urls.spotify,
       isSpotifyPlaylist: true,
     };
-    
-    console.log('saveToSpotify completed successfully, returning result');
+
+    logger.info('Spotify playlist save completed successfully', {
+      playlistId: result.id,
+      spotifyUrl: result.spotifyUrl,
+    });
     return result;
   }
 
@@ -70,45 +90,61 @@ export class PlaylistManagementService {
     try {
       const isAuth = await spotifyService.isAuthenticated();
       if (!isAuth) {
-        console.error('Spotify authentication check failed');
+        logger.warn('Spotify authentication check failed');
         return false;
       }
-      
+
       try {
         await spotifyService.search('test', ['track'], 1, 0);
         return true;
       } catch (error) {
-        console.error('Spotify token validation failed:', error);
+        logger.warn('Spotify token validation failed', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
         return false;
       }
     } catch (error) {
-      console.error('Spotify authentication check error:', error);
+      logger.error('Spotify authentication check error', error instanceof Error ? error : undefined);
       return false;
     }
   }
 }
 
-export const savePlaylistToFirestore = async (playlistData: Omit<PlaylistData, 'userId' | 'createdAt' | 'updatedAt'> & { id?: string }, userId: string): Promise<string> => {
+export const savePlaylistToFirestore = async (
+  playlistData: Omit<PlaylistData, 'userId' | 'createdAt' | 'updatedAt'> & {
+    id?: string;
+  },
+  userId: string
+): Promise<string> => {
   try {
-    console.log('🔥 Saving playlist to Firestore:', { 
-      userId, 
+    console.log('Saving playlist to Firestore:', {
+      userId,
       playlistName: playlistData.name,
       hasExistingId: !!playlistData.id,
-      existingId: playlistData.id || 'none'
+      existingId: playlistData.id || 'none',
     });
-    
+
     // Every playlist is unique - no duplicate checking needed
-    console.log('💫 Creating unique playlist - no duplicate checking');
-    
+    console.log('Creating unique playlist - no duplicate checking');
+
     // Ensure cover image is persisted to storage if present and not already a storage URL
     let persistedCoverUrl = playlistData.coverImageUrl;
     try {
-      if (playlistData.coverImageUrl && !isFirebaseStorageUrl(playlistData.coverImageUrl)) {
+      if (
+        playlistData.coverImageUrl &&
+        !isFirebaseStorageUrl(playlistData.coverImageUrl)
+      ) {
         const imgPath = `covers/users/${userId}/${playlistData.id || 'temp'}.jpg`;
-        persistedCoverUrl = await uploadImageFromUrlToStorage(imgPath, playlistData.coverImageUrl);
+        persistedCoverUrl = await uploadImageFromUrlToStorage(
+          imgPath,
+          playlistData.coverImageUrl
+        );
       }
     } catch (e) {
-      console.warn('Failed to persist cover image before saving to Firestore:', e);
+      console.warn(
+        'Failed to persist cover image before saving to Firestore:',
+        e
+      );
     }
 
     const playlistToSave = {
@@ -119,39 +155,47 @@ export const savePlaylistToFirestore = async (playlistData: Omit<PlaylistData, '
       updatedAt: firestore.FieldValue.serverTimestamp(),
     };
 
-    console.log('🔥 Playlist data to save:', {
+    console.log('Playlist data to save:', {
       name: playlistToSave.name,
       songCount: playlistToSave.songCount,
       hasCoverImage: !!playlistToSave.coverImageUrl,
-      coverImageUrl: playlistToSave.coverImageUrl ? 'Firebase Storage URL' : 'None'
+      coverImageUrl: playlistToSave.coverImageUrl
+        ? 'Firebase Storage URL'
+        : 'None',
     });
-    
+
     // Save the playlist with its unique ID
     if (playlistData.id) {
-      console.log('🔥 Saving playlist with generation service ID:', playlistData.id);
+      console.log(
+        'Saving playlist with generation service ID:',
+        playlistData.id
+      );
       // Use the existing ID by creating a document with that specific ID
       await firestore()
         .collection('playlists')
         .doc(playlistData.id)
         .set(playlistToSave);
-      
-      console.log('✅ Playlist saved successfully with ID:', playlistData.id);
+
+      console.log('Playlist saved successfully with ID:', playlistData.id);
       return playlistData.id;
     } else {
       // Generate new Firestore ID
       const docRef = await firestore()
         .collection('playlists')
         .add(playlistToSave);
-      
-      console.log('✅ Playlist saved successfully with new Firestore ID:', docRef.id);
+
+      console.log(
+        'Playlist saved successfully with new Firestore ID:',
+        docRef.id
+      );
       return docRef.id;
     }
   } catch (error) {
-    console.error('❌ Error saving playlist to Firestore:', error);
-    console.error('❌ Error details:', {
+    console.error('Error saving playlist to Firestore:', error);
+    console.error('Error details:', {
       code: (error as any)?.code,
       message: (error as any)?.message,
-      stack: (error as any)?.stack
+      stack: (error as any)?.stack,
     });
     throw error;
   }
@@ -169,7 +213,10 @@ export const backfillPlaylistCovers = async (userId: string): Promise<void> => {
         const task = (async () => {
           try {
             const imgPath = `covers/users/${userId}/${p.id}.jpg`;
-            const storedUrl = await uploadImageFromUrlToStorage(imgPath, p.coverImageUrl!);
+            const storedUrl = await uploadImageFromUrlToStorage(
+              imgPath,
+              p.coverImageUrl!
+            );
             await firestore().collection('playlists').doc(p.id).update({
               coverImageUrl: storedUrl,
               updatedAt: firestore.FieldValue.serverTimestamp(),
@@ -187,23 +234,29 @@ export const backfillPlaylistCovers = async (userId: string): Promise<void> => {
   }
 };
 
-export const getUserPlaylists = async (userId: string): Promise<PlaylistData[]> => {
+export const getUserPlaylists = async (
+  userId: string
+): Promise<PlaylistData[]> => {
   try {
-    console.log('🔍 Fetching playlists for user:', userId);
-    console.log('🔍 Using collection: playlists');
-    
+    console.log('Fetching playlists for user:', userId);
+    console.log('Using collection: playlists');
+
     const querySnapshot = await firestore()
       .collection('playlists')
       .where('userId', '==', userId)
       .get();
 
-    console.log('🔍 Query completed, found', querySnapshot.size, 'documents');
-    
+    console.log('Query completed, found', querySnapshot.size, 'documents');
+
     const playlists: PlaylistData[] = [];
 
     querySnapshot.forEach((docSnapshot) => {
       const data = docSnapshot.data();
-      console.log('🔍 Document data:', { id: docSnapshot.id, name: data.name, userId: data.userId });
+      console.log('Document data:', {
+        id: docSnapshot.id,
+        name: data.name,
+        userId: data.userId,
+      });
       playlists.push({
         id: docSnapshot.id,
         ...data,
@@ -219,14 +272,14 @@ export const getUserPlaylists = async (userId: string): Promise<PlaylistData[]> 
       return dateB.getTime() - dateA.getTime();
     });
 
-    console.log('🔍 Returning', playlists.length, 'playlists');
+    console.log('Returning', playlists.length, 'playlists');
     return playlists;
   } catch (error) {
-    console.error('❌ Error fetching user playlists:', error);
-    console.error('❌ Error details:', {
+    console.error('Error fetching user playlists:', error);
+    console.error('Error details:', {
       code: (error as any)?.code,
       message: (error as any)?.message,
-      stack: (error as any)?.stack
+      stack: (error as any)?.stack,
     });
     throw error;
   }
@@ -234,46 +287,46 @@ export const getUserPlaylists = async (userId: string): Promise<PlaylistData[]> 
 
 export const deletePlaylist = async (playlistId: string): Promise<void> => {
   try {
-    console.log('🗑️ Attempting to delete playlist:', playlistId);
-    
+    console.log('Attempting to delete playlist:', playlistId);
+
     const docRef = firestore().collection('playlists').doc(playlistId);
     const docSnapshot = await docRef.get();
-    
+
     if (!docSnapshot.exists) {
-      console.log('⚠️ Playlist does not exist:', playlistId);
+      console.log('Playlist does not exist:', playlistId);
       return;
     }
-    
-    console.log('🗑️ Found playlist to delete:', {
+
+    console.log('Found playlist to delete:', {
       id: playlistId,
       name: docSnapshot.data()?.name,
-      userId: docSnapshot.data()?.userId
+      userId: docSnapshot.data()?.userId,
     });
-    
+
     await docRef.delete();
-    console.log('✅ Successfully deleted playlist:', playlistId);
-    
+    console.log('Successfully deleted playlist:', playlistId);
   } catch (error) {
-    console.error('❌ Error deleting playlist:', playlistId, error);
-    console.error('❌ Error details:', {
+    console.error('Error deleting playlist:', playlistId, error);
+    console.error('Error details:', {
       code: (error as any)?.code,
       message: (error as any)?.message,
-      stack: (error as any)?.stack
+      stack: (error as any)?.stack,
     });
     throw error;
   }
 };
 
-export const forceDeletePlaylist = async (playlistId: string): Promise<void> => {
+export const forceDeletePlaylist = async (
+  playlistId: string
+): Promise<void> => {
   try {
-    console.log('🗑️ FORCE deleting playlist:', playlistId);
-    
+    console.log('FORCE deleting playlist:', playlistId);
+
     const docRef = firestore().collection('playlists').doc(playlistId);
     await docRef.delete();
-    console.log('✅ FORCE deleted playlist:', playlistId);
-    
+    console.log('FORCE deleted playlist:', playlistId);
   } catch (error) {
-    console.error('❌ FORCE delete failed:', playlistId, error);
+    console.error('FORCE delete failed:', playlistId, error);
     throw error;
   }
 };
@@ -283,31 +336,34 @@ export const updatePlaylistMetadata = async (
   updates: { name?: string; description?: string; coverImageUrl?: string }
 ): Promise<void> => {
   try {
-    await firestore().collection('playlists').doc(playlistId).update({
-      ...updates,
-      updatedAt: firestore.FieldValue.serverTimestamp(),
-    });
+    await firestore()
+      .collection('playlists')
+      .doc(playlistId)
+      .update({
+        ...updates,
+        updatedAt: firestore.FieldValue.serverTimestamp(),
+      });
   } catch (error) {
-    console.error('❌ Error updating playlist metadata:', error);
+    console.error('Error updating playlist metadata:', error);
     throw error;
   }
 };
 
 export const testFirestoreConnection = async (): Promise<boolean> => {
   try {
-    console.log('🧪 Testing Firestore connection...');
-    
+    console.log('Testing Firestore connection...');
+
     await firestore().collection('test').add({
       test: true,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
-    
-    console.log('✅ Firestore connection successful');
+
+    console.log('Firestore connection successful');
     return true;
   } catch (error) {
-    console.error('❌ Firestore connection failed:', error);
+    console.error('Firestore connection failed:', error);
     return false;
   }
 };
 
-export const playlistManagementService = new PlaylistManagementService(); 
+export const playlistManagementService = new PlaylistManagementService();

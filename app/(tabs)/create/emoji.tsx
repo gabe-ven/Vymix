@@ -1,4 +1,4 @@
-import { View, TouchableOpacity } from 'react-native'
+import { View, TouchableOpacity } from 'react-native';
 import { Layout } from '@/app/components/Layout';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -15,7 +15,10 @@ const emoji = () => {
 
   const handleNextEmojis = async (selectedEmojis: string[]) => {
     try {
-      await AsyncStorage.setItem('selectedEmojis', JSON.stringify(selectedEmojis));
+      await AsyncStorage.setItem(
+        'selectedEmojis',
+        JSON.stringify(selectedEmojis)
+      );
       router.push('/(tabs)/create/amount');
     } catch (error) {
       console.error('Error saving emojis:', error);
@@ -30,12 +33,12 @@ const emoji = () => {
       >
         <Ionicons name="chevron-back" size={28} color={COLORS.ui.white} />
       </TouchableOpacity>
-      
+
       <View className="w-full h-full pt-20">
         <EmojiSelection onNext={handleNextEmojis} />
       </View>
     </Layout>
-  )
-}
+  );
+};
 
-export default emoji
+export default emoji;

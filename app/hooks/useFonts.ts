@@ -6,7 +6,7 @@ SplashScreen.preventAutoHideAsync();
 
 export const useFonts = () => {
   const [fontsLoaded, fontError] = useExpoFonts({
-    'Poppins': require('../../assets/fonts/Poppins-Regular.ttf'),
+    Poppins: require('../../assets/fonts/Poppins-Regular.ttf'),
     'Poppins-Bold': require('../../assets/fonts/Poppins-Bold.ttf'),
   });
 
@@ -17,4 +17,4 @@ export const useFonts = () => {
   }, [fontsLoaded, fontError]);
 
   return { fontsLoaded, fontError };
-}; 
+};

@@ -9,7 +9,10 @@ interface SongCountSliderProps {
   initialValue?: number;
 }
 
-export default function SongCountSlider({ onValueChange, initialValue = 10 }: SongCountSliderProps) {
+export default function SongCountSlider({
+  onValueChange,
+  initialValue = 10,
+}: SongCountSliderProps) {
   const [songCount, setSongCount] = useState(initialValue);
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(initialValue.toString());
@@ -46,7 +49,7 @@ export default function SongCountSlider({ onValueChange, initialValue = 10 }: So
     <View className="w-full max-w-md">
       <View className="items-center mb-8">
         <TouchableOpacity onPress={handleCirclePress} activeOpacity={0.8}>
-          <Glass 
+          <Glass
             className="w-32 h-32 items-center justify-center shadow-lg"
             borderRadius={64}
             blurAmount={30}
@@ -61,7 +64,7 @@ export default function SongCountSlider({ onValueChange, initialValue = 10 }: So
               keyboardType="numeric"
               maxLength={3}
               className="text-5xl font-bold text-center text-ui-white font-poppins-bold leading-tight"
-              style={{ 
+              style={{
                 color: COLORS.ui.white,
                 textAlign: 'center',
                 textAlignVertical: 'center',
@@ -71,14 +74,14 @@ export default function SongCountSlider({ onValueChange, initialValue = 10 }: So
                 width: '100%',
                 height: '100%',
                 justifyContent: 'center',
-                alignItems: 'center'
+                alignItems: 'center',
               }}
               selectTextOnFocus={isEditing}
             />
           </Glass>
         </TouchableOpacity>
       </View>
-      
+
       <View className="w-full px-4">
         <Slider
           style={{ width: '100%', height: 40 }}
@@ -92,12 +95,16 @@ export default function SongCountSlider({ onValueChange, initialValue = 10 }: So
           thumbTintColor={COLORS.primary.orange}
           tapToSeek={true}
         />
-        
+
         <View className="flex-row justify-between mt-2">
-          <Text className="text-xl font-bold text-ui-gray-light font-poppins-bold">10</Text>
-          <Text className="text-xl font-bold text-ui-gray-light font-poppins-bold">100</Text>
+          <Text className="text-xl font-bold text-ui-gray-light font-poppins-bold">
+            10
+          </Text>
+          <Text className="text-xl font-bold text-ui-gray-light font-poppins-bold">
+            100
+          </Text>
         </View>
       </View>
     </View>
   );
-} 
+}

@@ -13,13 +13,13 @@ interface GradientMaskProps {
   end?: { x: number; y: number };
 }
 
-export const GradientMask = ({ 
-  children, 
-  width, 
+export const GradientMask = ({
+  children,
+  width,
   height,
   colors = COLORS.gradients.wave,
   start = { x: 0, y: 0 },
-  end = { x: 1, y: 0 }
+  end = { x: 1, y: 0 },
 }: GradientMaskProps) => (
   <View style={{ width, height }}>
     <MaskedView
@@ -36,4 +36,4 @@ export const GradientMask = ({
       </LinearGradient>
     </MaskedView>
   </View>
-); 
+);

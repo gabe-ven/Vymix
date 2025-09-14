@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { spotifyService } from '../../services/spotify';
 import { Layout } from '../components/Layout';
@@ -19,9 +25,9 @@ export default function ConnectSpotifyScreen() {
     try {
       setConnecting(true);
       setError(null);
-      
+
       await spotifyService.loginToSpotify(user?.uid);
-      
+
       // Navigate directly to main app
       router.replace('/(tabs)/create');
     } catch (error) {
@@ -37,7 +43,7 @@ export default function ConnectSpotifyScreen() {
     if (user?.uid) {
       await spotifyService.markAsConnected(user.uid);
     }
-    
+
     // Navigate directly to main app
     router.replace('/(tabs)/create');
   };
@@ -72,13 +78,21 @@ export default function ConnectSpotifyScreen() {
           <View className="mb-8 w-full max-w-sm">
             <View className="space-y-3">
               <View className="flex-row items-center">
-                <Ionicons name="checkmark-circle" size={24} color={COLORS.primary.lime} />
+                <Ionicons
+                  name="checkmark-circle"
+                  size={24}
+                  color={COLORS.primary.lime}
+                />
                 <Text className="text-ui-white font-poppins flex-1 leading-relaxed ml-3 text-base">
                   Real Spotify tracks based on your vibe
                 </Text>
               </View>
               <View className="flex-row items-center">
-                <Ionicons name="checkmark-circle" size={24} color={COLORS.primary.lime} />
+                <Ionicons
+                  name="checkmark-circle"
+                  size={24}
+                  color={COLORS.primary.lime}
+                />
                 <Text className="text-ui-white font-poppins flex-1 leading-relaxed ml-3 text-base">
                   Save playlists to your account
                 </Text>
@@ -89,7 +103,9 @@ export default function ConnectSpotifyScreen() {
           {/* Error Message */}
           {error && (
             <View className="w-full mb-4 bg-red-500/20 p-3 rounded-xl border border-red-500/30">
-              <Text className="text-red-300 text-center font-poppins text-sm">{error}</Text>
+              <Text className="text-red-300 text-center font-poppins text-sm">
+                {error}
+              </Text>
             </View>
           )}
 
@@ -102,7 +118,7 @@ export default function ConnectSpotifyScreen() {
               className="w-full"
               activeOpacity={0.8}
             >
-              <Glass 
+              <Glass
                 className="rounded-2xl py-4 px-6 shadow-lg"
                 blurAmount={20}
                 backgroundColor={COLORS.transparent.white[10]}
@@ -151,4 +167,4 @@ export default function ConnectSpotifyScreen() {
       </SafeAreaWrapper>
     </Layout>
   );
-} 
+}

@@ -63,4 +63,4 @@ export interface PlaylistInfo {
 export interface SongSuggestion {
   title: string;
   artist: string;
-} 
+}

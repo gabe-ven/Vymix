@@ -1,9 +1,16 @@
-import React, { useEffect, useState } from "react";
-import { Image, Text, TouchableOpacity, View, ActivityIndicator } from "react-native";
-import * as WebBrowser from "expo-web-browser";
-import * as Google from "expo-auth-session/providers/google";
-import { GOOGLE_CLIENT_IDS } from "../../env";
-import { useRouter } from "expo-router";
+import React, { useEffect, useState } from 'react';
+import {
+  Image,
+  Text,
+  TouchableOpacity,
+  View,
+  ActivityIndicator,
+  Linking,
+} from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import { GOOGLE_CLIENT_IDS } from '../../env';
+import { useRouter } from 'expo-router';
 import { appleAuth } from '@invertase/react-native-apple-authentication';
 import auth, { GoogleAuthProvider } from '@react-native-firebase/auth';
 import { Glass } from '../components/Glass';
@@ -29,18 +36,18 @@ export default function LoginScreen() {
   const checkSpotifyAndRoute = async (user: any) => {
     try {
       const hasConnected = await spotifyService.hasConnectedSpotify(user.uid);
-      
+
       if (hasConnected) {
         // User has connected Spotify before, go directly to main app
-        router.replace("/(tabs)/create");
+        router.replace('/(tabs)/create');
       } else {
         // User hasn't connected Spotify before, go to connect page
-        router.replace("/(auth)/connect-spotify");
+        router.replace('/(auth)/connect-spotify');
       }
     } catch (error) {
       console.error('Error checking Spotify connection:', error);
       // Default to connect page if there's an error
-      router.replace("/(auth)/connect-spotify");
+      router.replace('/(auth)/connect-spotify');
     }
   };
 
@@ -57,10 +64,11 @@ export default function LoginScreen() {
   }, []);
 
   useEffect(() => {
-    if (response?.type === "success") {
+    if (response?.type === 'success') {
       setLoading(true);
       setError(null);
-      const { idToken } = (response.authentication as { idToken?: string }) || {};
+      const { idToken } =
+        (response.authentication as { idToken?: string }) || {};
       if (idToken) {
         const credential = GoogleAuthProvider.credential(idToken);
         auth()
@@ -70,14 +78,14 @@ export default function LoginScreen() {
             if (user) {
               await user.updateProfile({
                 displayName: user.displayName || user.email?.split('@')[0],
-                photoURL: user.photoURL
+                photoURL: user.photoURL,
               });
               setUserLoggedIn(true);
             }
           })
           .catch((err) => {
-            console.error("Firebase sign-in error:", err);
-            setError("Failed to sign in with Google. Please try again.");
+            console.error('Firebase sign-in error:', err);
+            setError('Failed to sign in with Google. Please try again.');
           })
           .finally(() => setLoading(false));
       }
@@ -92,14 +100,17 @@ export default function LoginScreen() {
         requestedOperation: appleAuth.Operation.LOGIN,
         requestedScopes: [appleAuth.Scope.FULL_NAME, appleAuth.Scope.EMAIL],
       });
-    
+
       if (!appleAuthRequestResponse.identityToken) {
         throw new Error('Apple Sign-In failed - no identify token returned');
       }
-    
+
       const { identityToken, nonce } = appleAuthRequestResponse;
-      const appleCredential = auth.AppleAuthProvider.credential(identityToken, nonce);
-    
+      const appleCredential = auth.AppleAuthProvider.credential(
+        identityToken,
+        nonce
+      );
+
       const userCredential = await auth().signInWithCredential(appleCredential);
       if (userCredential.user) {
         setUserLoggedIn(true);
@@ -111,12 +122,18 @@ export default function LoginScreen() {
       setLoading(false);
     }
   }
-  
+
   return (
     <Layout>
       {/* Main Content Container */}
-      <View style={{ flex: 1, justifyContent: 'space-between', paddingTop: 120, paddingBottom: 80 }}>
-        
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'space-between',
+          paddingTop: 120,
+          paddingBottom: 80,
+        }}
+      >
         {/* Header Section */}
         <View className="px-6">
           <Text className="text-6xl md:text-7xl text-ui-white font-medium font-poppins leading-tight">
@@ -129,7 +146,7 @@ export default function LoginScreen() {
           <Text className="text-7xl md:text-8xl font-extrabold text-ui-white mt-8 mb-4 tracking-tight font-poppins-bold">
             VYMIX
           </Text>
-          
+
           <Text className="text-xl text-ui-white opacity-90 font-poppins leading-relaxed max-w-sm">
             Create personalized playlists that match your unique energy
           </Text>
@@ -139,7 +156,9 @@ export default function LoginScreen() {
         <View className="px-6 space-y-6">
           {error && (
             <View className="w-full mb-2 bg-red-500/20 p-4 rounded-2xl border border-red-500/30">
-              <Text className="text-red-300 text-center font-poppins">{error}</Text>
+              <Text className="text-red-300 text-center font-poppins">
+                {error}
+              </Text>
             </View>
           )}
 
@@ -150,7 +169,7 @@ export default function LoginScreen() {
             className="w-full"
             activeOpacity={0.8}
           >
-            <Glass 
+            <Glass
               className="rounded-3xl py-5 px-6 mb-4 shadow-lg"
               blurAmount={20}
               backgroundColor={COLORS.transparent.white[10]}
@@ -161,7 +180,7 @@ export default function LoginScreen() {
                 ) : (
                   <>
                     <Image
-                      source={require("../../assets/images/google-icon.png")}
+                      source={require('../../assets/images/google-icon.png')}
                       className="w-7 h-7 mr-4"
                     />
                     <Text className="text-ui-white text-center font-semibold text-xl font-poppins-bold">
@@ -180,7 +199,7 @@ export default function LoginScreen() {
             className="w-full"
             activeOpacity={0.8}
           >
-            <Glass 
+            <Glass
               className="rounded-3xl py-5 px-6 shadow-lg"
               blurAmount={20}
               backgroundColor={COLORS.transparent.white[5]}
@@ -191,7 +210,7 @@ export default function LoginScreen() {
                 ) : (
                   <>
                     <Image
-                      source={require("../../assets/images/apple-icon.png")}
+                      source={require('../../assets/images/apple-icon.png')}
                       className="w-7 h-7 mr-4"
                     />
                     <Text className="text-ui-white text-center font-semibold text-xl font-poppins-bold">
@@ -206,7 +225,20 @@ export default function LoginScreen() {
           {/* Terms and Privacy */}
           <View className="mt-6 px-4">
             <Text className="text-ui-white text-center opacity-60 font-poppins text-sm leading-relaxed">
-              By continuing, you agree to our Terms of Service and Privacy Policy
+              By continuing, you agree to our{' '}
+              <Text 
+                className="text-ui-white opacity-80 underline"
+                onPress={() => Linking.openURL('https://vymix.app/terms-of-service')}
+              >
+                Terms of Service
+              </Text>
+              {' '}and{' '}
+              <Text 
+                className="text-ui-white opacity-80 underline"
+                onPress={() => Linking.openURL('https://vymix.app/privacy-policy')}
+              >
+                Privacy Policy
+              </Text>
             </Text>
           </View>
         </View>

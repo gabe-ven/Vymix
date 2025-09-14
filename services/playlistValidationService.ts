@@ -1,10 +1,18 @@
-import { PlaylistData, SpotifyTrack, PlaylistInfo } from './types/playlistTypes';
+import {
+  PlaylistData,
+  SpotifyTrack,
+  PlaylistInfo,
+} from './types/playlistTypes';
 
 export class PlaylistValidationService {
   /**
    * Validates playlist generation inputs
    */
-  validatePlaylistInputs(emojis: string[], songCount: number, vibe: string): { isValid: boolean; errors: string[] } {
+  validatePlaylistInputs(
+    emojis: string[],
+    songCount: number,
+    vibe: string
+  ): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
 
     // Validate emojis
@@ -30,14 +38,17 @@ export class PlaylistValidationService {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
   /**
    * Validates playlist data structure
    */
-  validatePlaylistData(playlist: PlaylistData): { isValid: boolean; errors: string[] } {
+  validatePlaylistData(playlist: PlaylistData): {
+    isValid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     // Required fields
@@ -87,7 +98,7 @@ export class PlaylistValidationService {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -127,7 +138,10 @@ export class PlaylistValidationService {
   /**
    * Validates playlist info structure
    */
-  validatePlaylistInfo(info: PlaylistInfo): { isValid: boolean; errors: string[] } {
+  validatePlaylistInfo(info: PlaylistInfo): {
+    isValid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
 
     if (!info.name || info.name.trim().length === 0) {
@@ -154,18 +168,24 @@ export class PlaylistValidationService {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
   /**
    * Sanitizes playlist inputs
    */
-  sanitizePlaylistInputs(emojis: string[], songCount: number, vibe: string): { emojis: string[]; songCount: number; vibe: string } {
+  sanitizePlaylistInputs(
+    emojis: string[],
+    songCount: number,
+    vibe: string
+  ): { emojis: string[]; songCount: number; vibe: string } {
     return {
-      emojis: emojis.filter(emoji => emoji && emoji.trim().length > 0).slice(0, 10),
+      emojis: emojis
+        .filter((emoji) => emoji && emoji.trim().length > 0)
+        .slice(0, 10),
       songCount: Math.max(1, Math.min(50, Math.floor(songCount))),
-      vibe: vibe.trim().substring(0, 200)
+      vibe: vibe.trim().substring(0, 200),
     };
   }
 
@@ -176,13 +196,24 @@ export class PlaylistValidationService {
     return {
       ...playlist,
       name: playlist.name?.trim() || 'Untitled Playlist',
-      description: playlist.description?.trim() || 'A carefully curated musical journey',
-      emojis: playlist.emojis?.filter(emoji => emoji && emoji.trim().length > 0) || [],
+      description:
+        playlist.description?.trim() || 'A carefully curated musical journey',
+      emojis:
+        playlist.emojis?.filter((emoji) => emoji && emoji.trim().length > 0) ||
+        [],
       vibe: playlist.vibe?.trim() || 'vibes',
-      keywords: playlist.keywords?.filter(keyword => keyword && keyword.trim().length > 0).slice(0, 20) || [],
-      colorPalette: playlist.colorPalette?.filter(color => this.isValidHexColor(color)) || ['#6366f1', '#8b5cf6', '#a855f7'],
-      tracks: playlist.tracks?.filter(track => this.isValidTrack(track)) || [],
-      songCount: playlist.tracks?.filter(track => this.isValidTrack(track)).length || 0
+      keywords:
+        playlist.keywords
+          ?.filter((keyword) => keyword && keyword.trim().length > 0)
+          .slice(0, 20) || [],
+      colorPalette: playlist.colorPalette?.filter((color) =>
+        this.isValidHexColor(color)
+      ) || ['#6366f1', '#8b5cf6', '#a855f7'],
+      tracks:
+        playlist.tracks?.filter((track) => this.isValidTrack(track)) || [],
+      songCount:
+        playlist.tracks?.filter((track) => this.isValidTrack(track)).length ||
+        0,
     };
   }
 
@@ -198,7 +229,13 @@ export class PlaylistValidationService {
    * Checks if a track is valid
    */
   private isValidTrack(track: SpotifyTrack): boolean {
-    return !!(track && track.id && track.name && track.artists && track.artists.length > 0);
+    return !!(
+      track &&
+      track.id &&
+      track.name &&
+      track.artists &&
+      track.artists.length > 0
+    );
   }
 
   /**
@@ -210,7 +247,10 @@ export class PlaylistValidationService {
     }
 
     if (userId.length < 10 || userId.length > 100) {
-      return { isValid: false, error: 'User ID must be between 10 and 100 characters' };
+      return {
+        isValid: false,
+        error: 'User ID must be between 10 and 100 characters',
+      };
     }
 
     return { isValid: true };
@@ -225,11 +265,14 @@ export class PlaylistValidationService {
     }
 
     if (playlistId.length < 10 || playlistId.length > 100) {
-      return { isValid: false, error: 'Playlist ID must be between 10 and 100 characters' };
+      return {
+        isValid: false,
+        error: 'Playlist ID must be between 10 and 100 characters',
+      };
     }
 
     return { isValid: true };
   }
 }
 
-export const playlistValidationService = new PlaylistValidationService(); 
+export const playlistValidationService = new PlaylistValidationService();
