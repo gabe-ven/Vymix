@@ -21,7 +21,6 @@ import firestore from '@react-native-firebase/firestore';
 import * as Google from 'expo-auth-session/providers/google';
 import { GOOGLE_CLIENT_IDS } from '../env';
 import { appleAuth } from '@invertase/react-native-apple-authentication';
-import * as Sentry from '@sentry/react-native';
 
 export default function SettingsScreen() {
   const { user, signOut } = useAuth();
@@ -266,24 +265,6 @@ export default function SettingsScreen() {
     });
   };
 
-  const handleSentryTest = () => {
-    try {
-      // Send a test error to Sentry
-      Sentry.captureException(new Error('Sentry Test Error - This is a test to verify Sentry integration is working correctly'));
-      
-      Alert.alert(
-        'Test Sent!',
-        'A test error has been sent to Sentry. Check your Sentry dashboard to verify it was received.',
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      Alert.alert(
-        'Test Failed',
-        'Failed to send test error to Sentry. Check your configuration.',
-        [{ text: 'OK' }]
-      );
-    }
-  };
 
   const handleDeleteAccount = async () => {
     Alert.alert(
@@ -547,13 +528,6 @@ export default function SettingsScreen() {
               onPress={() =>
                 Alert.alert('Help', 'Contact support at help@vymix.app')
               }
-            />
-
-            <SettingsRow
-              icon="bug"
-              title="Test Sentry"
-              subtitle="Send a test error to verify error tracking"
-              onPress={handleSentryTest}
             />
 
             <SettingsRow
