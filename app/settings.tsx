@@ -560,14 +560,14 @@ export default function SettingsScreen() {
               icon="document-text"
               title="Terms of Service"
               subtitle="View our terms and conditions"
-              onPress={() => Linking.openURL('https://vymix.app/terms-of-service')}
+              onPress={() => Linking.openURL('https://gabe-ven.github.io/Vymix/terms-of-service.html')}
             />
 
             <SettingsRow
               icon="shield-checkmark"
               title="Privacy Policy"
               subtitle="View our privacy policy and data practices"
-              onPress={() => Linking.openURL('https://vymix.app/privacy-policy')}
+              onPress={() => Linking.openURL('https://gabe-ven.github.io/Vymix/privacy-policy.html')}
             />
           </Glass>
 

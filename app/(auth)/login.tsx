@@ -228,14 +228,14 @@ export default function LoginScreen() {
               By continuing, you agree to our{' '}
               <Text 
                 className="text-ui-white opacity-80 underline"
-                onPress={() => Linking.openURL('https://vymix.app/terms-of-service')}
+                onPress={() => Linking.openURL('https://gabe-ven.github.io/Vymix/terms-of-service.html')}
               >
                 Terms of Service
               </Text>
               {' '}and{' '}
               <Text 
                 className="text-ui-white opacity-80 underline"
-                onPress={() => Linking.openURL('https://vymix.app/privacy-policy')}
+                onPress={() => Linking.openURL('https://gabe-ven.github.io/Vymix/privacy-policy.html')}
               >
                 Privacy Policy
               </Text>
