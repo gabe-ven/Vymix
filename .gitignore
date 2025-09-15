@@ -9,7 +9,7 @@ web-build/
 expo-env.d.ts
 
 # Native builds (if using prebuild)
-ios/
+# ios/
 android/
 
 # TypeScript

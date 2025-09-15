@@ -10,13 +10,13 @@
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/splash-icon.png",
-      "resizeMode": "center",
+        "resizeMode": "contain",
       "backgroundColor": "#120c2c"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.Vymix",
+        "bundleIdentifier": "com.gabe.vymix",
       "googleServicesFile": "./GoogleService-Info.plist",
       "usesAppleSignIn": true,
       "appleTeamId": "P438329H38"
@@ -72,7 +72,20 @@
       "router": {},
       "eas": {
         "projectId": "bce9cf03-93ec-4b76-99a4-9daf391931b3"
-      }
+      },
+      "FIREBASE_API_KEY": "AIzaSyCvfNiiiDyMJGIWy1N9UZQwclGTbyzRErM",
+      "FIREBASE_AUTH_DOMAIN": "vymix-d72ed.firebaseapp.com",
+      "FIREBASE_PROJECT_ID": "vymix-d72ed",
+      "FIREBASE_STORAGE_BUCKET": "vymix-d72ed.appspot.com",
+      "FIREBASE_MESSAGING_SENDER_ID": "940533360034",
+      "FIREBASE_APP_ID": "1:940533360034:web:3bcbc9b9d76defd1a3fefb",
+      "FIREBASE_MEASUREMENT_ID": "G-9227NV92P5",
+      "GOOGLE_IOS_CLIENT_ID": "940533360034-9sni7i4v44n33vunkl800vqn4tho08nt.apps.googleusercontent.com",
+      "GOOGLE_WEB_CLIENT_ID": "940533360034-lies2qldpgh59ivqirhsu54iudaik2mt.apps.googleusercontent.com",
+      "GOOGLE_API_KEY": "",
+      "SPOTIFY_CLIENT_ID": "",
+      "SPOTIFY_CLIENT_SECRET": "",
+      "OPENAI_API_KEY": ""
     }
   }
 }
