@@ -315,14 +315,14 @@ export default function ProfileScreen() {
         <ActionRow
           icon={<Feather name="shield" size={20} color={COLORS.ui.white} />}
           label="Privacy"
-          onPress={() => handleOpenLink('https://vymix.app/privacy')}
+          onPress={() => handleOpenLink('https://gabe-ven.github.io/Vymix/privacy-policy.html')}
         />
         <ActionRow
           icon={
             <Feather name="help-circle" size={20} color={COLORS.ui.white} />
           }
           label="Help & Support"
-          onPress={() => handleOpenLink('https://vymix.app/feedback')}
+          onPress={() => Alert.alert('Help', 'Contact support at support@vymixapp.com')}
         />
         <ActionRow
           icon={<Feather name="settings" size={20} color={COLORS.ui.white} />}

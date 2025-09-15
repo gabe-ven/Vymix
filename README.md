@@ -431,8 +431,8 @@ copies or substantial portions of the Software.
 ## 📞 Contact & Support
 
 ### Official Support
-- **Email**: [support@vymix.app](mailto:support@vymix.app)
-- **Privacy**: [privacy@vymix.app](mailto:privacy@vymix.app)
+- **Email**: [support@vymixapp.com](mailto:support@vymixapp.com)
+- **Privacy**: [support@vymixapp.com](mailto:support@vymixapp.com)
 - **Website**: [https://gabe-ven.github.io/Vymix/](https://gabe-ven.github.io/Vymix/)
 
 ### Community & Development

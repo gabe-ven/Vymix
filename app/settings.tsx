@@ -526,7 +526,7 @@ export default function SettingsScreen() {
               title="Help & Support"
               subtitle="Get help with using Vymix"
               onPress={() =>
-                Alert.alert('Help', 'Contact support at help@vymix.app')
+                Alert.alert('Help', 'Contact support at support@vymixapp.com')
               }
             />
 
