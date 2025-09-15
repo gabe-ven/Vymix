@@ -65,7 +65,8 @@
     "react-native-toast-message": "^2.3.2",
     "react-native-web": "~0.20.0",
     "tailwindcss-react-native": "^1.7.10",
-    "expo-application": "~6.1.5"
+    "expo-application": "~6.1.5",
+    "expo-dev-client": "~5.2.4"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
