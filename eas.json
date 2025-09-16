@@ -12,13 +12,7 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true,
-      "env": {
-        "GOOGLE_API_KEY": "$GOOGLE_API_KEY",
-        "SPOTIFY_CLIENT_ID": "$SPOTIFY_CLIENT_ID", 
-        "SPOTIFY_CLIENT_SECRET": "$SPOTIFY_CLIENT_SECRET",
-        "OPENAI_API_KEY": "$OPENAI_API_KEY"
-      }
+      "autoIncrement": true
     }
   },
   "submit": {
