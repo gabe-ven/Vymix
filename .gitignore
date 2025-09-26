@@ -17,7 +17,8 @@ android/
 *.d.ts
 
 # Firebase
-GoogleService-Info.plist
+# Commit iOS plist so EAS remote builds can access it
+# (Android json can remain untracked if not building Android on CI)
 google-services.json
 
 # Secrets
