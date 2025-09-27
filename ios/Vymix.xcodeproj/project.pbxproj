@@ -142,7 +142,6 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Vymix" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				D1ENSURENM2E87AC6400D22CF5 /* [CI] Ensure node_modules */, 
 				C0FEE0DE1234567890ABCDEF /* ci: Ensure CocoaPods */,
 				FCE7EB5BF77CB495698A726F /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
@@ -210,24 +209,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-\t\tD1ENSURENM2E87AC6400D22CF5 /* [CI] Ensure node_modules */ = {
-\t\t\tisa = PBXShellScriptBuildPhase;
-\t\t\tbuildActionMask = 2147483647;
-\t\t\tfiles = (
-\t\t\t);
-\t\t\tinputFileListPaths = (
-\t\t\t);
-\t\t\tinputPaths = (
-\t\t\t);
-\t\t\tname = "[CI] Ensure node_modules";
-\t\t\toutputFileListPaths = (
-\t\t\t);
-\t\t\toutputPaths = (
-\t\t\t);
-\t\t\trunOnlyForDeploymentPostprocessing = 0;
-\t\t\tshellPath = /bin/sh;
-\t\t\tshellScript = "export PATH=\"/opt/homebrew/bin:/usr/local/bin:$PATH\"\nif [ ! -d \"$PROJECT_DIR/../node_modules\" ]; then\n  echo \"[CI] node_modules missing; installing\"\n  if command -v npm >/dev/null 2>&1; then\n    cd \"$PROJECT_DIR/..\" && npm ci || npm install --no-audit --no-fund\n  else\n    echo \"[CI] npm not found; skipping node_modules install\"\n  fi\nelse\n  echo \"[CI] node_modules present\"\nfi\n";
-\t\t};
 		00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -414,6 +395,23 @@
 			shellPath = /bin/sh;
 			shellScript = "set -e\nif [ ! -f \"${SRCROOT}/Pods/Target Support Files/Pods-Vymix/Pods-Vymix.${CONFIGURATION}.xcconfig\" ]; then\n  echo \"[CI] Pods xcconfig missing for ${CONFIGURATION}. Running pod install...\"\n  if command -v pod >/dev/null 2>&1; then\n    cd \"${SRCROOT}\"\n    pod install --repo-update\n  else\n    echo \"[CI] CocoaPods not found on runner.\"\n  fi\nelse\n  echo \"[CI] Pods already installed.\"\nfi\n";
 			showEnvVarsInLog = 0;
+		};
+		D1F9FC342E87AC6400D22CF4 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n";
 		};
 		FCE7EB5BF77CB495698A726F /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
