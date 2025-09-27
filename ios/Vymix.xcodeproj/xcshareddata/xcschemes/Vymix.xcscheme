@@ -81,8 +81,26 @@
    <AnalyzeAction
       buildConfiguration = "Debug">
    </AnalyzeAction>
-   <ArchiveAction
-      buildConfiguration = "Release"
-      revealArchiveInOrganizer = "YES">
-   </ArchiveAction>
+  <ArchiveAction
+     buildConfiguration = "Release"
+     revealArchiveInOrganizer = "YES">
+     <PreActions>
+        <ExecutionAction
+           ActionType = "Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptAction">
+           <ActionContent
+              title = "CI Pre-Archive Script"
+              scriptText = "bash &quot;$PROJECT_DIR/../ci_scripts/ci_pre_xcodebuild.sh&quot;">
+              <EnvironmentBuildable>
+                 <BuildableReference
+                    BuildableIdentifier = "primary"
+                    BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
+                    BuildableName = "Vymix.app"
+                    BlueprintName = "Vymix"
+                    ReferencedContainer = "container:Vymix.xcodeproj">
+                 </BuildableReference>
+              </EnvironmentBuildable>
+           </ActionContent>
+        </ExecutionAction>
+     </PreActions>
+  </ArchiveAction>
 </Scheme>
