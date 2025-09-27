@@ -1,0 +1,6 @@
+framework module ExpoRandom {
+  umbrella header "ExpoRandom-umbrella.h"
+
+  export *
+  module * { export * }
+}

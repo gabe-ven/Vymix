@@ -1,0 +1,6 @@
+framework module RNTextGradientView {
+  umbrella header "RNTextGradientView-umbrella.h"
+
+  export *
+  module * { export * }
+}
