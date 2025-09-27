@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.gabe.vymix",
-      "googleServicesFile": "./GoogleService-Info.plist",
+      "googleServicesFile": "./ios/Vymix/GoogleService-Info.plist",
       "usesAppleSignIn": true,
       "appleTeamId": "P438329H38",
       "buildNumber": "1"
