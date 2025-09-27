@@ -21,7 +21,8 @@
       "bundleIdentifier": "com.gabe.vymix",
       "googleServicesFile": "./GoogleService-Info.plist",
       "usesAppleSignIn": true,
-      "appleTeamId": "P438329H38"
+      "appleTeamId": "P438329H38",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
@@ -75,7 +76,8 @@
       "router": {},
       "eas": {
         "projectId": "bce9cf03-93ec-4b76-99a4-9daf391931b3"
-      }
+      },
+      "GOOGLE_IOS_CLIENT_ID": "940533360034-9sni7i4v44n33vunkl800vqn4tho08nt.apps.googleusercontent.com"
     }
   }
 }
