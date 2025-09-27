@@ -396,23 +396,6 @@
 			shellScript = "set -e\nif [ ! -f \"${SRCROOT}/Pods/Target Support Files/Pods-Vymix/Pods-Vymix.${CONFIGURATION}.xcconfig\" ]; then\n  echo \"[CI] Pods xcconfig missing for ${CONFIGURATION}. Running pod install...\"\n  if command -v pod >/dev/null 2>&1; then\n    cd \"${SRCROOT}\"\n    pod install --repo-update\n  else\n    echo \"[CI] CocoaPods not found on runner.\"\n  fi\nelse\n  echo \"[CI] Pods already installed.\"\nfi\n";
 			showEnvVarsInLog = 0;
 		};
-		D1F9FC342E87AC6400D22CF4 /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n";
-		};
 		FCE7EB5BF77CB495698A726F /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
