@@ -64,14 +64,14 @@ async function checkRequiredFiles() {
     'env.ts',
     'services/firebase.ts',
     'services/spotify.ts',
-    'privacy-policy.html',
+    'website/privacy-policy.html',
     'LICENSE'
   ];
   
   const missing = [];
   
   for (const file of requiredFiles) {
-    if (!fs.existsSync(path.join(__dirname, file))) {
+    if (!fs.existsSync(path.join(__dirname, '..', file))) {
       missing.push(file);
     }
   }
@@ -89,7 +89,7 @@ async function checkEnvironmentSetup() {
   console.log('🔧 Checking environment setup...');
   
   try {
-    const envContent = fs.readFileSync(path.join(__dirname, 'env.ts'), 'utf8');
+    const envContent = fs.readFileSync(path.join(__dirname, '..', 'env.ts'), 'utf8');
     
     const requiredEnvVars = [
       'FIREBASE_API_KEY',
@@ -165,7 +165,7 @@ async function main() {
   console.log('- [ ] Spotify connection');
   console.log('- [ ] Playlist generation');
   console.log('- [ ] Error handling');
-  console.log('- [ ] UI responsiveness');
+    console.log('- [ ] UI responsiveness');
   
   process.exit(criticalFailures > 0 ? 1 : 0);
 }
