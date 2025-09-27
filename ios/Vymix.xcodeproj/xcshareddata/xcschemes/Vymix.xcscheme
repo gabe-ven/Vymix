@@ -89,7 +89,7 @@
            ActionType = "Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptAction">
            <ActionContent
               title = "CI Pre-Archive Script"
-              scriptText = "bash &quot;$PROJECT_DIR/../ci_scripts/ci_pre_xcodebuild.sh&quot;">
+              scriptText = "if [ -z \&quot;$CI\&quot; ]; then\n  bash \&quot;$PROJECT_DIR/../ci_scripts/ci_pre_xcodebuild.sh\&quot;\nelse\n  echo \&quot;[Scheme] CI detected, skipping ci_pre_xcodebuild.sh in Archive pre-action\&quot;\nfi">
               <EnvironmentBuildable>
                  <BuildableReference
                     BuildableIdentifier = "primary"
