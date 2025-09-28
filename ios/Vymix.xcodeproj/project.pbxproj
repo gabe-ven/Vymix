@@ -145,6 +145,7 @@
 				D1E0BEEF2E87AC6400D22CF5 /* [CI] Ensure node_modules */,
 				C0FEE0DE1234567890ABCDEF /* ci: Ensure CocoaPods */,
 				FCE7EB5BF77CB495698A726F /* [Expo] Configure project */,
+				D1F9FC362E89E44300D22CF4 /* ShellScript */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
@@ -210,24 +211,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		D1E0BEEF2E87AC6400D22CF5 /* [CI] Ensure node_modules */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			name = "[CI] Ensure node_modules";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "export PATH=\"/opt/homebrew/bin:/usr/local/bin:$PATH\"\nif [ ! -d \"$PROJECT_DIR/../node_modules/@react-native-community/slider\" ]; then\n  echo \"[CI] node_modules missing; installing\"\n  if command -v npm >/dev/null 2>&1; then\n    cd \"$PROJECT_DIR/..\" && npm ci || npm install --no-audit --no-fund\n  else\n    echo \"[CI] npm not found; skipping node_modules install\"\n  fi\nelse\n  echo \"[CI] node_modules present\"\nfi\n";
-		};
 		00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
@@ -262,7 +245,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ -n \"$CI\" ]; then\n  echo \"[CI] Skipping Pods manifest check\"\n  echo \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n  exit 0\nfi\n\nif [ ! -f \"${PODS_ROOT}/Manifest.lock\" ] || [ ! -f \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" ]; then\n  echo \"[CI] Pods or lockfile missing; skipping check\"\n  echo \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n  exit 0\nfi\n\ndiff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
 		3BCAA9708FE544B9B4BDFAC7 /* Upload Debug Symbols to Sentry */ = {
@@ -415,8 +398,27 @@
 			shellScript = "set -e\nif [ ! -f \"${SRCROOT}/Pods/Target Support Files/Pods-Vymix/Pods-Vymix.${CONFIGURATION}.xcconfig\" ]; then\n  echo \"[CI] Pods xcconfig missing for ${CONFIGURATION}. Running pod install...\"\n  if command -v pod >/dev/null 2>&1; then\n    cd \"${SRCROOT}\"\n    pod install --repo-update\n  else\n    echo \"[CI] CocoaPods not found on runner.\"\n  fi\nelse\n  echo \"[CI] Pods already installed.\"\nfi\n";
 			showEnvVarsInLog = 0;
 		};
-		D1F9FC342E87AC6400D22CF4 /* ShellScript */ = {
+		D1E0BEEF2E87AC6400D22CF5 /* [CI] Ensure node_modules */ = {
 			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "[CI] Ensure node_modules";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "export PATH=\"/opt/homebrew/bin:/usr/local/bin:$PATH\"\nif [ ! -d \"$PROJECT_DIR/../node_modules/@react-native-community/slider\" ]; then\n  echo \"[CI] node_modules missing; installing\"\n  if command -v npm >/dev/null 2>&1; then\n    cd \"$PROJECT_DIR/..\" && npm ci || npm install --no-audit --no-fund\n  else\n    echo \"[CI] npm not found; skipping node_modules install\"\n  fi\nelse\n  echo \"[CI] node_modules present\"\nfi\n";
+		};
+		D1F9FC362E89E44300D22CF4 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
@@ -430,7 +432,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\nset -euo pipefail\nexport PATH=\"/opt/homebrew/bin:/usr/local/bin:$PATH\"\n\ncd \"$PROJECT_DIR/..\"\n\n# Ensure JS deps exist (needed for @react-native-community/slider headers)\nif [ ! -f node_modules/@react-native-community/slider/ios/RNCSlider.h ]; then\n  echo \"[xcode] installing JS deps\"\n  if [ -f package-lock.json ]; then\n    npm ci\n  else\n    npm install --no-audit --no-fund\n  fi\nfi\n\n# Fail fast if required headers are missing\ntest -f node_modules/@react-native-community/slider/ios/RNCSlider.h\ntest -f node_modules/@react-native-community/slider/common/cpp/react/renderer/components/RNCSlider/RNCSliderMeasurementsManager.h\n";
 		};
 		FCE7EB5BF77CB495698A726F /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -449,7 +451,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nif [ ! -f \"./Pods/Target Support Files/Pods-Vymix/expo-configure-project.sh\" ]; then\n  echo \"[Expo] Skipping configure: Pods not installed yet\"\n  exit 0\nfi\nexport PATH=\"/opt/homebrew/bin:/usr/local/bin:$PATH\"\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-Vymix/expo-configure-project.sh\"\n";
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-Vymix/expo-configure-project.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
