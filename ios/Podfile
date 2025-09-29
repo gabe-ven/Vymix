@@ -96,5 +96,29 @@ EOS
     rescue => e
       puts "[Podfile] Skipped adding CI node_modules script: #{e}"
     end
+
+    # Ensure node_modules exist before building the 'react-native-slider' pod target
+    begin
+      slider_target = installer.pods_project.targets.find { |t| t.name == 'react-native-slider' }
+      if slider_target
+        phase = slider_target.new_shell_script_build_phase('[CI] Ensure node_modules (slider)')
+        phase.shell_script = <<-EOS
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+ROOT_DIR="${PODS_ROOT}/../.."
+if [ ! -f "${ROOT_DIR}/node_modules/@react-native-community/slider/ios/RNCSlider.h" ]; then
+  cd "${ROOT_DIR}"
+  if [ -f package-lock.json ]; then
+    npm ci || npm install --no-audit --no-fund
+  else
+    npm install --no-audit --no-fund
+  fi
+fi
+EOS
+        # Move to the top so it runs before headers copy phases
+        slider_target.build_phases.move_from(slider_target.build_phases.count - 1, 0)
+      end
+    rescue => e
+      puts "[Podfile] Skipped adding slider node_modules script: #{e}"
+    end
   end
 end
