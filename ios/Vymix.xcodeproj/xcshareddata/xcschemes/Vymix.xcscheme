@@ -5,6 +5,24 @@
    <BuildAction
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES">
+      <PreActions>
+         <ExecutionAction
+            ActionType = "Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptAction">
+            <ActionContent
+               title = "Run Script"
+               scriptText = "# Type a script or drag a script file from your workspace to insert its path.&#10;# Set a sane PATH for command-line tools&#10;export PATH=&quot;/opt/homebrew/bin:/usr/local/bin:$PATH&quot;&#10;&#10;# Find and verify npm in a robust way&#10;NPM=&quot;$(command -v npm || echo /usr/local/bin/npm || echo /opt/homebrew/bin/npm)&quot;&#10;&quot;$NPM&quot; --version&#10;&#10;# Navigate to project root&#10;cd &quot;$PROJECT_DIR/..&quot;&#10;&#10;# Install JS dependencies&#10;echo &quot;[xcode] Installing JS dependencies...&quot;&#10;if [ -f package-lock.json ]; then&#10;  &quot;$NPM&quot; ci --no-audit --no-fund&#10;else&#10;  &quot;$NPM&quot; install --no-audit --no-fund&#10;fi&#10;&#10;# Install native iOS dependencies using Bundler&#10;echo &quot;[xcode] Installing CocoaPods...&quot;&#10;cd ios&#10;bundle install&#10;bundle exec pod install&#10;">
+               <EnvironmentBuildable>
+                  <BuildableReference
+                     BuildableIdentifier = "primary"
+                     BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
+                     BuildableName = "Vymix.app"
+                     BlueprintName = "Vymix"
+                     ReferencedContainer = "container:Vymix.xcodeproj">
+                  </BuildableReference>
+               </EnvironmentBuildable>
+            </ActionContent>
+         </ExecutionAction>
+      </PreActions>
       <BuildActionEntries>
          <BuildActionEntry
             buildForTesting = "YES"
