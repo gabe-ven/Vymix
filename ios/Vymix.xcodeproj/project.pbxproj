@@ -141,10 +141,10 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Vymix" */;
 			buildPhases = (
+				D1F9FC362E89E44300D22CF4 /* ShellScript */,
 				9E415FDD07058A1A76C18B67 /* [CP] Check Pods Manifest.lock */,
 				D1E0BEEF2E87AC6400D22CF5 /* [CI] Ensure node_modules */,
 				FCE7EB5BF77CB495698A726F /* [Expo] Configure project */,
-				D1F9FC362E89E44300D22CF4 /* ShellScript */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
