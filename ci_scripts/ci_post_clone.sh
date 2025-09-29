@@ -1,8 +1,9 @@
 #!/bin/sh
+
+# This script sets up the Node.js environment for subsequent steps.
 set -euo pipefail
 
-# Resolve repo root from this script's directory
-ROOT_DIR="$(cd "$(dirname "$0")"/.. && pwd)"
-exec "$ROOT_DIR/ci_post_clone.sh"
-
-
+# Load Node Version Manager and install/use the correct node version
+. ~/.nvm/nvm.sh
+nvm install
+nvm use
