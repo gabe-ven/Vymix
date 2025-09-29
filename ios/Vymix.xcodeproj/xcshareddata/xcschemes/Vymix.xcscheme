@@ -5,24 +5,6 @@
    <BuildAction
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES">
-      <PreActions>
-         <ExecutionAction
-            ActionType = "Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptAction">
-            <ActionContent
-               title = "Run Script"
-               scriptText = "# This script runs before the build to prepare dependencies&#10;set -euo pipefail&#10;export PATH=&quot;/opt/homebrew/bin:/usr/local/bin:$PATH&quot;&#10;&#10;# Navigate to the project root&#10;cd &quot;$PROJECT_DIR/..&quot;&#10;&#10;# Install JS and native dependencies&#10;echo &quot;[xcode] Installing JS dependencies...&quot;&#10;npm install&#10;&#10;echo &quot;[xcode] Installing CocoaPods...&quot;&#10;cd ios&#10;pod install&#10;">
-               <EnvironmentBuildable>
-                  <BuildableReference
-                     BuildableIdentifier = "primary"
-                     BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-                     BuildableName = "Vymix.app"
-                     BlueprintName = "Vymix"
-                     ReferencedContainer = "container:Vymix.xcodeproj">
-                  </BuildableReference>
-               </EnvironmentBuildable>
-            </ActionContent>
-         </ExecutionAction>
-      </PreActions>
       <BuildActionEntries>
          <BuildActionEntry
             buildForTesting = "YES"
@@ -106,24 +88,8 @@
          <ExecutionAction
             ActionType = "Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptAction">
             <ActionContent
-               title = "CI Pre-Archive Script"
-               scriptText = "set -euo pipefail&#10;cd &quot;$CI_WORKSPACE&quot;    # repo root&#10;if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi&#10;# verify slider headers exist&#10;test -f node_modules/@react-native-community/slider/ios/RNCSlider.h&#10;test -f node_modules/@react-native-community/slider/common/cpp/react/renderer/components/RNCSlider/RNCSliderMeasurementsManager.h&#10;cd ios &amp;&amp; pod install --repo-update&#10;">
-               <EnvironmentBuildable>
-                  <BuildableReference
-                     BuildableIdentifier = "primary"
-                     BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-                     BuildableName = "Vymix.app"
-                     BlueprintName = "Vymix"
-                     ReferencedContainer = "container:Vymix.xcodeproj">
-                  </BuildableReference>
-               </EnvironmentBuildable>
-            </ActionContent>
-         </ExecutionAction>
-         <ExecutionAction
-            ActionType = "Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptAction">
-            <ActionContent
                title = "Run Script"
-               scriptText = "set -euo pipefail&#10;set -x&#10;&#10;# Find repo root even if Project directory is ios/&#10;ROOT=&quot;$CI_WORKSPACE&quot;&#10;if [ ! -f &quot;$ROOT/package.json&quot; ]; then&#10;  [ -f &quot;$CI_WORKSPACE/../package.json&quot; ] &amp;&amp; ROOT=&quot;$(cd &quot;$CI_WORKSPACE/..&quot; &amp;&amp; pwd)&quot; || true&#10;fi&#10;if [ ! -f &quot;$ROOT/package.json&quot; ]; then&#10;  [ -f &quot;$CI_WORKSPACE/../../package.json&quot; ] &amp;&amp; ROOT=&quot;$(cd &quot;$CI_WORKSPACE/../..&quot; &amp;&amp; pwd)&quot; || true&#10;fi&#10;cd &quot;$ROOT&quot;&#10;&#10;# Install JS deps (non&#x2011;interactive)&#10;if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi&#10;&#10;# Fail fast if slider headers aren&#x2019;t present&#10;ls -la node_modules/@react-native-community/slider/ios || true&#10;test -f node_modules/@react-native-community/slider/ios/RNCSlider.h&#10;test -f node_modules/@react-native-community/slider/common/cpp/react/renderer/components/RNCSlider/RNCSliderMeasurementsManager.h&#10;&#10;# Pods after deps&#10;cd ios&#10;pod install --repo-update&#10;">
+               scriptText = "# Type a script or drag a script file from your workspace to insert its path.&#10;# Set a sane PATH for command-line tools&#10;export PATH=&quot;/opt/homebrew/bin:/usr/local/bin:$PATH&quot;&#10;&#10;# Find and verify npm in a robust way&#10;NPM=&quot;$(command -v npm || echo /usr/local/bin/npm || echo /opt/homebrew/bin/npm)&quot;&#10;&quot;$NPM&quot; --version&#10;&#10;# Navigate to the project root&#10;cd &quot;$PROJECT_DIR/..&quot;&#10;&#10;# Install JS dependencies&#10;echo &quot;[xcode] Installing JS dependencies...&quot;&#10;if [ -f package-lock.json ]; then&#10;  &quot;$NPM&quot; ci --no-audit --no-fund&#10;else&#10;  &quot;$NPM&quot; install --no-audit --no-fund&#10;fi&#10;&#10;# Install native iOS dependencies using Bundler&#10;echo &quot;[xcode] Installing CocoaPods...&quot;&#10;cd ios&#10;bundle install&#10;bundle exec pod install&#10;">
                <EnvironmentBuildable>
                   <BuildableReference
                      BuildableIdentifier = "primary"
