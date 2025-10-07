@@ -22,7 +22,7 @@
       "googleServicesFile": "./GoogleService-Info.plist",
       "usesAppleSignIn": true,
       "appleTeamId": "P438329H38",
-      "buildNumber": "53",
+      "buildNumber": "63",
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true,

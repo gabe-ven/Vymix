@@ -47,3 +47,6 @@ yarn-error.*
 
 app.config.js
 .env.local
+
+# iOS Pods should never be committed
+ios/Pods/
