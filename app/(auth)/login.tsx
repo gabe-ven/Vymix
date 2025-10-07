@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
+import { makeRedirectUri } from 'expo-auth-session';
 import { GOOGLE_CLIENT_IDS } from '../../env';
 import { useRouter } from 'expo-router';
 import { appleAuth } from '@invertase/react-native-apple-authentication';
@@ -22,10 +23,18 @@ WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const router = useRouter();
+  // Build native iOS redirect: com.googleusercontent.apps.<IOS_CLIENT_ID>:/oauthredirect
+  const reversedClientId = (GOOGLE_CLIENT_IDS.ios || '').replace(
+    '.apps.googleusercontent.com',
+    ''
+  );
+  const nativeRedirectUri = `com.googleusercontent.apps.${reversedClientId}:/oauthredirect`;
+  const redirectUri = makeRedirectUri({ native: nativeRedirectUri });
   const [request, response, promptAsync] = Google.useAuthRequest({
     iosClientId: GOOGLE_CLIENT_IDS.ios,
     androidClientId: (GOOGLE_CLIENT_IDS as any).android,
     webClientId: GOOGLE_CLIENT_IDS.web,
+    redirectUri,
   });
 
   const [userLoggedIn, setUserLoggedIn] = useState(false);
@@ -164,7 +173,7 @@ export default function LoginScreen() {
 
           {/* Google Sign In Button */}
           <TouchableOpacity
-            onPress={() => promptAsync()}
+            onPress={() => promptAsync({ preferEphemeralSession: true })}
             disabled={!request || loading}
             className="w-full"
             activeOpacity={0.8}

@@ -19,10 +19,21 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.gabe.vymix",
-      "googleServicesFile": "./ios/Vymix/GoogleService-Info.plist",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "usesAppleSignIn": true,
       "appleTeamId": "P438329H38",
-      "buildNumber": "1"
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSAllowsLocalNetworking": true,
+          "NSExceptionDomains": {
+            "localhost": { "NSExceptionAllowsInsecureHTTPLoads": true, "NSIncludesSubdomains": true },
+            "127.0.0.1": { "NSExceptionAllowsInsecureHTTPLoads": true, "NSIncludesSubdomains": true },
+            "11.27.225.192": { "NSExceptionAllowsInsecureHTTPLoads": true, "NSIncludesSubdomains": true }
+          }
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
