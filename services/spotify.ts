@@ -259,11 +259,11 @@ class SpotifyService {
   // Check if user has connected Spotify before
   public async hasConnectedSpotify(userId: string): Promise<boolean> {
     try {
-      const connected = await AsyncStorage.getItem(
+      // Use keychain-backed storage so the flag persists across reinstalls
+      const connected = await this.secureGetItem(
         `spotify_connected_${userId}`
       );
-      const result = connected === 'true';
-      return result;
+      return connected === 'true';
     } catch (error) {
       console.error('Error checking Spotify connection status:', error);
       return false;
@@ -273,7 +273,8 @@ class SpotifyService {
   // Mark user as having connected Spotify
   public async markAsConnected(userId: string): Promise<void> {
     try {
-      await AsyncStorage.setItem(`spotify_connected_${userId}`, 'true');
+      // Persist in SecureStore when available
+      await this.secureSetItem(`spotify_connected_${userId}`, 'true');
     } catch (error) {
       console.error('Error marking user as connected:', error);
     }
@@ -282,7 +283,7 @@ class SpotifyService {
   // Clear Spotify connection status (for testing)
   public async clearConnectionStatus(userId: string): Promise<void> {
     try {
-      await AsyncStorage.removeItem(`spotify_connected_${userId}`);
+      await this.secureDeleteItem(`spotify_connected_${userId}`);
     } catch (error) {
       console.error('Error clearing Spotify connection status:', error);
     }

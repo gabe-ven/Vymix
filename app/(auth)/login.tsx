@@ -173,7 +173,7 @@ export default function LoginScreen() {
 
           {/* Google Sign In Button */}
           <TouchableOpacity
-            onPress={() => promptAsync({ preferEphemeralSession: true })}
+            onPress={() => promptAsync()}
             disabled={!request || loading}
             className="w-full"
             activeOpacity={0.8}
