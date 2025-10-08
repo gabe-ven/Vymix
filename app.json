@@ -17,7 +17,7 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.gabe.vymix",
       "googleServicesFile": "./GoogleService-Info.plist",
       "usesAppleSignIn": true,
