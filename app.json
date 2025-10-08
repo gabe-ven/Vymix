@@ -32,7 +32,13 @@
             "11.27.225.192": { "NSExceptionAllowsInsecureHTTPLoads": true, "NSIncludesSubdomains": true }
           }
         },
-        "UIRequiresFullScreen": true
+        "UIRequiresFullScreen": true,
+        "UISupportedInterfaceOrientations~ipad": [
+          "UIInterfaceOrientationPortrait",
+          "UIInterfaceOrientationPortraitUpsideDown",
+          "UIInterfaceOrientationLandscapeLeft",
+          "UIInterfaceOrientationLandscapeRight"
+        ]
       }
     },
     "android": {
