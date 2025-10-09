@@ -6,6 +6,22 @@
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES">
       <PreActions>
+         <ExecutionAction
+            ActionType = "Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptAction">
+            <ActionContent
+               title = "Ensure Pods (CI safe)"
+               scriptText = "# CI-safe: only install Pods if missing, never fail build\nexport PATH=\"/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH\"\nif [ ! -f \"$SRCROOT/Pods/Target Support Files/Pods-Vymix/Pods-Vymix.release.xcconfig\" ]; then\n  echo \"[xcscheme] Pods missing – running pod install\"\n  cd \"$SRCROOT\" && (pod install --repo-update || pod install) || true\nelse\n  echo \"[xcscheme] Pods present – skipping pod install\"\nfi\nexit 0\n">
+               <EnvironmentBuildable>
+                  <BuildableReference
+                     BuildableIdentifier = "primary"
+                     BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
+                     BuildableName = "Vymix.app"
+                     BlueprintName = "Vymix"
+                     ReferencedContainer = "container:Vymix.xcodeproj">
+                  </BuildableReference>
+               </EnvironmentBuildable>
+            </ActionContent>
+         </ExecutionAction>
       </PreActions>
       <BuildActionEntries>
          <BuildActionEntry
@@ -87,6 +103,22 @@
       buildConfiguration = "Release"
       revealArchiveInOrganizer = "YES">
       <PreActions>
+         <ExecutionAction
+            ActionType = "Xcode.IDEStandardExecutionActionsCore.ExecutionActionType.ShellScriptAction">
+            <ActionContent
+               title = "Ensure Pods (CI safe)"
+               scriptText = "# CI-safe: only install Pods if missing, never fail build\nexport PATH=\"/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH\"\nif [ ! -f \"$SRCROOT/Pods/Target Support Files/Pods-Vymix/Pods-Vymix.release.xcconfig\" ]; then\n  echo \"[xcscheme] Pods missing – running pod install\"\n  cd \"$SRCROOT\" && (pod install --repo-update || pod install) || true\nelse\n  echo \"[xcscheme] Pods present – skipping pod install\"\nfi\nexit 0\n">
+               <EnvironmentBuildable>
+                  <BuildableReference
+                     BuildableIdentifier = "primary"
+                     BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
+                     BuildableName = "Vymix.app"
+                     BlueprintName = "Vymix"
+                     ReferencedContainer = "container:Vymix.xcodeproj">
+                  </BuildableReference>
+               </EnvironmentBuildable>
+            </ActionContent>
+         </ExecutionAction>
       </PreActions>
       <PostActions>
          <ExecutionAction
